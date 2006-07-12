@@ -3,7 +3,7 @@
 import gtk
 from datetime import datetime
 
-from kiwi.models import Model
+from kiwi.model import Model
 from kiwi.ui.delegates import Delegate
 from kiwi.ui.gadgets import quit_if_last
 

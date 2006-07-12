@@ -9,6 +9,23 @@ o desenvolvimento de aplicativos que se relacionam com Banco de Dados.
 
    http://www.async.com.br/projects/kiwi/
 
+Este tutorial pode ser obtido em:
+
+   http://www.gustavobarbieri.com.br/kiwi-howto/
+   http://code.gustavobarbieri.com.br/playground/kiwi-howto/ (SVN)
+
+
+Author
+======
+
+   Gustavo Sverzut Barbieri <barbieri@gmail.com>
+
+
+Contribuidores
+==============
+
+   Bruno Gomes <brunopereiragomes@gmail.com>
+
 
 Requisitos
 ==========
@@ -30,6 +47,10 @@ ainda são válidos. Este texto visa ser uma abordagem mais superficial,
 porém rápida e direta, com os exemplos funcionando na versão mais nova
 do software.
 
+Durante a leitura e entendimento deste texto, você deverá consultar a
+referência da interface de programação do Kiwi, em:
+
+   http://async.com.br/projects/kiwi/api/
 
 
 Obtendo o Kiwi
@@ -312,3 +333,4 @@ ValidationError quando a validação falhar, por exemplo:
 
 
 Vide exemplo-05/advanced.
+

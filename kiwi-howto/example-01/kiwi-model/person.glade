@@ -32,7 +32,10 @@
                 <child>
                     <widget class="GtkTable" id="table1">
                         <property name="column_spacing">2</property>
+                        <property name="n_columns">2</property>
+                        <property name="n_rows">3</property>
                         <property name="row_spacing">5</property>
+                        <property name="visible">True</property>
                         <child>
                             <widget class="GtkLabel" id="label2">
                                 <property name="justify">center</property>
@@ -69,10 +72,12 @@
                             </packing>
                         </child>
                         <child>
-                            <widget class="kiwi+ui+widgets+entry+Entry" id="name">
+                            <widget class="ProxyEntry" id="name">
                                 <property name="data_type">str</property>
+                                <property name="is_focus">True</property>
                                 <property name="mandatory">True</property>
                                 <property name="model_attribute">name</property>
+                                <property name="visible">True</property>
                             </widget>
                             <packing>
                                 <property name="left_attach">1</property>
@@ -80,10 +85,11 @@
                             </packing>
                         </child>
                         <child>
-                            <widget class="kiwi+ui+widgets+entry+Entry" id="address">
+                            <widget class="ProxyEntry" id="address">
                                 <property name="data_type">str</property>
                                 <property name="mandatory">True</property>
                                 <property name="model_attribute">address</property>
+                                <property name="visible">True</property>
                                 <property name="width_chars">0</property>
                             </widget>
                             <packing>
@@ -94,10 +100,11 @@
                             </packing>
                         </child>
                         <child>
-                            <widget class="kiwi+ui+widgets+entry+Entry" id="phone">
+                            <widget class="ProxyEntry" id="phone">
                                 <property name="data_type">str</property>
-                                <property name="model_attribute">phone</property>
                                 <property name="mandatory">True</property>
+                                <property name="model_attribute">phone</property>
+                                <property name="visible">True</property>
                             </widget>
                             <packing>
                                 <property name="bottom_attach">3</property>
@@ -125,9 +132,9 @@
                 </child>
                 <child>
                     <widget class="GtkLabel" id="label5">
-                        <property name="label" context="yes" translatable="yes">A simple persistence demonstration: change the data in the entries, and quit the application.
-Run it again, and the data is magically reloaded.</property>
+                        <property name="label" context="yes" translatable="yes">Multiple Views from the same model example. Type in one window and check the other, they must have the same contents.</property>
                         <property name="visible">True</property>
+                        <property name="wrap">True</property>
                         <property name="xpad">5</property>
                         <property name="ypad">5</property>
                     </widget>

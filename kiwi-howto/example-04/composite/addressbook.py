@@ -13,7 +13,7 @@ import gtk
 
 from kiwi.ui.delegates import Delegate, SlaveDelegate
 from kiwi.ui.gadgets import quit_if_last
-from kiwi.models import Model
+from kiwi.model import Model
 from kiwi.utils import gsignal
 
 

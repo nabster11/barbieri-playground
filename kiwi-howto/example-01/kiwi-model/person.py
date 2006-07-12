@@ -3,7 +3,7 @@ import gtk
 
 from threading import Thread
 
-from kiwi.models import Model
+from kiwi.model import Model
 from kiwi.ui.views import BaseView
 from kiwi.ui.gadgets import quit_if_last
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import gtk
 
-from kiwi.models import PickledModel, unpickle_model
+from kiwi.model import PickledModel
 from kiwi.ui.views import BaseView
 from kiwi.ui.gadgets import quit_if_last
 
@@ -11,7 +11,7 @@ class Person( PickledModel ):
     address = ""
     phone = ""
 
-person = unpickle_model( Person ) # load person instance
+person = Person.unpickle() # load person instance
 
 view = BaseView( delete_handler=quit_if_last,
                  widgets=( "name", "address", "phone" ),
