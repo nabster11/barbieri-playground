@@ -6,7 +6,6 @@
         <property name="default_width">440</property>
         <child>
             <widget class="kiwi+ui+widgets+list+List" id="table">
-                <property name="column_definitions">name|Name|str||left|||||^address|Address|str||left|||||^phone|Phone|str||left|||||</property>
                 <property name="hscrollbar_policy">never</property>
                 <property name="vscrollbar_policy">automatic</property>
             </widget>

@@ -1,20 +1,11 @@
 #!/usr/bin/env python
 
-"""
-Questions:
- - What's the right way to use proxies, is set_entry() right?
-   How to make it work when deleted the item?
- - How to get kiwi.ui.widgets.list.List updated as user types?
- - There is a better way to connect the SlaveDelegate "result" signal
-   with its parent?
-"""
-
 import gtk
 
 from kiwi.ui.delegates import Delegate, SlaveDelegate
 from kiwi.ui.gadgets import quit_if_last
+from kiwi.ui.objectlist import Column
 from kiwi.model import Model
-from kiwi.utils import gsignal
 
 
 class EntryEditor( SlaveDelegate ):
@@ -23,19 +14,19 @@ class EntryEditor( SlaveDelegate ):
                                 gladefile="entry_editor",
                                 widgets=( "name", "address", "phone" ),
                                 )
+        self.model = None
+        self.proxy = self.add_proxy( self.model, self.widgets )
 
-    def set_entry( self, obj ):
-        if not self.proxies:
-            self.add_proxy( obj )
-        else:
-            self.proxies[ 0 ].new_model( obj )
-
-    def unset_entry( self ):
-        if self.proxies:
-            self.proxies[ 0 ].new_model( None, relax_type=True )
+        def f( w, a, v ):
+            self.emit( "result", self.model )
+        self.proxy.proxy_updated = f
 
     def set_sensitive( self, v ):
         self.toplevel.set_sensitive( v )
+
+    def set_model( self, model ):
+        self.model = model
+        self.proxy.set_model( model )
 
 
 
@@ -45,6 +36,13 @@ class ListEntries( SlaveDelegate ):
                                 gladefile="list_entries",
                                 widgets=( "table", ),
                                 )
+        self.table = self.get_widget( "table" )
+        self.table.set_columns( [
+            Column( "name", title="Name" ),
+            Column( "address", title="Address" ),
+            Column( "phone", title="Phone" ),
+            ] )
+
 
     def add( self, obj, selected=True ):
         self.table.append( obj, selected )
@@ -57,6 +55,9 @@ class ListEntries( SlaveDelegate ):
 
     def on_table__selection_changed( self, table, obj ):
         self.emit( "result", obj )
+
+    def update( self, *a ):
+        self.table.refresh()
 
 
 
@@ -75,17 +76,20 @@ class Addressbook( Delegate ):
                            )
 
         self.entry_editor = EntryEditor()
-	self.entry_editor.set_sensitive( 0 )
+	self.entry_editor.set_sensitive( False )
         self.attach_slave( "entry_editor", self.entry_editor )
 
         self.list_entries = ListEntries()
         self.list_entries.connect( "result", self.entry_selected )
         self.attach_slave( "list", self.list_entries )
 
+        self.entry_editor.connect( "result", self.list_entries.update )
+
+
     def entry_selected( self, table, obj ):
         if obj is not None:
-            self.entry_editor.set_sensitive( 1 )
-            self.entry_editor.set_entry( obj )
+            self.entry_editor.set_model( obj )
+            self.entry_editor.set_sensitive( True )
 
     def add_entry( self ):
         self.list_entries.add( Person() )
@@ -94,8 +98,8 @@ class Addressbook( Delegate ):
         obj = self.list_entries.get_selected()
         if obj is not None:
             self.list_entries.remove( obj )
-            self.entry_editor.unset_entry()
-            self.entry_editor.set_sensitive( 0 )
+            self.entry_editor.set_model( None )
+            self.entry_editor.set_sensitive( False )
 
     def on_add__clicked( self, *args ):
         self.add_entry()
@@ -103,10 +107,10 @@ class Addressbook( Delegate ):
     def on_remove__clicked( self, *args ):
         self.del_entry()
 
-    def my_f1_handler( self, widget, event, args ):
+    def my_f1_handler( self, widget, event ):
         self.add_entry()
 
-    def my_f2_handler( self, widget, event, args ):
+    def my_f2_handler( self, widget, event ):
         self.del_entry()
 
 

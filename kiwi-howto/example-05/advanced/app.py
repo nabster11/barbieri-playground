@@ -5,7 +5,7 @@ from datetime import datetime
 
 from kiwi.model import Model
 from kiwi.datatypes import ValidationError
-from kiwi.ui.delegates import Delegate
+from kiwi.ui.delegates import ProxyDelegate
 from kiwi.ui.gadgets import quit_if_last
 
 class Data( Model ):
@@ -26,19 +26,22 @@ class Data( Model ):
                  'mandatory_entry="%(mandatory_entry)s" '
                  '/>' ) % self.__dict__
 
-class App( Delegate ):
-    def __init__( self ):
-        Delegate.__init__( self,
-                           gladefile="form",
-                           delete_handler=quit_if_last,
-                           widgets=( "text_entry",
+class App( ProxyDelegate ):
+    def __init__( self, model=None ):
+        ProxyDelegate.__init__( self, model,
+                                gladefile="form",
+                                delete_handler=quit_if_last,
+                                widgets=( "text_entry",
                                      "int_entry",
                                      "float_entry",
                                      "date_entry",
                                      "mandatory_entry",
-                                     "ok"
-                                     )
-                           )
+                                     "ok" ),
+                                proxy_widgets=( "text_entry",
+                                                "int_entry",
+                                                "float_entry",
+                                                "date_entry",
+                                                "mandatory_entry" ) )
         self.register_validate_function( self.validity )
         self.force_validation()
 
@@ -46,8 +49,7 @@ class App( Delegate ):
         self.ok.set_sensitive( is_valid )
 
     def on_ok__clicked( self, btn, *args ):
-        for proxy in self.proxies:
-            print proxy.model
+        print self.model
         quit_if_last()
 
     def on_text_entry__validate( self, text_entry, data ):
@@ -64,8 +66,7 @@ class App( Delegate ):
 
 
 data = Data()
-app = App()
-app.add_proxy( data )
+app = App( data )
 app.show_all()
 app.focus_topmost()
 

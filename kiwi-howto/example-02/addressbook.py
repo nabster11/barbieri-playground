@@ -3,6 +3,7 @@
 import gtk
 
 from kiwi.ui.views import BaseView, SlaveView
+from kiwi.ui.objectlist import Column
 from kiwi.ui.gadgets import quit_if_last
 
 # Main window
@@ -19,6 +20,12 @@ entry_editor = SlaveView( toplevel=addressbook,
 list_entries = SlaveView( toplevel=addressbook,
                           widgets=( "table", ),
                           gladefile="list_entries" )
+
+table = list_entries.get_widget( "table" )
+table.set_columns( [ Column( "name", title="Name" ),
+                     Column( "address", title="Address" ),
+                     Column( "phone", title="Phone" ),
+                     ] )
 
 ## Attach slaves to main window
 addressbook.attach_slave( "entry_editor", entry_editor )
