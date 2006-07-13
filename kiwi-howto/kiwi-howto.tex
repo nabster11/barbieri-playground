@@ -1,9 +1,38 @@
-# -*- coding: utf-8 -*-
+% -*- coding: latin-1 -*-
+\documentclass[a4paper]{howto}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage[brazil]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{verbatim}
+\usepackage{graphicx}
 
-Tutorial Introdut√≥rio ao Kiwi
-=============================
+\title{Tutorial IntrodutÛrio ao Kiwi}
 
-A plataforma Kiwi √© desenvolvida, principalmente, pela empresa Async
+\author{Gustavo Sverzut Barbieri}
+\authoraddress{barbieri@gmail.com}
+\date{July, 2006}
+
+\begin{document}
+  \lstset{
+    frame=single,
+    showstringspaces=false,
+    extendedchars=true,
+    language=Python,
+    backgroundcolor=\color[rgb]{0.95,0.95,0.95},
+    rulecolor=\color[rgb]{0.3,0.3,0.3},
+    basicstyle=\color[rgb]{0,0,0}\small\upshape\ttfamily,
+    commentstyle=\color[rgb]{0.5,0.0,0.0}\rmfamily\itshape,
+    keywordstyle=\color[rgb]{0.7,0.0,0.8}\bfseries,
+    stringstyle=\color[rgb]{0.6,0.4,0.4},
+    identifierstyle=\color[rgb]{0.2,0.2,0.8}
+ }
+
+\maketitle
+
+\begin{abstract}
+
+A plataforma Kiwi È desenvolvida, principalmente, pela empresa Async
 (http://www.async.com.br), baseada em Python e GTK, ela visa facilitar
 o desenvolvimento de aplicativos que se relacionam com Banco de Dados.
 
@@ -13,324 +42,321 @@ Este tutorial pode ser obtido em:
 
    http://www.gustavobarbieri.com.br/kiwi-howto/
    http://code.gustavobarbieri.com.br/playground/kiwi-howto/ (SVN)
+\end{abstract}
 
 
-Author
-======
+\section{Requisitos}
 
-   Gustavo Sverzut Barbieri <barbieri@gmail.com>
+\begin{itemize}
+  \item GTK+ 2.6.x      ftp://ftp.gtk.org/pub/gtk/v2.6/
+  \item PyGTK 2.6.x     ftp://ftp.gtk.org/pub/gtk/python/v2.6/
+  \item Python > 2.3    http://www.python.org/download/
+  \item gazpacho 0.6.x  http://ftp.gnome.org/pub/GNOME/sources/gazpacho/0.6/
+    mas se possÌvel utilize a vers„o do SVN:
+    svn co http://svn.sicem.biz/gazpacho/trunk gazpacho
+\end{itemize}
 
+\section{Sobre este Texto}
 
-Contribuidores
-==============
-
-   Bruno Gomes <brunopereiragomes@gmail.com>
-
-
-Requisitos
-==========
-
-    - GTK+ 2.6.x      ftp://ftp.gtk.org/pub/gtk/v2.6/
-    - PyGTK 2.6.x     ftp://ftp.gtk.org/pub/gtk/python/v2.6/
-    - Python > 2.3    http://www.python.org/download/
-    - gazpacho 0.6.x  http://ftp.gnome.org/pub/GNOME/sources/gazpacho/0.6/
-                      mas se poss√≠vel utilize a vers√£o do SVN:
-                      svn co http://svn.sicem.biz/gazpacho/trunk gazpacho
-
-Sobre este Texto
-================
-
-Este texto √© baseado no texto do Kiko (Christian Reis) dispon√≠vel em
-http://www.async.com.br/projects/kiwi/howto/ o qual descreve a vers√£o
-1 da plataforma. Desde l√° algumas coisas mudaram, por√©m os conceitos
-ainda s√£o v√°lidos. Este texto visa ser uma abordagem mais superficial,
-por√©m r√°pida e direta, com os exemplos funcionando na vers√£o mais nova
+Este texto È baseado no texto do Kiko (Christian Reis) disponÌvel em
+http://www.async.com.br/projects/kiwi/howto/ o qual descreve a vers„o
+1 da plataforma. Desde l· algumas coisas mudaram, porÈm os conceitos
+ainda s„o v·lidos. Este texto visa ser uma abordagem mais superficial,
+porÈm r·pida e direta, com os exemplos funcionando na vers„o mais nova
 do software.
 
-Durante a leitura e entendimento deste texto, voc√™ dever√° consultar a
-refer√™ncia da interface de programa√ß√£o do Kiwi, em:
+Durante a leitura e entendimento deste texto, vocÍ dever· consultar a
+referÍncia da interface de programaÁ„o do Kiwi, em:
 
    http://async.com.br/projects/kiwi/api/
 
 
-Obtendo o Kiwi
-==============
+\section{Obtendo o Kiwi}
 
 Utilize o software SVN (subversion, http://subversion.tigris.org/):
 
+\begin{verbatim}
    svn co svn://svn.async.com.br/kiwi/trunk kiwi
+\end{verbatim}
 
 
-Instala√ß√£o
-==========
+\section{InstalaÁ„o}
 
-Ap√≥s instalar as depend√™ncias e baixar o c√≥digo do Kiwi, instale-o no
-seu sistema, entre no diret√≥rio do kiwi e como super-usu√°rio (root)
-fa√ßa:
+ApÛs instalar as dependÍncias e baixar o cÛdigo do Kiwi, instale-o no
+seu sistema, entre no diretÛrio do kiwi e como super-usu·rio (root)
+faÁa:
 
+\begin{verbatim}
    python setup.py install
+\end{verbatim}
 
 
 
-Primeiros Passos com Kiwi e MVC
-===============================
+\section{Primeiros Passos com Kiwi e MVC}
 
 O Kiwi utiliza o modelo de desenvolvimento
-Modelo-Vis√£o-Controlador (Model-View-Controller, MVC).
+Modelo-Vis„o-Controlador (Model-View-Controller, MVC).
 
 Nosso primeiro exemplo vai utilizar o modelo de pessoa definido por
-Pessoa, com os atributos: nome, endere√ßo e telefone. Este modelo pode
+Pessoa, com os atributos: nome, endereÁo e telefone. Este modelo pode
 ser qualquer classe Python.
 
-Nossa "Vis√£o" vai utilizar um arquivo XML gerado no Gazpacho. √â um
-arquivo glade convencional, a √∫nica diferen√ßa √© que os campos do
-modelo que se quer ligar automaticamente √† vis√£o devem ser baseados nos
+Nossa "Vis„o" vai utilizar um arquivo XML gerado no Gazpacho. … um
+arquivo glade convencional, a ˙nica diferenÁa È que os campos do
+modelo que se quer ligar automaticamente ‡ vis„o devem ser baseados nos
 tipos em kiwi.ui.widgets, como kiwi.ui.widgets.entry.Entry. No arquivo
 XML ele vai aparecer como  class="kiwi+ui+widgets+entry+Entry". O nome
-do objeto e a propriedade "model_attribute" devem ter os nomes
-indicados no modelo. Outra peculiaridade √© que o nome do arquivo
+do objeto e a propriedade \lstinline|model_attribute| devem ter os nomes
+indicados no modelo. Outra peculiaridade È que o nome do arquivo
 ".glade" deve ser igual ao do componente (widget) principal, caso
-contr√°rio √© necess√°rio especificar o par√¢metro "gladename" para o
-construtor das classes de vis√£o.
+contr·rio È necess·rio especificar o par‚metro "gladename" para o
+construtor das classes de vis„o.
 
-O controlador neste caso √© feito automaticamente pelo Kiwi.
+O controlador neste caso È feito automaticamente pelo Kiwi.
 
-Os c√≥digos est√£o presentes no diret√≥rio example-01, divididos em 4
-diret√≥rios:
+Os cÛdigos est„o presentes no diretÛrio example-01, divididos em 4
+diretÛrios:
 
- * simple: o m√≠nimo necess√°rio. O modelo √© um objeto python
-   convencional.
+\begin{itemize}
+  \item simple: o mÌnimo necess·rio. O modelo È um objeto python
+    convencional.
+  \item pickle: uma vers„o que persiste os dados utilizando o formato de
+    serializaÁ„o pickle.
+  \item sqlobject: uma vers„o que persiste os dados utilizando sqlobject.
+  \item kiwi-model: uma vers„o que utiliza kiwi.models.Model. Esta vers„o
+    mostra que ao utiliz·-la, a interface È notificada de modificaÁıes
+    no modelo.
+\end{itemize}
 
- * pickle: uma vers√£o que persiste os dados utilizando o formato de
-   serializa√ß√£o pickle.
+Ambos exemplos s„o bem simples, os 3 primeiros diferindo apenas no
+tipo de modelo utilizado. J· kiwi-model utiliza-se de duas visıes
+para o mesmo modelo, sendo assim possÌvel notar que se este for
+derivado de kiwi.models.Model, a interface È notificada de mudanÁas no
+modelo, a seq¸Íncia de acontecimentos È:
 
- * sqlobject: uma vers√£o que persiste os dados utilizando sqlobject.
-
- * kiwi-model: uma vers√£o que utiliza kiwi.models.Model. Esta vers√£o
-   mostra que ao utiliz√°-la, a interface √© notificada de modifica√ß√µes
-   no modelo.
-
-Ambos exemplos s√£o bem simples, os 3 primeiros diferindo apenas no
-tipo de modelo utilizado. J√° kiwi-model utiliza-se de duas vis√µes
-para o mesmo modelo, sendo assim poss√≠vel notar que se este for
-derivado de kiwi.models.Model, a interface √© notificada de mudan√ßas no
-modelo, a seq√º√™ncia de acontecimentos √©:
-
-   Usu√°rio modifica Vis√£o 1 ->
+\begin{verbatim}
+   Usu·rio modifica Vis„o 1 ->
    Gera evento para o Controlador 1 ->
    Modifica o Model ->
    Notifica os proxies 1 e 2 ->
-   Vis√£o 1 j√° est√° correta, fica igual. Vis√£o 2 ser√° atualizada.
+   Vis„o 1 j· est· correta, fica igual. Vis„o 2 ser· atualizada.
+\end{verbatim}
 
-Os exemplos s√£o compostos da seguinte forma:
-1) Importamos as classes e fun√ß√µes dos m√≥dulos que utilizaremos.
-2) Definimos nosso modelo.
-3) Instanciamos o modelo.
-4) Criamos a vis√£o, passando como par√¢metro a fun√ß√£o a ser executada
-   quando a janela for fechada (delete_handler), os nomes dos
-   componentes gr√°ficos do XML/Glade os quais queremos ter acesso como
-   atributos do nosso objeto de vis√£o (widgets) e o nome do arquivo
-   XML (gladefile). Note que o componente principal deve ter o mesmo
-   nome do arquivo, sen√£o ser√° necess√°rio especificar o par√¢metro
-   adicional "gladename".
-5) Adicionamos um "proxy" para manter a sincronia entre modelo e
-   vis√£o.
-6) Configuramos a interface para focalizar o componente do topo e
-   ainda mostrar todos os componentes existentes.
-7) Por fim n√≥s entregamos a execu√ß√£o do programa para o GTK, que
-   entrar√° no seu la√ßo para tratamento de eventos, entendendo assim
-   entrada de teclado, mouse e outros.
+Os exemplos s„o compostos da seguinte forma:
+\begin{enumerate}
+  \item Importamos as classes e funÁıes dos mÛdulos que utilizaremos.
+  \item Definimos nosso modelo.
+  \item Instanciamos o modelo.
+  \item Criamos a vis„o, passando como par‚metro a funÁ„o a ser executada
+    quando a janela for fechada (\lstinline|delete_handler|), os nomes dos
+    componentes gr·ficos do XML/Glade os quais queremos ter acesso como
+    atributos do nosso objeto de vis„o (widgets) e o nome do arquivo
+    XML (gladefile). Note que o componente principal deve ter o mesmo
+    nome do arquivo, sen„o ser· necess·rio especificar o par‚metro
+    adicional "gladename".
+  \item Adicionamos um "proxy" para manter a sincronia entre modelo e
+    vis„o.
+  \item Configuramos a interface para focalizar o componente do topo e
+    ainda mostrar todos os componentes existentes.
+  \item Por fim nÛs entregamos a execuÁ„o do programa para o GTK, que
+    entrar· no seu laÁo para tratamento de eventos, entendendo assim
+    entrada de teclado, mouse e outros.
+\end{enumerate}
 
 
-Componentes B√°sicos do Kiwi
-===========================
+\section{Componentes B·sicos do Kiwi}
 
-O Kiwi √© composto por um conjunto de classes que podem ser agrupadas
+O Kiwi È composto por um conjunto de classes que podem ser agrupadas
 em:
 
- * Vis√£o (Views): representa√ß√£o gr√°fica, com componentes de interface
-   de usu√°rio: bot√µes, entrada de texto, r√≥tulos, figuras e outros.
+\begin{itemize}
+  \item Vis„o (Views): representaÁ„o gr·fica, com componentes de interface
+    de usu·rio: botıes, entrada de texto, rÛtulos, figuras e outros.
+  \item Controladores (Controllers): trata os sinais e eventos gerados pelo
+    usu·rio que interage com os componentes de Vis„o: entradas de
+    teclado e mouse, eventos temporais e outros.
+  \item Delegadores (Delegates): classes que combinam Vis„o e
+    Controladores para facilitar e agilizar o desenvolvimento.
+  \item Modelos (Models): s„o objetos que representam/modelam seus dados.
+  \item Proxies: facilitador que mantÈm sincronizados os dados do modelo e
+   vis„o, toda mudanÁa na vis„o ser· aplicada ao modelo. Caso o modelo
+   seja derivado de kiwi.models.Model, o contr·rio tambÈm È verdade:
+   mudanÁas no modelo ser„o aplicadas na vis„o. S„o utilizados para a
+   maioria dos formul·rios.
+\end{itemize}
 
- * Controladores (Controllers): trata os sinais e eventos gerados pelo
-   usu√°rio que interage com os componentes de Vis√£o: entradas de
-   teclado e mouse, eventos temporais e outros.
+\subsection{Vis„o (Views)}
 
- * Delegadores (Delegates): classes que combinam Vis√£o e
-   Controladores para facilitar e agilizar o desenvolvimento.
+O Kiwi provÍ duas classes para Vis„o, localizadas em kiwi.ui.view:
 
- * Modelos (Models): s√£o objetos que representam/modelam seus dados.
-
- * Proxies: facilitador que mant√©m sincronizados os dados do modelo e
-   vis√£o, toda mudan√ßa na vis√£o ser√° aplicada ao modelo. Caso o modelo
-   seja derivado de kiwi.models.Model, o contr√°rio tamb√©m √© verdade:
-   mudan√ßas no modelo ser√£o aplicadas na vis√£o. S√£o utilizados para a
-   maioria dos formul√°rios.
-
-
-Vis√£o (Views)
-~~~~~~~~~~~~~
-
-O Kiwi prov√™ duas classes para Vis√£o, localizadas em kiwi.ui.view:
-
- * SlaveView: √© considerado um objeto do GTK e pode ser embutido em
-   outros componentes que aceitem um GObject. V√°rias SlaveView podem
-   ser combinadas para formar uma interface completa a partir de
-   componentes reus√°veis.  Pode ser baseada em um arquivo XML do
-   gazpacho/glade.
-
- * BaseView: derivado de SlaveView, implementa algumas funcionalidades
-   extra necess√°rias para uma janela principal (toplevel). O par√¢metro
-   do construtor delete_handler √© um objeto "cham√°vel" (callable) que
-   ser√° chamado quando a janela for removida (por exemplo o usu√°rio
-   clicou no bot√£o de fechar a janela).
+\begin{itemize}
+  \item SlaveView: È considerado um objeto do GTK e pode ser embutido em
+    outros componentes que aceitem um GObject. V·rias SlaveView podem
+    ser combinadas para formar uma interface completa a partir de
+    componentes reus·veis.  Pode ser baseada em um arquivo XML do
+    gazpacho/glade.
+  \item BaseView: derivado de SlaveView, implementa algumas funcionalidades
+    extra necess·rias para uma janela principal (toplevel). O par‚metro
+    do construtor \lstinline|delete_handler| È um objeto "cham·vel"
+    (\textit{callable}) que
+    ser· chamado quando a janela for removida (por exemplo o usu·rio
+    clicou no bot„o de fechar a janela).
+\end{itemize}
 
 
 
-   Composi√ß√£o de Interfaces de Usu√°rio
-   -----------------------------------
+\subsubsection{ComposiÁ„o de Interfaces de Usu·rio}
 
-A fim de reusar os componentes da interface de usu√°rio, podemos
-combinar SlaveViews, compondo, assim, uma interface de usu√°rio mais
+A fim de reusar os componentes da interface de usu·rio, podemos
+combinar SlaveViews, compondo, assim, uma interface de usu·rio mais
 rica.
 
-Os passos para fazer a composi√ß√£o s√£o extremamente simples:
+Os passos para fazer a composiÁ„o s„o extremamente simples:
 
-
- 1) [Gazpacho] Desenhe os seus componentes em arquivos Glade/XML
+\begin{enumerate}
+  \item [Gazpacho] Desenhe os seus componentes em arquivos Glade/XML
     separados.
-
- 2) [Python] Crie uma inst√¢ncia de SlaveView para cada componente criado.
-
- 3) [Gazpacho] Na tela principal, na qual os objetos ser√£o embutidos,
+  \item [Python] Crie uma inst‚ncia de SlaveView para cada componente criado.
+  \item [Gazpacho] Na tela principal, na qual os objetos ser„o embutidos,
     crie componentes do tipo EventBox com nomes apropriados. Este
-    elemento ser√° removido pelo Kiwi e seu componente ser√° inclu√≠do no
+    elemento ser· removido pelo Kiwi e seu componente ser· incluÌdo no
     lugar.
-
- 4) [Python] Crie uma inst√¢ncia de BaseView para a tela principal.
-
- 5) [Python] Utilize o m√©todo attach_slave() de BaseView com os
-    par√¢metro sendo o nome do EventBox adicionado e a inst√¢ncia de
+  \item [Python] Crie uma inst‚ncia de BaseView para a tela principal.
+  \item [Python] Utilize o mÈtodo \lstinline|attach_slave()| de BaseView com os
+    par‚metro sendo o nome do EventBox adicionado e a inst‚ncia de
     SlaveView equivalente.
+\end{enumerate}
 
-Vide os arquivos em example-02/. Os componentes separados s√£o
-entry_editor e list_entries que podem ser visualizados nos arquivos
-XML/Glade correspondentes. A tela principal, tamb√©m chamada de casca
-(ou em ingl√™s, "shell") est√° em addressbook.glade. O arquivo
-addressbook.py l√™ os tr√™s componentes e ent√£o anexa os componentes
-entry_editor e list_entries no componente principal addressbook. Note,
-por√©m, que por enquanto n√£o temos nenhum modelo associado.
+Vide os arquivos em example-02/. Os componentes separados s„o
+\lstinline|entry_editor| e \lstinline|list_entries| que podem ser
+visualizados nos arquivos
+XML/Glade correspondentes. A tela principal, tambÈm chamada de casca
+(ou em inglÍs, "shell") est· em addressbook.glade. O arquivo
+addressbook.py lÍ os trÍs componentes e ent„o anexa os componentes
+\lstinline|entry_editor| e \lstinline|list_entries| no componente
+principal addressbook. Note,
+porÈm, que por enquanto n„o temos nenhum modelo associado.
 
 
-Controladores (Controllers)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\subsection{Controladores (Controllers)}
 
-Para que a interface de usu√°rio responda aos eventos, seja o
-pressionar de um bot√£o, teclas de atalho, preenchimento de um campo,
-etc. precisamos lig√°-la a um controlador.
+Para que a interface de usu·rio responda aos eventos, seja o
+pressionar de um bot„o, teclas de atalho, preenchimento de um campo,
+etc. precisamos lig·-la a um controlador.
 
-O kiwi prov√™ uma classe chamada BaseController para implementarmos os
+O kiwi provÍ uma classe chamada BaseController para implementarmos os
 nossos controladores. Esta classe tem um recurso que torna
-extraordinariamente f√°cil criarmos as a√ß√µes, apenas temos que criar
-m√©todos que tenham a nomenclatura:
+extraordinariamente f·cil criarmos as aÁıes, apenas temos que criar
+mÈtodos que tenham a nomenclatura:
 
+\begin{verbatim}
    <quando>_<nome_do_componente>__<sinal_do_componente>
+\end{verbatim}
 
-<quando> pode assumir 2 valores: "on" e "after". O primeiro √© usado
-para a√ß√µes no instante que elas aconteceram, geralmente utilizadas
-para "clicks" de bot√£o, ativa√ß√£o de a√ß√µes, etc. J√° o segundo √© usado
-para a√ß√µes ap√≥s o "on" ter sido executado, geralmente utilizadas para
-a√ß√µes como mudan√ßa de um campo de texto.
+<quando> pode assumir 2 valores: "on" e "after". O primeiro È usado
+para aÁıes no instante que elas aconteceram, geralmente utilizadas
+para "clicks" de bot„o, ativaÁ„o de aÁıes, etc. J· o segundo È usado
+para aÁıes apÛs o "on" ter sido executado, geralmente utilizadas para
+aÁıes como mudanÁa de um campo de texto.
 
 Por exemplo, se queremos que ao (quando="on") pressionar
-(sinal_do_componente="clicked") o bot√£o cancelar
-(nome_do_componente="cancelar") seja chamado nosso m√©todo, ent√£o
+(sinal\_do\_componente="clicked") o bot„o cancelar
+(nome\_do\_componente="cancelar") seja chamado nosso mÈtodo, ent„o
 usamos:
 
+\begin{lstlisting}
    def on_cancelar__clicked( self, button, *args ):
        codigo
+\end{lstlisting}
 
-Caso o desejado seja uma a√ß√£o ap√≥s (quando="after") o conte√∫do de uma
-caixa de texto chamada nome (nome_do_componente="nome") tenha mudado
-(sinal_do_componente="content_changed"), poder√≠amos usar:
 
+Caso o desejado seja uma aÁ„o apÛs (quando="after") o conte˙do de uma
+caixa de texto chamada nome (nome\_do\_componente="nome") tenha mudado
+(sinal\_do\_componente="content_changed"), poderÌamos usar:
+
+\begin{lstlisting}
    def after_nome__content_changed( self, entry, *args ):
        codigo
+\end{lstlisting}
+
 
 Para associar teclas de atalho, apenas crie um mapeamento (dict) que
-contenha as teclas  (ex: gtk.keysyms.a) como chave e as fun√ß√µes de
+contenha as teclas  (ex: gtk.keysyms.a) como chave e as funÁıes de
 tratamento como valor.
 
 Vide os arquivos em example-03/. Este exemplo define um controlador
-ExampleController com 3 a√ß√µes, sendo uma para cada bot√£o e outra para
-a caixa de texto. Os bot√µes, quando clicados ir√£o modificar o texto do
-r√≥tulo "label_last_button". A caixa de texto, ao ser modificada, ir√°
-ter seu conte√∫do copiado para o r√≥tulo "label_name". Note que todos os
-componentes utilizados devem ter sido declarados com o par√¢metro
+ExampleController com 3 aÁıes, sendo uma para cada bot„o e outra para
+a caixa de texto. Os botıes, quando clicados ir„o modificar o texto do
+rÛtulo "label\_last\_button". A caixa de texto, ao ser modificada, ir·
+ter seu conte˙do copiado para o rÛtulo "label\_name". Note que todos os
+componentes utilizados devem ter sido declarados com o par‚metro
 "widgets" de BaseView.
 
 
-Delegadores (Delegates)
-~~~~~~~~~~~~~~~~~~~~~~~
+\subsection{Delegadores (Delegates)}
 
-Dos exemplos anteriores com Vis√£o e Controlador voc√™ j√° deve imaginar
+Dos exemplos anteriores com Vis„o e Controlador vocÍ j· deve imaginar
 que deveria existir algo para automatizar a tarefa. E existe: os
 delegadores.
 
-Delegadores s√£o nada mais que a jun√ß√£o de Vis√£o e Controlador, feita
-usando heran√ßa m√∫ltipla, com o objetivo de facilitar a programa√ß√£o.
+Delegadores s„o nada mais que a junÁ„o de Vis„o e Controlador, feita
+usando heranÁa m˙ltipla, com o objetivo de facilitar a programaÁ„o.
 
-Existem tamb√©m o SlaveDelegate, que √© a jun√ß√£o de SlaveView com
+Existem tambÈm o SlaveDelegate, que È a junÁ„o de SlaveView com
 Controller, e se comunica com o slave
 
-Vide os arquivos em example-04/, sendo o sub-diret√≥rio simple/ um
-amostra de um delegador simples e o sub-diret√≥rio composite/ um
-exemplo mais avan√ßado, com SlaveDelegate para compor uma tela
+Vide os arquivos em example-04/, sendo o sub-diretÛrio simple/ um
+amostra de um delegador simples e o sub-diretÛrio composite/ um
+exemplo mais avanÁado, com SlaveDelegate para compor uma tela
 utilizando componentes menores.
 
-O exemplo simples (example-04/simple) √© o example-03 utilizando
-Delegates. J√° o exemplo composto (example-04/composite) √© o
+O exemplo simples (example-04/simple) È o example-03 utilizando
+Delegates. J· o exemplo composto (example-04/composite) È o
 example-02 utilizando Delegates e SlaveDelegates. Note que SlaveViews,
-e portanto BaseView, t√™m dispon√≠vel o sinal "result" que deve ser
-utilizado para passar dados entre v√°rias vis√µes e, portanto,
-delegadores. Isto est√° exemplificado em example-04/composite no qual
-ListEntries emite o sinal quando a sele√ß√£o da tabela mudou e
-Addressbook trata este sinal com entry_selected(), perceba que a
-conex√£o do sinal tem que ser feito utilizando o m√©todo convencional do
-GTK ao inv√©s da facilidade do controlador.
+e portanto BaseView, tÍm disponÌvel o sinal "result" que deve ser
+utilizado para passar dados entre v·rias visıes e, portanto,
+delegadores. Isto est· exemplificado em example-04/composite no qual
+ListEntries emite o sinal quando a seleÁ„o da tabela mudou e
+Addressbook trata este sinal com \lstinline|entry_selected()|, perceba
+que a conex„o do sinal tem que ser feito utilizando o mÈtodo
+convencional do GTK ao invÈs da facilidade do controlador.
 
 
 
-Modelos (Models), Tipos de Dados e Validadores
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\subsection{Modelos (Models), Tipos de Dados e Validadores}
 
-A plataforma Kiwi j√° faz a confer√™ncia de tipos de dados baseada no
-valor do campo "data_type" do arquivo XML/Glade. Al√©m disso, ela
-confere os campos obrigat√≥rios baseada no valor do campo "mandatory"
+A plataforma Kiwi j· faz a conferÍncia de tipos de dados baseada no
+valor do campo "data\_type" do arquivo XML/Glade. AlÈm disso, ela
+confere os campos obrigatÛrios baseada no valor do campo "mandatory"
 deste mesmo arquivo.
 
-Ap√≥s ter sido ligado o modelo √† vis√£o e controle (ou delegador), o
-Kiwi mostra um √≠cone ao lado dos campos obrigat√≥rios e ainda n√£o
+ApÛs ter sido ligado o modelo ‡ vis„o e controle (ou delegador), o
+Kiwi mostra um Ìcone ao lado dos campos obrigatÛrios e ainda n„o
 preenchidos, indicando que o mesmo deve conter um valor. Os campos que
-n√£o conferem com o tipo de dado, por exemplo um texto no lugar de um
-inteiro, ficar√£o marcados em vermelho e um √≠cone aparecer√° ao lado que
-ainda fornecer√° uma dica "tool tip" dizendo qual o tipo de dado
+n„o conferem com o tipo de dado, por exemplo um texto no lugar de um
+inteiro, ficar„o marcados em vermelho e um Ìcone aparecer· ao lado que
+ainda fornecer· uma dica "tool tip" dizendo qual o tipo de dado
 esperado.
 
-Podemos tamb√©m registrar uma fun√ß√£o que ser√° chamada quando o estado
-do formul√°rio mudar de v√°lido para inv√°lido, podendo, por exemplo,
-desabilitar o bot√£o de "Ok". Esta fun√ß√£o √©
-"register_validate_function()".
+Podemos tambÈm registrar uma funÁ„o que ser· chamada quando o estado
+do formul·rio mudar de v·lido para inv·lido, podendo, por exemplo,
+desabilitar o bot„o de "Ok". Esta funÁ„o È
+\lstinline|register_validate_function()|.
 
 Vide exemple-05/simple.
 
-Por√©m podemos adicionar nosso pr√≥prio validador aos campos, utilizando
-m√©todos do controlador com o sinal "validate" e a qual deve retornar
-ValidationError quando a valida√ß√£o falhar, por exemplo:
+PorÈm podemos adicionar nosso prÛprio validador aos campos, utilizando
+mÈtodos do controlador com o sinal "validate" e a qual deve retornar
+ValidationError quando a validaÁ„o falhar, por exemplo:
 
+\begin{lstlisting}
    def on_caixa_de_texto__validate( self, entry, data ):
        if not check_data( data ):
           return ValidationError( "Message to be displayed in tool tip" )
+\end{lstlisting}
+
 
 
 Vide exemplo-05/advanced.
 
+\end{document}
