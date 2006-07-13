@@ -9,7 +9,7 @@ from kiwi.ui.gadgets import quit_if_last
 
 class Data(Model):
     def __init__(self, text_entry="", int_entry=0, float_entry=0.0,
-                  date_entry=None, mandatory_entry=""):
+                 date_entry=None, mandatory_entry=""):
         self.text_entry = text_entry
         self.int_entry = int_entry
         self.float_entry = float_entry
@@ -25,22 +25,23 @@ class Data(Model):
                  'mandatory_entry="%(mandatory_entry)s" '
                  '/>') % self.__dict__
 
+
 class App(ProxyDelegate):
     def __init__(self, model=None):
         ProxyDelegate.__init__(self, model,
-                                gladefile="form",
-                                delete_handler=quit_if_last,
-                                widgets=("text_entry",
-                                          "int_entry",
-                                          "float_entry",
-                                          "date_entry",
-                                          "mandatory_entry",
-                                          "ok"),
-                                proxy_widgets=("text_entry",
-                                                "int_entry",
-                                                "float_entry",
-                                                "date_entry",
-                                                "mandatory_entry"))
+                               gladefile="form",
+                               delete_handler=quit_if_last,
+                               widgets=("text_entry",
+                                        "int_entry",
+                                        "float_entry",
+                                        "date_entry",
+                                        "mandatory_entry",
+                                        "ok"),
+                               proxy_widgets=("text_entry",
+                                              "int_entry",
+                                              "float_entry",
+                                              "date_entry",
+                                              "mandatory_entry"))
         self.register_validate_function(self.validity)
         self.force_validation()
 

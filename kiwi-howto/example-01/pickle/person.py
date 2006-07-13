@@ -11,11 +11,12 @@ class Person(PickledModel):
     address = ""
     phone = ""
 
+
 person = Person.unpickle() # load person instance
 
 view = BaseView(delete_handler=quit_if_last,
-                 widgets=("name", "address", "phone"),
-                 gladefile="person")
+                widgets=("name", "address", "phone"),
+                gladefile="person")
 
 # create and run a proxy interface attached to person
 view.add_proxy(person, ("name", "address", "phone"))

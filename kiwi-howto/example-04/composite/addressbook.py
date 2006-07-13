@@ -11,9 +11,8 @@ from kiwi.model import Model
 class EntryEditor(ProxySlaveDelegate):
     def __init__(self):
         ProxySlaveDelegate.__init__(self, None,
-                                     gladefile="entry_editor",
-                                     widgets=("name", "address", "phone"),
-                                    )
+                                    gladefile="entry_editor",
+                                    widgets=("name", "address", "phone"))
 
     def proxy_updated(self, widget, attribute, value):
         self.emit("result", self.model)
@@ -22,19 +21,14 @@ class EntryEditor(ProxySlaveDelegate):
         self.toplevel.set_sensitive(v)
 
 
-
 class ListEntries(SlaveDelegate):
     def __init__(self):
         SlaveDelegate.__init__(self,
-                                gladefile="list_entries",
-                                widgets=("table",),
-                               )
-        self.table.set_columns([
-            Column("name", title="Name"),
-            Column("address", title="Address"),
-            Column("phone", title="Phone"),
-           ])
-
+                               gladefile="list_entries",
+                               widgets=("table",))
+        self.table.set_columns([Column("name", title="Name"),
+                                Column("address", title="Address"),
+                                Column("phone", title="Phone")])
 
     def add(self, obj, selected=True):
         self.table.append(obj, selected)
@@ -52,20 +46,16 @@ class ListEntries(SlaveDelegate):
         self.table.refresh()
 
 
-
 class Addressbook(Delegate):
     def __init__(self):
-        keyactions = {
-            gtk.keysyms.Escape: quit_if_last,
-            gtk.keysyms.F1: self.my_f1_handler,
-            gtk.keysyms.F2: self.my_f2_handler,
-            }
+        keyactions = {gtk.keysyms.Escape: quit_if_last,
+                      gtk.keysyms.F1: self.my_f1_handler,
+                      gtk.keysyms.F2: self.my_f2_handler}
         Delegate.__init__(self,
                            gladefile="addressbook",
                            widgets=("add", "remove"),
                            delete_handler=quit_if_last,
-                           keyactions=keyactions,
-                          )
+                           keyactions=keyactions)
 
         self.entry_editor = EntryEditor()
 	self.entry_editor.set_sensitive(False)
@@ -76,7 +66,6 @@ class Addressbook(Delegate):
         self.attach_slave("list", self.list_entries)
 
         self.entry_editor.connect("result", self.list_entries.update)
-
 
     def entry_selected(self, table, obj):
         if obj is not None:
@@ -106,17 +95,11 @@ class Addressbook(Delegate):
         self.del_entry()
 
 
-
-
-
 class Person(Model):
     def __init__(self, name="", address="", phone=""):
         self.name = name
         self.address = address
         self.phone = phone
-
-
-
 
 
 addressbook = Addressbook()

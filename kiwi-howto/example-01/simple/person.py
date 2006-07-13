@@ -10,10 +10,11 @@ class Person:
     address = ""
     phone = ""
 
+
 person = Person()
 view = BaseView(delete_handler=quit_if_last,
-                 widgets=("name", "address", "phone"),
-                 gladefile="person")
+                widgets=("name", "address", "phone"),
+                gladefile="person")
 
 # create and run a proxy interface attached to person
 view.add_proxy(person, ("name", "address", "phone"))
@@ -24,4 +25,4 @@ view.show_all()
 gtk.main()
 
 print "name=%s, address=%s, phone=%s" % (person.name, person.address,
-					  person.phone)
+                                         person.phone)

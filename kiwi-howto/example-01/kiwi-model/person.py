@@ -13,11 +13,12 @@ class Person(Model):
     address = ""
     phone = ""
 
+
 person = Person()
 
 view1 = BaseView(delete_handler=quit_if_last,
-                  widgets=("name", "address", "phone"),
-                  gladefile="person")
+                 widgets=("name", "address", "phone"),
+                 gladefile="person")
 
 # create and run a proxy interface attached to person
 view1.add_proxy(person, ("name", "address", "phone"))
@@ -25,8 +26,8 @@ view1.focus_topmost()
 view1.show_all()
 
 view2 = BaseView(delete_handler=quit_if_last,
-                  widgets=("name", "address", "phone"),
-                  gladefile="person")
+                 widgets=("name", "address", "phone"),
+                 gladefile="person")
 
 # create and run a proxy interface attached to person
 view2.add_proxy(person, ("name", "address", "phone"))

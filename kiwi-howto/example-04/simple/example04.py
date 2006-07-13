@@ -7,9 +7,7 @@ from kiwi.ui.gadgets import quit_if_last
 
 class ExampleDelegate(Delegate):
     def __init__(self):
-        keyactions = {
-            gtk.keysyms.Escape: quit_if_last,
-            }
+        keyactions = {gtk.keysyms.Escape: quit_if_last}
         Delegate.__init__(self,
                            gladefile="example04",
                            widgets=("label_last_button", "ok", "cancel",

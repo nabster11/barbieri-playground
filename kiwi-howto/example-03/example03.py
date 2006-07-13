@@ -8,9 +8,7 @@ from kiwi.controllers import BaseController
 
 class ExampleController(BaseController):
     def __init__(self, view):
-        keyactions = {
-            gtk.keysyms.Escape: quit_if_last,
-            }
+        keyactions = {gtk.keysyms.Escape: quit_if_last}
         BaseController.__init__(self, view, keyactions)
 
     def on_ok__clicked(self, button, *args):
@@ -26,8 +24,7 @@ class ExampleController(BaseController):
 view = BaseView(gladefile="example03",
                  widgets=("label_last_button", "ok", "cancel",
                            "entry_name", "label_name"),
-                 delete_handler=quit_if_last,
-                )
+                 delete_handler=quit_if_last)
 
 controller = ExampleController(view)
 view.show_all()
