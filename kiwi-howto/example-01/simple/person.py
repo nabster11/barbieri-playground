@@ -11,17 +11,17 @@ class Person:
     phone = ""
 
 person = Person()
-view = BaseView( delete_handler=quit_if_last,
-                 widgets=( "name", "address", "phone" ),
-                 gladefile="person" )
+view = BaseView(delete_handler=quit_if_last,
+                 widgets=("name", "address", "phone"),
+                 gladefile="person")
 
 # create and run a proxy interface attached to person
-view.add_proxy( person, ( "name", "address", "phone" ) )
+view.add_proxy(person, ("name", "address", "phone"))
 view.focus_topmost()
 view.show_all()
 
 # Enter main lopp, where GTK will handle events
 gtk.main()
 
-print "name=%s, address=%s, phone=%s" % ( person.name, person.address,
-					  person.phone )
+print "name=%s, address=%s, phone=%s" % (person.name, person.address,
+					  person.phone)
