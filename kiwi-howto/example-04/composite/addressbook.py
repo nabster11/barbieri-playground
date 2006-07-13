@@ -36,7 +36,6 @@ class ListEntries( SlaveDelegate ):
                                 gladefile="list_entries",
                                 widgets=( "table", ),
                                 )
-        self.table = self.get_widget( "table" )
         self.table.set_columns( [
             Column( "name", title="Name" ),
             Column( "address", title="Address" ),
