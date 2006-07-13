@@ -1,39 +1,38 @@
 from sqlobject import *
+from sqlobject.dbconnection import ConnectionHub
 
-connection = None
-
-class Person( SQLObject ):
-    _lazyUpdate = True
-    name     = StringCol( length=100 )
-    address  = StringCol( default=None )
-    birthday = DateCol( default=None )
-    phones   = MultipleJoin( "Phone" )
-    category = RelatedJoin( "Phone" )
-
-class Phone( SQLObject ):
-    _lazyUpdate = True
-    number = StringCol( length=20 )
-    person = ForeignKey( "Person" )
-
-class Category( SQLObject ):
-    _lazyUpdate = True
-    name    = StringCol( length=20, alternateID=True )
-    persons = RelatedJoin( "Person" )
+hub = ConnectionHub()
+__connection__ = hub
 
 
-def createTables( ifNotExists=True ):
-    Person.createTable( ifNotExists=ifNotExists )
-    Phone.createTable( ifNotExists=ifNotExists )
-    Category.createTable( ifNotExists=ifNotExists )
+class Person(SQLObject):
+    name = StringCol(length=100, default=None)
+    address = StringCol(default=None)
+    birthday = DateCol(default=None)
+    phones = MultipleJoin("Phone")
+    category = ForeignKey("Category", default=None)
 
-def setConnection( conn ):
-    global connection
 
-    if isinstance( conn, str ):
-        conn = connectionForURI( conn )
+class Phone(SQLObject):
+    number = StringCol(length=20, default=None)
+    person = ForeignKey("Person")
 
-    connection = conn
-    Person._connection = connection
-    Phone._connection = connection
-    Category._connection = connection
 
+class Category(SQLObject):
+    name = StringCol(length=20, alternateID=True)
+    persons = RelatedJoin("Person")
+
+
+def createTables(ifNotExists=True):
+    Person.createTable(ifNotExists=ifNotExists)
+    Phone.createTable(ifNotExists=ifNotExists)
+    Category.createTable(ifNotExists=ifNotExists)
+
+def setConnection(connURI):
+    hub.threadConnection = connectionForURI(connURI)
+
+def transaction():
+    conn = hub.getConnection()
+    conn.autoCommit = 0
+    trans = conn.transaction()
+    return trans

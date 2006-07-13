@@ -99,11 +99,12 @@
                             </packing>
                         </child>
                         <child>
-                            <widget class="kiwi+ui+widgets+entry+Entry" id="name">
+                            <widget class="ProxyEntry" id="name">
                                 <property name="data_type">str</property>
                                 <property name="is_focus">True</property>
                                 <property name="mandatory">True</property>
                                 <property name="model_attribute">name</property>
+                                <property name="visible">True</property>
                             </widget>
                             <packing>
                                 <property name="left_attach">1</property>
@@ -112,9 +113,10 @@
                             </packing>
                         </child>
                         <child>
-                            <widget class="kiwi+ui+widgets+entry+Entry" id="address">
+                            <widget class="ProxyEntry" id="address">
                                 <property name="data_type">str</property>
                                 <property name="model_attribute">address</property>
+                                <property name="visible">True</property>
                             </widget>
                             <packing>
                                 <property name="bottom_attach">2</property>
@@ -128,9 +130,9 @@
                             <widget class="GtkHBox" id="hbox1">
                                 <property name="visible">True</property>
                                 <child>
-                                    <widget class="kiwi+ui+widgets+list+List" id="phones">
-                                        <property name="column_definitions" context="yes" translatable="yes">phone|Phone|str||left|||||</property>
+                                    <widget class="ObjectList" id="phones">
                                         <property name="hscrollbar_policy">never</property>
+                                        <property name="visible">True</property>
                                         <property name="vscrollbar_policy">automatic</property>
                                     </widget>
                                 </child>
@@ -186,11 +188,13 @@
                             </packing>
                         </child>
                         <child>
-                            <widget class="kiwi+ui+widgets+entry+Entry" id="birthday">
+                            <widget class="ProxyEntry" id="birthday">
                                 <property name="completion">True</property>
                                 <property name="data_type">date</property>
-                                <property name="exact_completion">False</property>
                                 <property name="model_attribute">birthday</property>
+                                <property name="text" context="yes" translatable="yes">  /  /    </property>
+                                <property name="visible">True</property>
+                                <property name="xalign">1.0</property>
                             </widget>
                             <packing>
                                 <property name="bottom_attach">4</property>
@@ -201,9 +205,10 @@
                             </packing>
                         </child>
                         <child>
-                            <widget class="kiwi+ui+widgets+combobox+ComboBoxEntry" id="category">
-                                <property name="data_type">str</property>
+                            <widget class="ProxyComboEntry" id="category">
+                                <property name="data_type">object</property>
                                 <property name="model_attribute">category</property>
+                                <property name="visible">True</property>
                             </widget>
                             <packing>
                                 <property name="bottom_attach">5</property>

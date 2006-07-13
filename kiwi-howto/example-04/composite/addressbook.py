@@ -2,31 +2,24 @@
 
 import gtk
 
-from kiwi.ui.delegates import Delegate, SlaveDelegate
+from kiwi.ui.delegates import Delegate, SlaveDelegate, ProxySlaveDelegate
 from kiwi.ui.gadgets import quit_if_last
 from kiwi.ui.objectlist import Column
 from kiwi.model import Model
 
 
-class EntryEditor( SlaveDelegate ):
+class EntryEditor( ProxySlaveDelegate ):
     def __init__( self ):
-        SlaveDelegate.__init__( self,
-                                gladefile="entry_editor",
-                                widgets=( "name", "address", "phone" ),
-                                )
-        self.model = None
-        self.proxy = self.add_proxy( self.model, self.widgets )
+        ProxySlaveDelegate.__init__( self, None,
+                                     gladefile="entry_editor",
+                                     widgets=( "name", "address", "phone" ),
+                                     )
 
-        def f( w, a, v ):
-            self.emit( "result", self.model )
-        self.proxy.proxy_updated = f
+    def proxy_updated( self, widget, attribute, value ):
+        self.emit( "result", self.model )
 
     def set_sensitive( self, v ):
         self.toplevel.set_sensitive( v )
-
-    def set_model( self, model ):
-        self.model = model
-        self.proxy.set_model( model )
 
 
 

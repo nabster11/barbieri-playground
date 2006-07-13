@@ -3,9 +3,9 @@ import models
 import views
 import os
 
-connection = "sqlite://%s" % os.path.realpath( "db.sqlite" )
+connection = "sqlite://%s" % os.path.realpath("db.sqlite")
 
-models.setConnection( connection )
+models.setConnection(connection)
 models.createTables()
 
 view = views.Shell()

@@ -1,77 +1,84 @@
 <?xml version="1.0" standalone="no"?> <!--*- mode: xml -*-->
 <!DOCTYPE glade-interface SYSTEM "http://gazpacho.sicem.biz/gazpacho-0.1.dtd">
 <glade-interface>
-    <object class="GtkUIManager" id="uimanager">
+    <widget class="GtkUIManager" id="uimanager">
         <child>
-            <object class="GtkActionGroup" id="DefaultActions">
+            <widget class="GtkActionGroup" id="DefaultActions">
                 <child>
-                    <object class="GtkAction" id="add">
-                        <property name="name">Add</property>
-                        <property name="label" translatable="yes">Add</property>
-                        <property name="tooltip">Add new entry</property>
-                        <property name="stock_id">gtk-add</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkAction" id="edit">
-                        <property name="name">Edit</property>
-                        <property name="label" translatable="yes">Edit</property>
-                        <property name="tooltip">Edit selected entry</property>
-                        <property name="stock_id">gtk-edit</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkAction" id="remove">
-                        <property name="name">Remove</property>
-                        <property name="label" translatable="yes">Remove</property>
-                        <property name="tooltip">Remove selected entry</property>
-                        <property name="stock_id">gtk-remove</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkAction" id="EditMenu">
+                    <widget class="GtkAction" id="EditMenu">
                         <property name="name">EditMenu</property>
-                        <property name="label" translatable="yes">Edit</property>
-                    </object>
+                        <property name="label" translatable="yes">_Edit</property>
+                    </widget>
                 </child>
                 <child>
-                    <object class="GtkAction" id="FileMenu">
+                    <widget class="GtkAction" id="FileMenu">
                         <property name="name">FileMenu</property>
-                        <property name="label" translatable="yes">File</property>
-                    </object>
+                        <property name="label" translatable="yes">_File</property>
+                    </widget>
                 </child>
                 <child>
-                    <object class="GtkAction" id="quit">
-                        <property name="name">Quit</property>
-                        <property name="label" translatable="yes">Quit</property>
-                        <property name="tooltip">Quit the program</property>
+                    <widget class="GtkAction" id="quit">
+                        <property name="name">quit</property>
+                        <property name="tooltip" translatable="yes">Quit the program</property>
                         <property name="stock_id">gtk-quit</property>
-                    </object>
+                    </widget>
                 </child>
-            </object>
+            </widget>
         </child>
-        <ui id="initial-state"><![CDATA[
-<ui>
-  <menubar action="menubar" name="menubar">
-    <menu action="FileMenu" name="FileMenu">
-      <menuitem action="Quit" name="Quit"/>
-    </menu>
-    <menu action="EditMenu" name="EditMenu">
-      <menuitem action="Add" name="Add"/>
-      <menuitem action="Edit" name="Edit"/>
-      <menuitem action="Remove" name="Remove"/>
-    </menu>
-  </menubar>
-  <toolbar action="toolbar" name="toolbar">
-    <toolitem action="Add" name="Add"/>
-    <toolitem action="Edit" name="Edit"/>
-    <toolitem action="Remove" name="Remove"/>
-    <separator/>
-    <toolitem action="Quit" name="Quit"/>
-  </toolbar>
-</ui>
-]]></ui>
-    </object>
+        <child>
+            <widget class="GtkActionGroup" id="main_actions">
+                <child>
+                    <widget class="GtkAction" id="add">
+                        <property name="name">add</property>
+                        <property name="label" translatable="yes">Add</property>
+                        <property name="tooltip" translatable="yes">Add new entry</property>
+                        <property name="stock_id">gtk-add</property>
+                    </widget>
+                </child>
+                <child>
+                    <widget class="GtkAction" id="edit">
+                        <property name="name">edit</property>
+                        <property name="label" translatable="yes">Edit</property>
+                        <property name="tooltip" translatable="yes">Edit entry</property>
+                        <property name="stock_id">gtk-edit</property>
+                    </widget>
+                </child>
+                <child>
+                    <widget class="GtkAction" id="remove">
+                        <property name="name">remove</property>
+                        <property name="label" translatable="yes">Remove</property>
+                        <property name="tooltip" translatable="yes">Remove entry</property>
+                        <property name="stock_id">gtk-remove</property>
+                    </widget>
+                </child>
+            </widget>
+        </child>
+        <ui id="initial-state"><![CDATA[<ui>
+<menubar action="menubar" name="menubar">
+  <menu action="FileMenu" name="FileMenu">
+    
+    
+    
+    
+    
+    <menuitem action="quit" name="quit"/>
+  </menu>
+  <menu action="EditMenu" name="EditMenu">
+    
+    
+    
+  <menuitem action="add" name="add"/><menuitem action="edit" name="edit"/><menuitem action="remove" name="remove"/></menu>
+</menubar><toolbar action="toolbar" name="toolbar">
+  
+  
+  
+  
+  
+  
+  
+<toolitem action="add" name="add"/><toolitem action="edit" name="edit"/><toolitem action="remove" name="remove"/><separator name="sep"/><toolitem action="quit" name="quit"/></toolbar>
+</ui>]]></ui>
+    </widget>
     <widget class="GtkWindow" id="shell">
         <property name="default_height">250</property>
         <property name="default_width">440</property>
