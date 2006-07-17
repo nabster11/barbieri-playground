@@ -56,11 +56,12 @@ Este tutorial pode ser obtido em:
 \section{Requisitos}
 
 \begin{itemize}
-  \item[GTK+ 2.6.x]      ftp://ftp.gtk.org/pub/gtk/v2.6/
-  \item[PyGTK 2.6.x]     ftp://ftp.gtk.org/pub/gtk/python/v2.6/
-  \item[Python $>$ 2.3]  http://www.python.org/download/
-  \item[Gazpacho 0.6.x]  http://ftp.gnome.org/pub/GNOME/sources/gazpacho/0.6/
-    mas se possível utilize a versão do SVN:
+  \item \textbf{GTK+ 2.6.x:} \url{ftp://ftp.gtk.org/pub/gtk/v2.6/}
+  \item \textbf{PyGTK 2.6.x:} \url{ftp://ftp.gtk.org/pub/gtk/python/v2.6/}
+  \item \textbf{Python $>$ 2.3:} \url{http://www.python.org/download/}
+  \item \textbf{Gazpacho 0.6.x:}
+    \url{http://ftp.gnome.org/pub/GNOME/sources/gazpacho/0.6/} mas se
+    possível utilize a versão do SVN:
 \begin{verbatim}
 svn co http://svn.sicem.biz/gazpacho/trunk gazpacho
 \end{verbatim}
@@ -126,7 +127,7 @@ construtor das classes de visão.
 
 O controlador neste caso é feito automaticamente pelo Kiwi.
 
-Os códigos estão presentes no diretório example-01, divididos em 4
+Os códigos estão presentes no diretório \texttt{example-01}, divididos em 4
 diretórios:
 
 \begin{itemize}
@@ -147,13 +148,13 @@ para o mesmo modelo, sendo assim possível notar que se este for
 derivado de kiwi.models.Model, a interface é notificada de mudanças no
 modelo, a seqüência de acontecimentos é:
 
-\begin{verbatim}
-   Usuário modifica Visão 1 ->
-   Gera evento para o Controlador 1 ->
-   Modifica o Model ->
-   Notifica os proxies 1 e 2 ->
+\begin{quote}
+   Usuário modifica Visão 1 $\Rightarrow$\\
+   Gera evento para o Controlador 1 $\Rightarrow$\\
+   Modifica o Model $\Rightarrow$\\
+   Notifica os proxies 1 e 2 $\Rightarrow$\\
    Visão 1 já está correta, fica igual. Visão 2 será atualizada.
-\end{verbatim}
+\end{quote}
 
 Os exemplos são compostos da seguinte forma:
 \begin{enumerate}
@@ -191,7 +192,7 @@ em:
     Visão: entradas de teclado e mouse, eventos temporais e outros.
   \item \textbf{Delegadores (\emph{Delegates}):} classes que combinam
     Visão e Controladores para facilitar e agilizar o desenvolvimento.
-  \item Modelos (\emph{Models}): são objetos que representam/modelam
+  \item \textbf{Modelos (\emph{Models}):} são objetos que representam/modelam
     seus dados.
   \item \textbf{Proxies:} facilitador que mantém sincronizados os
     dados do modelo e visão, toda mudança na visão será aplicada ao
@@ -205,17 +206,18 @@ em:
 O Kiwi provê duas classes para Visão, localizadas em kiwi.ui.view:
 
 \begin{itemize}
-  \item SlaveView: é considerado um objeto do GTK e pode ser embutido em
-    outros componentes que aceitem um GObject. Várias SlaveView podem
-    ser combinadas para formar uma interface completa a partir de
+  \item \lstinline|SlaveView|: é considerado um objeto do GTK e pode
+    ser embutido em outros componentes que aceitem um
+    \lstinline|GObject|. Várias \lstinline|SlaveView| podem ser
+    combinadas para formar uma interface completa a partir de
     componentes reusáveis.  Pode ser baseada em um arquivo XML do
     gazpacho/glade.
-  \item BaseView: derivado de SlaveView, implementa algumas funcionalidades
-    extra necessárias para uma janela principal (toplevel). O parâmetro
-    do construtor \lstinline|delete_handler| é um objeto ``chamável''
-    (\textit{callable}) que
-    será chamado quando a janela for removida (por exemplo o usuário
-    clicou no botão de fechar a janela).
+  \item \lstinline|BaseView|: derivado de \lstinline|SlaveView|,
+    implementa algumas funcionalidades extras necessárias para uma
+    janela principal (\emph{toplevel}). O parâmetro do construtor
+    \lstinline|delete_handler| é um objeto ``chamável''
+    (\textit{callable}) que será chamado quando a janela for removida
+    (por exemplo o usuário clicou no botão de fechar a janela).
 \end{itemize}
 
 
@@ -223,44 +225,48 @@ O Kiwi provê duas classes para Visão, localizadas em kiwi.ui.view:
 \subsubsection{Composição de Interfaces de Usuário}
 
 A fim de reusar os componentes da interface de usuário, podemos
-combinar SlaveViews, compondo, assim, uma interface de usuário mais
+combinar \lstinline|SlaveView|s, compondo, assim, uma interface de usuário mais
 rica.
 
 Os passos para fazer a composição são extremamente simples:
 
 \begin{enumerate}
-  \item [Gazpacho] Desenhe os seus componentes em arquivos Glade/XML
-    separados.
-  \item [Python] Crie uma instância de SlaveView para cada componente criado.
-  \item [Gazpacho] Na tela principal, na qual os objetos serão embutidos,
-    crie componentes do tipo EventBox com nomes apropriados. Este
-    elemento será removido pelo Kiwi e seu componente será incluído no
-    lugar.
-  \item [Python] Crie uma instância de BaseView para a tela principal.
-  \item [Python] Utilize o método \lstinline|attach_slave()| de BaseView com os
-    parâmetro sendo o nome do EventBox adicionado e a instância de
-    SlaveView equivalente.
+\item \textbf{Gazpacho:} Desenhe os seus componentes em arquivos
+  Glade/XML separados.
+\item \textbf{Python:} Crie uma instância de \lstinline|SlaveView|
+  para cada componente criado.
+\item \textbf{Gazpacho:} Na tela principal, na qual os objetos serão
+  embutidos, crie componentes do tipo \lstinline|EventBox| com nomes
+  apropriados. Este elemento será removido pelo Kiwi e seu componente
+  será incluído no lugar.
+\item \textbf{Python:} Crie uma instância de \lstinline|BaseView|
+  para a tela principal.
+\item \textbf{Python:} Utilize o método \lstinline|attach_slave()| de
+  \lstinline|BaseView| com os parâmetro sendo o nome do
+  \lstinline|EventBox| adicionado e a instância de
+  \lstinline|SlaveView| equivalente.
 \end{enumerate}
 
-Vide os arquivos em example-02/. Os componentes separados são
+Vide os arquivos em \texttt{example-02/}. Os componentes separados são
 \lstinline|entry_editor| e \lstinline|list_entries| que podem ser
 visualizados nos arquivos
 XML/Glade correspondentes. A tela principal, também chamada de casca
-(ou em inglês, \emph{``shell''}) está em addressbook.glade. O arquivo
-addressbook.py lê os três componentes e então anexa os componentes
-\lstinline|entry_editor| e \lstinline|list_entries| no componente
-principal addressbook. Note,
-porém, que por enquanto não temos nenhum modelo associado.
+(ou em inglês, \emph{``shell''}) está em \texttt{addressbook.glade}. O
+arquivo \texttt{addressbook.py} lê os três componentes e então anexa
+os componentes \lstinline|entry_editor| e \lstinline|list_entries| ao
+componente principal \lstinline|addressbook|. Note, porém, que por
+enquanto não temos nenhum modelo associado.
+
 
 
 \subsection{Controladores (Controllers)}
 
 Para que a interface de usuário responda aos eventos, seja o
 pressionar de um botão, teclas de atalho, preenchimento de um campo,
-etc. precisamos ligá-la a um controlador.
+etc precisamos ligá-la a um controlador.
 
-O kiwi provê uma classe chamada BaseController para implementarmos os
-nossos controladores. Esta classe tem um recurso que torna
+O kiwi provê uma classe chamada \lstinline|BaseController| para
+implementarmos os nossos controladores. Esta classe tem um recurso que torna
 extraordinariamente fácil criarmos as ações, apenas temos que criar
 métodos que tenham a nomenclatura:
 
@@ -268,11 +274,12 @@ métodos que tenham a nomenclatura:
    <quando>_<nome_do_componente>__<sinal_do_componente>
 \end{verbatim}
 
-<quando> pode assumir 2 valores: ``on'' e ``after''. O primeiro é usado
-para ações no instante que elas aconteceram, geralmente utilizadas
-para ``clicks'' de botão, ativação de ações, etc. Já o segundo é usado
-para ações após o ``on'' ter sido executado, geralmente utilizadas para
-ações como mudança de um campo de texto.
+\texttt{$<$quando$>$} pode assumir 2 valores: ``\textbf{on}'' e
+``\textbf{after}''. O primeiro é usado para ações no instante que elas
+aconteceram, geralmente utilizadas para ``\emph{clicks}'' de botão,
+ativação de ações, etc. Já o segundo é usado para ações após o ``on''
+ter sido executado, geralmente utilizadas para ações como mudança de
+um campo de texto.
 
 Por exemplo, se queremos que ao (quando=``on'') pressionar
 (sinal\_do\_componente=``clicked'') o botão cancelar
@@ -295,44 +302,48 @@ caixa de texto chamada nome (nome\_do\_componente=``nome'') tenha mudado
 \end{lstlisting}
 
 
-Para associar teclas de atalho, apenas crie um mapeamento (dict) que
-contenha as teclas  (ex: gtk.keysyms.a) como chave e as funções de
-tratamento como valor.
+Para associar teclas de atalho, apenas crie um mapeamento
+(\lstinline|dict|) que contenha as teclas  (ex:
+\lstinline|gtk.keysyms.a|) como chave e as funções de tratamento como
+valor.
 
-Vide os arquivos em example-03/. Este exemplo define um controlador
-ExampleController com 3 ações, sendo uma para cada botão e outra para
-a caixa de texto. Os botões, quando clicados irão modificar o texto do
-rótulo ``label\_last\_button''. A caixa de texto, ao ser modificada, irá
-ter seu conteúdo copiado para o rótulo ``label\_name''. Note que todos os
-componentes utilizados devem ter sido declarados com o parâmetro
-``widgets'' de BaseView.
+Vide os arquivos em \texttt{example-03/}. Este exemplo define um controlador
+\lstinline|ExampleController| com 3 ações, sendo uma para cada botão e
+outra para a caixa de texto. Os botões, quando clicados, irão
+modificar o texto do rótulo ``label\_last\_button''. A caixa de texto,
+ao ser modificada, irá ter seu conteúdo copiado para o rótulo
+``label\_name''. Note que todos os componentes utilizados devem ter
+sido declarados com o parâmetro ``widgets'' de \lstinline|BaseView|.
 
 
 \subsection{Delegadores (Delegates)}
 
 Dos exemplos anteriores com Visão e Controlador você já deve imaginar
 que deveria existir algo para automatizar a tarefa. E existe: os
-delegadores.
+delegadores (\lstinline|Delegate|s).
 
 Delegadores são nada mais que a junção de Visão e Controlador, feita
 usando herança múltipla, com o objetivo de facilitar a programação.
 
-Existem também o SlaveDelegate, que é a junção de SlaveView com
-Controller, e se comunica com o slave
+Existem também o \lstinline|SlaveDelegate|, que é a junção de
+\lstinline|SlaveView| com \lstinline|Controller|, e se comunica com o
+\emph{slave}.
 
-Vide os arquivos em example-04/, sendo o sub-diretório simple/ um
-amostra de um delegador simples e o sub-diretório composite/ um
-exemplo mais avançado, com SlaveDelegate para compor uma tela
-utilizando componentes menores.
+Vide os arquivos em \texttt{example-04/}, sendo o sub-diretório
+\texttt{simple/} um amostra de um delegador simples e o sub-diretório
+\texttt{composite/} um exemplo mais avançado, com
+\lstinline|SlaveDelegate| para compor uma tela utilizando componentes menores.
 
-O exemplo simples (example-04/simple) é o example-03 utilizando
-Delegates. Já o exemplo composto (example-04/composite) é o
-example-02 utilizando Delegates e SlaveDelegates. Note que SlaveViews,
-e portanto BaseView, têm disponível o sinal ``result'' que deve ser
+O exemplo simples (\texttt{example-04/simple}) é o \texttt{example-03}
+utilizando \lstinline|Delegate|s. Já o exemplo composto
+(\texttt{example-04/composite}) é o
+\texttt{example-02} utilizando \lstinline|Delegate|s e \lstinline|SlaveDelegate|s. Note que \lstinline|SlaveView|s,
+e portanto \lstinline|BaseView|, têm disponível o sinal ``result'' que deve ser
 utilizado para passar dados entre várias visões e, portanto,
-delegadores. Isto está exemplificado em example-04/composite no qual
-ListEntries emite o sinal quando a seleção da tabela mudou e
-Addressbook trata este sinal com \lstinline|entry_selected()|, perceba
+delegadores. Isto está exemplificado em \texttt{example-04/composite} no qual
+\lstinline|ListEntries| emite o sinal quando a seleção da tabela mudou e
+\lstinline|Addressbook| trata este sinal com
+\lstinline|entry_selected()|, perceba
 que a conexão do sinal tem que ser feito utilizando o método
 convencional do GTK ao invés da facilidade do controlador.
 
@@ -358,20 +369,21 @@ do formulário mudar de válido para inválido, podendo, por exemplo,
 desabilitar o botão de ``Ok''. Esta função é
 \lstinline|register_validate_function()|.
 
-Vide exemple-05/simple.
+Vide \texttt{exemple-05/simple}.
 
 Porém podemos adicionar nosso próprio validador aos campos, utilizando
-métodos do controlador com o sinal ``validate'' e a qual deve retornar
-ValidationError quando a validação falhar, por exemplo:
+métodos do controlador com o sinal ``\emph{validate}'' e a qual deve
+retornar \lstinline|ValidationError| quando a validação falhar, por
+exemplo:
 
 \begin{lstlisting}
    def on_caixa_de_texto__validate( self, entry, data ):
        if not check_data( data ):
-          return ValidationError( ``Message to be displayed in tool tip'' )
+          return ValidationError( "Message to be displayed in tool tip" )
 \end{lstlisting}
 
 
 
-Vide exemplo-05/advanced.
+Vide \texttt{exemplo-05/advanced}.
 
 \end{document}
