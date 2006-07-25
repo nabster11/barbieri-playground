@@ -226,11 +226,6 @@ parse_query (const gchar *query)
 				 g_free,
 				 (GDestroyNotify)free_query_value);
 
-    while (*query == '?')
-	query++;
-
-    end = NULL;
-
     len = strlen (query);
     limit = query + len;
 
