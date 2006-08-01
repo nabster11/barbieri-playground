@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "serializer.h"
 #include <string.h>
 
 struct query_parse_test {

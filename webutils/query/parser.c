@@ -120,10 +120,10 @@ add_query_pair (GHashTable *dic,
 	    g_hash_table_steal (dic, old_key);
 	    value_list = g_slist_append (value_list, value);
 	    g_hash_table_insert (dic, key, value_list);
-	}
 
-	/* There is one key already, free previous key. */
-	g_free (old_key);
+	    /* There is one key already, free previous key. */
+	    g_free (old_key);
+	}
     } else {
 	/* Not present in hash table yet, add it.
 	 *
