@@ -28,6 +28,7 @@
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
+#include "parser.h"
 
 static void
 free_query_value_element (gchar *element,

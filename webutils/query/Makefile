@@ -8,7 +8,7 @@ LDFLAGS += \
 	$(GLIB_LDFLAGS)
 
 CFLAGS += \
-	-Werror -Wformat -std=c99 -ansi \
+	-Werror -Wformat -std=c99 -ansi -D_XOPEN_SOURCE=600 \
 	$(GLIB_CFLAGS)
 
 parser_SOURCES = parser.c
@@ -37,7 +37,7 @@ test: liburl-query-parser.so liburl-query-serializer.so test.o
 		test.o -o $@
 
 .PHONY: clean
-clean: $(OBJECTS) test test.o liburl-query-parser.so
+clean:
 	$(RM) $(parser_OBJECTS)
 	$(RM) $(serializer_OBJECTS)
 	$(RM) test

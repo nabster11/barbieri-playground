@@ -25,12 +25,31 @@
  * Boston, MA 02111-1307 USA.
  */
 
-#ifndef _WEBUTILS_QUERY_SERIALIZER_H_
-#define _WEBUTILS_QUERY_SERIALIZER_H_
+#ifndef _WEBUTILS_PATH_UTILS_H_
+#define _WEBUTILS_PATH_UTILS_H_
 
 #include <glib.h>
 
-gchar *
-serialize_query (GHashTable *query);
+void
+free_str_list (GSList *list);
 
-#endif /* _WEBUTILS_QUERY_SERIALIZER_H_ */
+gchar *
+str_join (const gchar *sep,
+	  GSList *list);
+
+gchar *
+simplify_path (gchar *str);
+
+GSList *
+get_path_list (const gchar *path);
+
+gchar *
+get_real_path (const gchar *root,
+	       const gchar *path);
+
+const gchar *
+get_extra_path (const gchar *base,
+		const gchar *path);
+
+
+#endif /* _WEBUTILS_PATH_UTILS_H_ */
