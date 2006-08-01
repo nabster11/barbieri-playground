@@ -52,6 +52,11 @@ test_parse (const struct query_parse_test test)
     return r;
 }
 
+/*
+ * These tests may fail due reordering in hash table, not necessarily
+ * hash table will keep insertion order.
+ * If this is the case, please check results.
+ */
 static struct query_parse_test tests[] = {
     {
 	.name="Empty",
