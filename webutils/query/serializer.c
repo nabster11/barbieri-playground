@@ -59,7 +59,7 @@ encode(const gchar *s)
 
 
 struct serialize_query_value_element {
-    const gchar *key;
+    gchar *key;
     GString *string;
 };
 
@@ -84,7 +84,7 @@ serialize_query_element (const gchar *key,
 			 GString *str)
 {
     struct serialize_query_value_element p = {
-	.key = key,
+	.key = encode (key),
 	.string = str,
     };
 
@@ -93,8 +93,9 @@ serialize_query_element (const gchar *key,
     else {
 	if (str->str && *str->str)
 	    g_string_append_c (str, '&');
-	g_string_append_printf (str, "%s=", key);
+	g_string_append_printf (str, "%s=", p.key);
     }
+    g_free (p.key);
 }
 
 
