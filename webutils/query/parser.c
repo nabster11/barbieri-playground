@@ -231,7 +231,7 @@ parse_query (const gchar *query)
     limit = query + len;
 
     for (start = query; start < limit; start = end) {
-	end = memchr (start, '&', len);
+	end = strchr (start, '&');
 	if (!end)
 	    end = limit;
 
