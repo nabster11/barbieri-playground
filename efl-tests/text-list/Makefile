@@ -1,12 +1,12 @@
 .PHONY: run clean all
 
-all: app
+all: app default.edj
 
 %.edj: %.edc
 	edje_cc $< $@
 
 app: app.c e_box.c
-	gcc \
+	gcc -Wall -std=c99 -D_XOPEN_SOURCE=600 \
 	`edje-config --cflags --libs` \
 	`ecore-config --cflags --libs` \
 	$^ -o $@
