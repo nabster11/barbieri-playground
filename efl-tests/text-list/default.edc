@@ -148,7 +148,7 @@ collections {
             description {
                state: "default" 0.0;
                max: 30 30;
-               color: 255 255 255 60;
+               color: 255 255 255 255;
                image {
                   normal: "arrow_up.png";
                }
@@ -268,28 +268,6 @@ collections {
                   relative: 1.0 1.0;
                }
             }
-
-            description {
-               state: "selected" 0.0;
-               inherit: "default" 0.0;
-               align: 0 0.5;
-               color: 255 255 255 255;
-               color3: 0 0 0 128;
-               text {
-                  font: "Sans";
-                  size: 35;
-                  text: "List item";
-                  align: 0 0.5;
-               }
-               rel1 {
-                  to: "base";
-                  relative: 0.1 0.0;
-                }
-               rel2 {
-                  to: "base";
-                  relative: 1.0 1.0;
-               }
-            }
          }
          part {
               name: "mouse_zone";
@@ -298,25 +276,6 @@ collections {
                  state : "normal" 0.0;
                  color : 255 255 255 0;
               }
-         }
-      }
-
-      programs {
-         program {
-            name: "select_list_item";
-            signal: "mouse,in";
-            source: "mouse_zone";
-            action: STATE_SET "selected" 0.0;
-            target: "label";
-            transition: SINUSOIDAL 0.8;
-         }
-         program {
-            name: "unselect_list_item";
-            signal: "mouse,out";
-            source: "mouse_zone";
-            action: STATE_SET "default" 0.0;
-            target: "label";
-            transition: SINUSOIDAL 0.8;
          }
       }
    }
