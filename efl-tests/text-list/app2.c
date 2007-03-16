@@ -6,6 +6,7 @@
 #include <Ecore_Evas.h>
 #include <Ecore.h>
 #include <Edje.h>
+#include <sys/time.h>
 #include "e_box.h"
 
 #define WIDTH 800
@@ -30,10 +31,11 @@ typedef struct app
     Evas_Object **evas_items;
     int n_evas_items;
     struct {
-        Ecore_Timer *timer;
+        Ecore_Animator *anim;
+        struct timeval start;
+        unsigned long delay_ms;
         double start_align;
-        double stop_align;
-        double step_align;
+        double align_scale;
         void (*stop_cb)(void *data);
     } scroll;
 } app_t;
@@ -239,25 +241,44 @@ static int
 scroll(void *data)
 {
     app_t *app = data;
-    double amount, d;
+    struct timeval now, dif;
+    unsigned long current_ms;
+    double amount;
 
-    e_box_align_get(app->e_box, NULL, &d);
+    gettimeofday(&now, NULL);
+    timersub(&now, &app->scroll.start, &dif);
 
-    amount = app->scroll.stop_align - d;
-    if (amount < 0)
-        amount = -amount;
+    current_ms = dif.tv_sec * 1000 + dif.tv_usec / 1000;
 
-    if (amount < 0.0001) {
-        e_box_align_set(app->e_box, 0.0, app->scroll.stop_align);
+    if (current_ms >= app->scroll.delay_ms) {
+        amount = app->scroll.start_align + app->scroll.align_scale;
+        e_box_align_set(app->e_box, 0.0, amount);
+
         if (app->scroll.stop_cb)
             app->scroll.stop_cb(data);
 
-        app->scroll.timer = NULL;
+        app->scroll.anim = NULL;
         return 0;
-    } else {
-        e_box_align_set(app->e_box, 0.0, d + app->scroll.step_align);
-        return 1;
     }
+
+    amount = (app->scroll.align_scale * current_ms) / app->scroll.delay_ms;
+    amount += app->scroll.start_align;
+    e_box_align_set(app->e_box, 0.0, amount);
+
+    return 1;
+}
+
+static void
+setup_scroll(app_t *app, unsigned long delay_ms, double start_align,
+             double stop_align, void (*stop_cb)(void *))
+{
+    gettimeofday(&app->scroll.start, NULL);
+
+    app->scroll.delay_ms = delay_ms;
+    app->scroll.start_align = start_align;
+    app->scroll.align_scale = stop_align - start_align;
+    app->scroll.stop_cb = stop_cb;
+    app->scroll.anim = ecore_animator_add(scroll, app);
 }
 
 static void
@@ -274,15 +295,11 @@ move_down_done(void *data)
 static void
 move_down(app_t *app)
 {
-    if (app->current + 1 >= evas_list_count(app->items) || app->scroll.timer)
+    if (app->current + 1 >= evas_list_count(app->items) || app->scroll.anim)
         return;
 
     app->current++;
-    app->scroll.start_align = 1.0;
-    app->scroll.stop_align = 0.0;
-    app->scroll.step_align = -0.1;
-    app->scroll.stop_cb = move_down_done;
-    app->scroll.timer = ecore_timer_add(1.0/30.0, scroll, app);
+    setup_scroll(app, 750, 1.0, 0.0, move_down_done);
 }
 
 static void
@@ -296,17 +313,14 @@ move_up_done(void *data)
 static void
 move_up(app_t *app)
 {
-    if (app->current < 1 || app->scroll.timer)
+    if (app->current < 1 || app->scroll.anim)
         return;
 
     app->current--;
     select_item(app, app->current);
     e_box_align_set(app->e_box, 0.0, 0.0);
-    app->scroll.start_align = 0.0;
-    app->scroll.stop_align = 1.0;
-    app->scroll.step_align = 0.1;
-    app->scroll.stop_cb = move_up_done;
-    app->scroll.timer = ecore_timer_add(1.0/30.0, scroll, app);
+
+    setup_scroll(app, 750, 0.0, 1.0, move_up_done);
 }
 
 static void
