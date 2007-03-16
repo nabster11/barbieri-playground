@@ -17,6 +17,13 @@
 #define WM_NAME "TextList"
 #define WM_CLASS "main"
 
+/* same key within this interval is considered continuous press */
+#define CONTINUOUS_KEYPRESS_INTERVAL 75000 /* microseconds */
+
+/* delays less than this amount are considered 0 */
+#define MINIMUM_SCROLL_DELAY 10 /* milliseconds */
+
+
 typedef struct app
 {
     char *infile;
@@ -32,6 +39,11 @@ typedef struct app
     int n_evas_items;
     struct {
         Ecore_Animator *anim;
+        unsigned long initial_delay_ms;
+        unsigned accel_ms; /* (delay_ms * accel_ms) / 1000 */
+        int dir;
+        struct timeval first;
+        struct timeval last;
         struct timeval start;
         unsigned long delay_ms;
         double start_align;
@@ -39,6 +51,12 @@ typedef struct app
         void (*stop_cb)(void *data);
     } scroll;
 } app_t;
+
+static inline unsigned long
+tv2ms(const struct timeval *tv)
+{
+    return tv->tv_sec * 1000 + tv->tv_usec / 1000;
+}
 
 static inline int
 eq(const char *a, const char *b)
@@ -237,26 +255,33 @@ select_item(app_t *app,
     fill_gui_list(app);
 }
 
+static void
+scroll_ended(app_t *app)
+{
+    double amount;
+
+    amount = app->scroll.start_align + app->scroll.align_scale;
+    e_box_align_set(app->e_box, 0.0, amount);
+
+    if (app->scroll.stop_cb)
+        app->scroll.stop_cb(app);
+}
+
 static int
 scroll(void *data)
 {
     app_t *app = data;
-    struct timeval now, dif;
+    struct timeval dif;
     unsigned long current_ms;
     double amount;
 
-    gettimeofday(&now, NULL);
-    timersub(&now, &app->scroll.start, &dif);
+    gettimeofday(&app->scroll.last, NULL);
+    timersub(&app->scroll.last, &app->scroll.start, &dif);
 
-    current_ms = dif.tv_sec * 1000 + dif.tv_usec / 1000;
+    current_ms = tv2ms(&dif);
 
     if (current_ms >= app->scroll.delay_ms) {
-        amount = app->scroll.start_align + app->scroll.align_scale;
-        e_box_align_set(app->e_box, 0.0, amount);
-
-        if (app->scroll.stop_cb)
-            app->scroll.stop_cb(data);
-
+        scroll_ended(app);
         app->scroll.anim = NULL;
         return 0;
     }
@@ -269,12 +294,51 @@ scroll(void *data)
 }
 
 static void
-setup_scroll(app_t *app, unsigned long delay_ms, double start_align,
-             double stop_align, void (*stop_cb)(void *))
+scroll_reset(app_t *app, const struct timeval *p_now, int dir)
+{
+    app->scroll.dir = dir;
+    app->scroll.first = *p_now;
+    app->scroll.delay_ms = app->scroll.initial_delay_ms;
+}
+
+static void
+scroll_init(app_t *app, const struct timeval *p_now, int dir)
+{
+    if (app->scroll.dir != dir)
+        scroll_reset(app, p_now, dir);
+    else {
+        struct timeval dif;
+
+        /* was already 'dir', check if to consider "continuous" press */
+        timersub(p_now, &app->scroll.last, &dif);
+
+        if (dif.tv_sec > 0 || dif.tv_usec > CONTINUOUS_KEYPRESS_INTERVAL)
+            scroll_reset(app, p_now, dir);
+        else {
+            long ms;
+
+            /* still pressing 'dir', accelerate */
+            ms = (app->scroll.delay_ms * app->scroll.accel_ms) / 1000;
+            if (ms >= 0)
+                app->scroll.delay_ms = ms;
+        }
+    }
+}
+
+static void
+scroll_setup(app_t *app, int dir, double start_align, double stop_align,
+             void (*stop_cb)(void *))
 {
     gettimeofday(&app->scroll.start, NULL);
 
-    app->scroll.delay_ms = delay_ms;
+    scroll_init(app, &app->scroll.start,  dir);
+
+    if (app->scroll.delay_ms < MINIMUM_SCROLL_DELAY) {
+        app->scroll.last = app->scroll.start;
+        scroll_ended(app);
+        return;
+    }
+
     app->scroll.start_align = start_align;
     app->scroll.align_scale = stop_align - start_align;
     app->scroll.stop_cb = stop_cb;
@@ -299,7 +363,7 @@ move_down(app_t *app)
         return;
 
     app->current++;
-    setup_scroll(app, 750, 1.0, 0.0, move_down_done);
+    scroll_setup(app, -1, 1.0, 0.0, move_down_done);
 }
 
 static void
@@ -320,7 +384,7 @@ move_up(app_t *app)
     select_item(app, app->current);
     e_box_align_set(app->e_box, 0.0, 0.0);
 
-    setup_scroll(app, 750, 0.0, 1.0, move_up_done);
+    scroll_setup(app, 1, 0.0, 1.0, move_up_done);
 }
 
 static void
@@ -424,6 +488,8 @@ main(int argc, char *argv[])
     ecore_evas_show(app.ee);
 
     _populate(&app);
+    app.scroll.initial_delay_ms = 750;
+    app.scroll.accel_ms = 600;
     setup_gui_list(&app);
 
     ecore_event_handler_add(ECORE_EVENT_SIGNAL_EXIT, app_signal_exit, NULL);
@@ -431,6 +497,7 @@ main(int argc, char *argv[])
 
     evas_object_event_callback_add(app.edje_main, EVAS_CALLBACK_KEY_DOWN,
                                    key_down, &app);
+
     evas_object_focus_set(app.edje_main, 1);
 
     ecore_main_loop_begin();
