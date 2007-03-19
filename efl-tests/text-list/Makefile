@@ -6,19 +6,19 @@ all: app app2 default.edj
 	edje_cc $< $@
 
 app: app.c e_box.c
-	gcc -Wall -std=c99 -D_XOPEN_SOURCE=600 \
+	gcc -g -Wall -std=c99 -D_XOPEN_SOURCE=600 \
 	`edje-config --cflags --libs` \
 	`ecore-config --cflags --libs` \
 	$^ -o $@
 
 app2: app2.c e_box.c
-	gcc -Wall -std=c99 -D_XOPEN_SOURCE=600 \
+	gcc -g -Wall -std=c99 -D_XOPEN_SOURCE=600 \
 	`edje-config --cflags --libs` \
 	`ecore-config --cflags --libs` \
 	$^ -o $@
 
 clean:
-	rm -f *~ app default.edj
+	rm -f *~ app app2 default.edj
 
-run: app default.edj
-	./app
+run: app2 default.edj
+	./app2

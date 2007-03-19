@@ -37,6 +37,9 @@ typedef struct app
     int current;
     Evas_Object **evas_items;
     int n_evas_items;
+    int item_height;
+    int box_y;
+    int box_x;
     struct {
         Ecore_Animator *anim;
         unsigned long initial_delay_ms;
@@ -46,8 +49,6 @@ typedef struct app
         struct timeval last;
         struct timeval start;
         unsigned long delay_ms;
-        double start_align;
-        double align_scale;
         void (*stop_cb)(void *data);
     } scroll;
 } app_t;
@@ -143,9 +144,9 @@ fill_gui_list(app_t *app)
     float p;
 
     j = 0;
-    i = app->current - 1;
+    i = app->current - 2;
     last_evas = app->n_evas_items;
-    last = app->current + last_evas - 1;
+    last = app->current + last_evas - 2;
     n_items = evas_list_count(app->items);
 
     if (n_items < 1)
@@ -213,11 +214,17 @@ setup_gui_list(app_t *app)
     obj = _new_list_item(app, NULL);
     edje_object_size_min_calc(obj, &item_w, &item_h);
     evas_object_del(obj);
+    app->item_height = item_h;
 
     e_box_freeze(app->e_box);
-    evas_object_geometry_get(app->e_box, NULL, NULL, &box_w, &box_h);
+    evas_object_geometry_get(app->e_box,
+                             &app->box_x, &app->box_y,
+                             &box_w, &box_h);
 
-    n_items = box_h / item_h + 1;
+    app->box_y -= item_h;
+    evas_object_move(app->e_box, app->box_x, app->box_y);
+
+    n_items = box_h / item_h + 3;
 
     app->n_evas_items = n_items;
     app->evas_items = malloc(n_items * sizeof(Evas_Object *));
@@ -258,13 +265,8 @@ select_item(app_t *app,
 static void
 scroll_ended(app_t *app)
 {
-    double amount;
-
-    amount = app->scroll.start_align + app->scroll.align_scale;
-    e_box_align_set(app->e_box, 0.0, amount);
-
-    if (app->scroll.stop_cb)
-        app->scroll.stop_cb(app);
+    select_item(app, app->current);
+    evas_object_move(app->e_box, app->box_x, app->box_y);
 }
 
 static int
@@ -274,6 +276,7 @@ scroll(void *data)
     struct timeval dif;
     unsigned long current_ms;
     double amount;
+    int y;
 
     gettimeofday(&app->scroll.last, NULL);
     timersub(&app->scroll.last, &app->scroll.start, &dif);
@@ -286,9 +289,9 @@ scroll(void *data)
         return 0;
     }
 
-    amount = (app->scroll.align_scale * current_ms) / app->scroll.delay_ms;
-    amount += app->scroll.start_align;
-    e_box_align_set(app->e_box, 0.0, amount);
+    amount = app->scroll.dir * ((double)current_ms / app->scroll.delay_ms);
+    y = app->item_height * amount;
+    evas_object_move(app->e_box, app->box_x, app->box_y + y);
 
     return 1;
 }
@@ -326,12 +329,11 @@ scroll_init(app_t *app, const struct timeval *p_now, int dir)
 }
 
 static void
-scroll_setup(app_t *app, int dir, double start_align, double stop_align,
-             void (*stop_cb)(void *))
+scroll_setup(app_t *app, int dir)
 {
     gettimeofday(&app->scroll.start, NULL);
 
-    scroll_init(app, &app->scroll.start,  dir);
+    scroll_init(app, &app->scroll.start, dir);
 
     if (app->scroll.delay_ms < MINIMUM_SCROLL_DELAY) {
         app->scroll.last = app->scroll.start;
@@ -339,21 +341,7 @@ scroll_setup(app_t *app, int dir, double start_align, double stop_align,
         return;
     }
 
-    app->scroll.start_align = start_align;
-    app->scroll.align_scale = stop_align - start_align;
-    app->scroll.stop_cb = stop_cb;
     app->scroll.anim = ecore_animator_add(scroll, app);
-}
-
-static void
-move_down_done(void *data)
-{
-    app_t *app = data;
-
-    e_box_freeze(app->e_box);
-    select_item(app, app->current);
-    e_box_align_set(app->e_box, 0.0, 1.0);
-    e_box_thaw(app->e_box);
 }
 
 static void
@@ -363,15 +351,7 @@ move_down(app_t *app)
         return;
 
     app->current++;
-    scroll_setup(app, -1, 1.0, 0.0, move_down_done);
-}
-
-static void
-move_up_done(void *data)
-{
-    app_t *app = data;
-
-    e_box_align_set(app->e_box, 0.0, 1.0);
+    scroll_setup(app, -1);
 }
 
 static void
@@ -381,10 +361,7 @@ move_up(app_t *app)
         return;
 
     app->current--;
-    select_item(app, app->current);
-    e_box_align_set(app->e_box, 0.0, 0.0);
-
-    scroll_setup(app, 1, 0.0, 1.0, move_up_done);
+    scroll_setup(app, 1);
 }
 
 static void
@@ -405,7 +382,7 @@ key_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
         move_up(app);
     else if (eq(k, "Escape"))
         ecore_main_loop_quit();
-    else if (eq(k, "f")) {
+    else if (eq(k, "f") || eq(k, "F5")) {
         if (ecore_evas_fullscreen_get(app->ee)) {
             ecore_evas_fullscreen_set(app->ee, 0);
             ecore_evas_cursor_set(app->ee, NULL, 0, 0, 0);
