@@ -40,6 +40,7 @@ typedef struct app
     int item_height;
     int box_y;
     int box_x;
+    Ecore_Animator *mouse_down_anim;
     struct {
         Ecore_Animator *anim;
         unsigned long initial_delay_ms;
@@ -180,6 +181,11 @@ fill_gui_list(app_t *app)
     evas_object_color_set(app->arrow_down, c, c, c, c);
 }
 
+static void mouse_down_arrow_up(void *d, Evas *e, Evas_Object *obj, void *event_info);
+static void mouse_up_arrow_up(void *d, Evas *e, Evas_Object *obj, void *event_info);
+static void mouse_down_arrow_down(void *d, Evas *e, Evas_Object *obj, void *event_info);
+static void mouse_up_arrow_down(void *d, Evas *e, Evas_Object *obj, void *event_info);
+
 static void
 destroy_gui_list(app_t *app)
 {
@@ -201,6 +207,20 @@ destroy_gui_list(app_t *app)
 
     free(app->evas_items);
     app->evas_items = NULL;
+
+    evas_object_event_callback_del(app->arrow_up,
+                                   EVAS_CALLBACK_MOUSE_DOWN,
+                                   mouse_down_arrow_up);
+    evas_object_event_callback_del(app->arrow_up,
+                                   EVAS_CALLBACK_MOUSE_UP,
+                                   mouse_up_arrow_up);
+
+    evas_object_event_callback_del(app->arrow_down,
+                                   EVAS_CALLBACK_MOUSE_DOWN,
+                                   mouse_down_arrow_down);
+    evas_object_event_callback_del(app->arrow_down,
+                                   EVAS_CALLBACK_MOUSE_UP,
+                                   mouse_up_arrow_down);
 }
 
 static void
@@ -246,6 +266,24 @@ setup_gui_list(app_t *app)
                                                   "arrow_down");
     app->arrow_up = edje_object_part_object_get(app->edje_main,
                                                 "arrow_up");
+
+    evas_object_event_callback_add(app->arrow_up,
+                                   EVAS_CALLBACK_MOUSE_DOWN,
+                                   mouse_down_arrow_up,
+                                   app);
+    evas_object_event_callback_add(app->arrow_up,
+                                   EVAS_CALLBACK_MOUSE_UP,
+                                   mouse_up_arrow_up,
+                                   app);
+
+    evas_object_event_callback_add(app->arrow_down,
+                                   EVAS_CALLBACK_MOUSE_DOWN,
+                                   mouse_down_arrow_down,
+                                   app);
+    evas_object_event_callback_add(app->arrow_down,
+                                   EVAS_CALLBACK_MOUSE_UP,
+                                   mouse_up_arrow_down,
+                                   app);
 
     fill_gui_list(app);
     e_box_thaw(app->e_box);
@@ -394,6 +432,76 @@ key_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 }
 
 static int
+do_move_up(void *data)
+{
+    app_t *app = data;
+
+    move_up(app);
+    return 1;
+}
+
+static void
+mouse_down_arrow_up(void *d, Evas *e, Evas_Object *obj, void *event_info)
+{
+    app_t *app = d;
+
+    if (app->mouse_down_anim)
+        ecore_animator_del(app->mouse_down_anim);
+
+    app->mouse_down_anim = ecore_animator_add(do_move_up, app);
+    move_up(app);
+}
+
+static void
+mouse_up_arrow_up(void *d, Evas *e, Evas_Object *obj, void *event_info)
+{
+    app_t *app = d;
+
+    if (app->mouse_down_anim)
+        ecore_animator_del(app->mouse_down_anim);
+
+    app->mouse_down_anim = NULL;
+}
+
+static int
+do_move_down(void *data)
+{
+    app_t *app = data;
+
+    move_down(app);
+    return 1;
+}
+
+static void
+mouse_down_arrow_down(void *d, Evas *e, Evas_Object *obj, void *event_info)
+{
+    app_t *app = d;
+
+    if (app->mouse_down_anim)
+        ecore_animator_del(app->mouse_down_anim);
+
+    app->mouse_down_anim = ecore_animator_add(do_move_down, app);
+    move_down(app);
+}
+
+static void
+mouse_up_arrow_down(void *d, Evas *e, Evas_Object *obj, void *event_info)
+{
+    app_t *app = d;
+
+    if (app->mouse_down_anim)
+        ecore_animator_del(app->mouse_down_anim);
+
+    app->mouse_down_anim = NULL;
+}
+
+static void
+mouse_down_back_button(void *d, Evas *e, Evas_Object *obj, void *event_info)
+{
+    ecore_main_loop_quit();
+}
+
+static int
 app_signal_exit(void *data, int type, void *event)
 {
 
@@ -418,6 +526,7 @@ main(int argc, char *argv[])
 {
     app_t app;
     int i;
+    Evas_Object *o;
 
     ecore_init();
     ecore_app_args_set(argc, (const char **)argv);
@@ -476,6 +585,11 @@ main(int argc, char *argv[])
                                    key_down, &app);
 
     evas_object_focus_set(app.edje_main, 1);
+
+    o = edje_object_part_object_get(app.edje_main, "back_button");
+    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN,
+                                   mouse_down_back_button,
+                                   &app);
 
     ecore_main_loop_begin();
 
