@@ -421,7 +421,7 @@ key_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
         move_up(app);
     else if (eq(k, "Escape"))
         ecore_main_loop_quit();
-    else if (eq(k, "f") || eq(k, "F5")) {
+    else if (eq(k, "f") || eq(k, "F6")) {
         if (ecore_evas_fullscreen_get(app->ee)) {
             ecore_evas_fullscreen_set(app->ee, 0);
             ecore_evas_cursor_set(app->ee, NULL, 0, 0, 0);
