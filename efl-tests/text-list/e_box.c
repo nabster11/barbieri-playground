@@ -9,7 +9,6 @@
 #include <Ecore_File.h>
 #include <Ecore_Evas.h>
 #include <Edje.h>
-#include <Emotion.h>
 
 #include "e_box.h"
 
