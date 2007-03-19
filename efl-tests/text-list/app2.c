@@ -27,6 +27,7 @@
 typedef struct app
 {
     char *infile;
+    char *theme;
     Evas_Object *edje_main;
     Evas_Object *e_box;
     Evas_Object *arrow_up;
@@ -121,7 +122,7 @@ _new_list_item(app_t *app, const char *text)
     Evas_Object *obj;
 
     obj = edje_object_add(app->evas);
-    edje_object_file_set(obj, THEME, "list_item");
+    edje_object_file_set(obj, app->theme, "list_item");
     edje_object_part_text_set(obj, "label", text);
 
     return obj;
@@ -541,10 +542,13 @@ main(int argc, char *argv[])
     ecore_evas_data_set(app.ee, "app", &app);
     ecore_evas_title_set(app.ee, TITLE);
     ecore_evas_name_class_set(app.ee, WM_NAME, WM_CLASS);
+    app.theme = THEME;
 
     for (i=1; i < argc; i++)
         if (strcmp (argv[i], "-fs") == 0)
             ecore_evas_fullscreen_set(app.ee, 1);
+        else if (strncmp (argv[i], "-theme=", sizeof("-theme=") - 1) == 0)
+            app.theme = argv[i] + sizeof("-theme=") - 1;
         else if (argv[i][0] != '-')
             app.infile = argv[i];
 
@@ -552,9 +556,9 @@ main(int argc, char *argv[])
 
     app.edje_main = edje_object_add(app.evas);
     evas_data_attach_set(app.evas, &app);
-    if (!edje_object_file_set(app.edje_main, THEME, THEME_GROUP)) {
+    if (!edje_object_file_set(app.edje_main, app.theme, THEME_GROUP)) {
         fprintf(stderr, "Failed to load file \"%s\", part \"%s\".\n",
-                THEME, THEME_GROUP);
+                app.theme, THEME_GROUP);
         return 1;
     }
 

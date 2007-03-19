@@ -1,6 +1,6 @@
 .PHONY: run clean all
 
-all: app app2 default.edj
+all: app app2 default.edj light.edj
 
 %.edj: %.edc
 	edje_cc $< $@
