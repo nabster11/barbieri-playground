@@ -1,6 +1,17 @@
 .PHONY: run clean all
 
-BUILT=ball fade ball.edj ball-light.edj fade.edj
+THEMES= \
+	ball.edj \
+	ball-light.edj \
+	fade.edj \
+	scale.edj
+
+BINS= \
+	ball \
+	fade \
+	scale
+
+BUILT=$(THEMES) $(BINS)
 CFLAGS=-g -Wall -std=c99 -D_XOPEN_SOURCE=600 \
 	`edje-config --cflags` \
 	`ecore-config --cflags`
