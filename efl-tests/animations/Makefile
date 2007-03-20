@@ -9,7 +9,8 @@ THEMES= \
 BINS= \
 	ball \
 	fade \
-	scale
+	scale \
+	ball-scale-fade
 
 BUILT=$(THEMES) $(BINS)
 CFLAGS=-g -Wall -std=c99 -D_XOPEN_SOURCE=600 \

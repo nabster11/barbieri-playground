@@ -190,15 +190,6 @@ main(int argc, char *argv[])
                                    key_down, &app);
     evas_object_focus_set(app.edje_main, 1);
 
-    if (app.max_w < app.min_w)
-        app.max_w = app.min_w;
-
-    if (app.max_h < app.min_h)
-        app.max_h = app.min_h;
-
-    app.dw = app.max_w - app.min_w;
-    app.dh = app.max_h - app.min_h;
-
     /* E-devel says we shouldn't use this way, so do not use it in
      * real code.
      *
@@ -207,6 +198,15 @@ main(int argc, char *argv[])
     app.obj = edje_object_part_object_get(app.edje_main, "obj");
     evas_object_image_size_get(app.obj, &app.min_w, &app.min_h);
     evas_object_move(app.obj, app.x, app.y);
+
+    if (app.max_w < app.min_w)
+        app.max_w = app.min_w;
+
+    if (app.max_h < app.min_h)
+        app.max_h = app.min_h;
+
+    app.dw = app.max_w - app.min_w;
+    app.dh = app.max_h - app.min_h;
 
     fprintf(stderr, "time to scale: %dms, at %d,%d from %dx%d to %dx%d\n",
             app.total_ms, app.x, app.y, app.min_w, app.min_h,
