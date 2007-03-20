@@ -1,10 +1,7 @@
 .PHONY: run clean all
 
-THEMES= \
-	ball.edj \
-	ball-light.edj \
-	fade.edj \
-	scale.edj
+THEMES= default.edj \
+	light.edj
 
 BINS= \
 	ball \

@@ -22,11 +22,12 @@ collections {
          }
 
          part {
-            name: "ball";
+            name: "obj";
             type: RECT;
             description {
                state: "default" 0.0;
                color: 255 0 0 255;
+               min: 10 10;
                rel1 {
                   relative: 0.0 0.0;
                   offset: 0 0;
