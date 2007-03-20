@@ -11,7 +11,7 @@
 
 #define WIDTH 800
 #define HEIGHT 480
-#define THEME "ball.edj"
+#define THEME "default.edj"
 #define THEME_GROUP "main"
 #define TITLE "Ball Animation"
 #define WM_NAME "BallAnimation"
@@ -21,7 +21,7 @@ typedef struct app
 {
     char *theme;
     Evas_Object *edje_main;
-    Evas_Object *ball;
+    Evas_Object *obj;
     Ecore_Evas  *ee;
     Evas *evas;
     struct {
@@ -119,7 +119,7 @@ do_move(app_t *app, const struct timeval *p_now)
 {
     int x, y, w, h, win_w, win_h;
 
-    evas_object_geometry_get(app->ball, &x, &y, &w, &h);
+    evas_object_geometry_get(app->obj, &x, &y, &w, &h);
     evas_object_geometry_get(app->edje_main, NULL, NULL, &win_w, &win_h);
 
     if (app->move.dx + x >= 0 && app->move.dx + x + w < win_w)
@@ -132,7 +132,7 @@ do_move(app_t *app, const struct timeval *p_now)
     else
         app->move.dy = -app->move.dy;
 
-    evas_object_move(app->ball, x, y);
+    evas_object_move(app->obj, x, y);
 }
 
 static void
@@ -157,7 +157,7 @@ do_fade(app_t *app, const struct timeval *p_now)
     else
         v = 255 * (1 - scale);
 
-    evas_object_color_set(app->ball, v, v, v, v);
+    evas_object_color_set(app->obj, v, v, v, v);
 }
 
 static void
@@ -184,8 +184,8 @@ do_scale(app_t *app, const struct timeval *p_now)
     w = app->scale.min_w + app->scale.dw * scale;
     h = app->scale.min_h + app->scale.dh * scale;
 
-    evas_object_image_fill_set(app->ball, 0, 0, w, h);
-    evas_object_resize(app->ball, w, h);
+    evas_object_image_fill_set(app->obj, 0, 0, w, h);
+    evas_object_resize(app->obj, w, h);
 }
 
 static int
@@ -270,7 +270,7 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    app.ball = edje_object_part_object_get(app.edje_main, "ball");
+    app.obj = edje_object_part_object_get(app.edje_main, "obj");
 
     evas_object_move(app.edje_main, 0, 0);
     evas_object_resize(app.edje_main, WIDTH, HEIGHT);
@@ -285,7 +285,7 @@ main(int argc, char *argv[])
                                    key_down, &app);
     evas_object_focus_set(app.edje_main, 1);
 
-    evas_object_image_size_get(app.ball, &app.scale.min_w, &app.scale.min_h);
+    evas_object_image_size_get(app.obj, &app.scale.min_w, &app.scale.min_h);
 
     if (app.scale.max_w < app.scale.min_w)
         app.scale.max_w = app.scale.min_w;

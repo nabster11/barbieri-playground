@@ -10,7 +10,7 @@
 
 #define WIDTH 800
 #define HEIGHT 480
-#define THEME "ball.edj"
+#define THEME "default.edj"
 #define THEME_GROUP "main"
 #define TITLE "Ball Animation"
 #define WM_NAME "BallAnimation"
@@ -20,7 +20,7 @@ typedef struct app
 {
     char *theme;
     Evas_Object *edje_main;
-    Evas_Object *ball;
+    Evas_Object *obj;
     Ecore_Evas  *ee;
     Evas *evas;
     int dx;
@@ -91,7 +91,7 @@ do_anim(void *data)
     app_t *app = (app_t *)data;
     int x, y, w, h, win_w, win_h;
 
-    evas_object_geometry_get(app->ball, &x, &y, &w, &h);
+    evas_object_geometry_get(app->obj, &x, &y, &w, &h);
     evas_object_geometry_get(app->edje_main, NULL, NULL, &win_w, &win_h);
 
     if (app->dx + x >= 0 && app->dx + x + w < win_w)
@@ -104,7 +104,7 @@ do_anim(void *data)
     else
         app->dy = -app->dy;
 
-    evas_object_move(app->ball, x, y);
+    evas_object_move(app->obj, x, y);
 
     return 1;
 }
@@ -157,7 +157,7 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    app.ball = edje_object_part_object_get(app.edje_main, "ball");
+    app.obj = edje_object_part_object_get(app.edje_main, "obj");
 
     evas_object_move(app.edje_main, 0, 0);
     evas_object_resize(app.edje_main, WIDTH, HEIGHT);

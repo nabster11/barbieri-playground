@@ -10,7 +10,7 @@
 
 #define WIDTH 800
 #define HEIGHT 480
-#define THEME "scale.edj"
+#define THEME "default.edj"
 #define THEME_GROUP "main"
 #define TITLE "Scale Animation"
 #define WM_NAME "ScaleAnimation"
