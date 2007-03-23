@@ -7,6 +7,7 @@
 #include <Ecore.h>
 #include <Edje.h>
 #include <sys/time.h>
+#include "key_monitor.h"
 
 #define WIDTH 800
 #define HEIGHT 480
@@ -15,74 +16,6 @@
 #define TITLE "Events Test"
 #define WM_NAME "EventTest"
 #define WM_CLASS "main"
-
-#define CONTINUOUS_KEYPRESS_INTERVAL 0.050 /* seconds */
-
-typedef struct key_monitor key_monitor_t;
-typedef void (*key_monitor_callback_t)(void *data, key_monitor_t *monitor);
-
-struct key_monitor
-{
-    Ecore_Timer *unset_down_timer;
-    int is_down;
-    struct {
-        key_monitor_callback_t down;
-        key_monitor_callback_t up;
-    } callbacks;
-    void *data;
-};
-
-static void
-key_monitor_down(key_monitor_t *m)
-{
-    if (m->unset_down_timer) {
-        ecore_timer_del(m->unset_down_timer);
-        m->unset_down_timer = NULL;
-    }
-
-    if (!m->is_down) {
-        m->is_down = 1;
-
-        if (m->callbacks.down)
-            m->callbacks.down(m->data, m);
-    }
-}
-
-static int
-unset_down(void *data)
-{
-    key_monitor_t *m = (key_monitor_t *)data;
-
-    m->unset_down_timer = NULL;
-    m->is_down = 0;
-
-    if (m->callbacks.up)
-        m->callbacks.up(m->data, m);
-
-    return 0;
-}
-
-static void
-key_monitor_up(key_monitor_t *m)
-{
-    if (m->unset_down_timer || !m->is_down)
-        return;
-
-    m->unset_down_timer = ecore_timer_add(CONTINUOUS_KEYPRESS_INTERVAL,
-                                          unset_down, m);
-}
-
-static void
-key_monitor_setup(key_monitor_t *m,
-                  key_monitor_callback_t down_cb,
-                  key_monitor_callback_t up_cb,
-                  void *data)
-{
-    m->is_down = 0;
-    m->callbacks.down = down_cb;
-    m->callbacks.up = up_cb;
-    m->data = data;
-}
 
 static inline int
 eq(const char *a, const char *b)
