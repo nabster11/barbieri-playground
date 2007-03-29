@@ -47,6 +47,18 @@ move_icon(app_t *app, int off_x, int off_y)
 }
 
 static void
+resize_icon(app_t *app, int value)
+{
+    int w, h;
+
+    evas_object_geometry_get(app->icon, NULL, NULL, &w, &h);
+    w += value;
+    h += value;
+
+    evas_object_resize(app->icon, w, h);
+}
+
+static void
 toggle_icon(app_t *app)
 {
     int v;
@@ -97,6 +109,10 @@ key_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
         move_icon(app, 0, +1);
     else if (eq(k, "Return"))
         toggle_icon(app);
+    else if (eq(k, "equal"))
+        resize_icon(app, +1);
+    else if (eq(k, "minus"))
+        resize_icon(app, -1);
 }
 
 static int

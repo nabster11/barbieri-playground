@@ -30,18 +30,16 @@ icon_new(Evas *evas)
     return obj;
 }
 
-void
-icon_image_set(Evas_Object *o, const char *path)
+static void
+_image_recalc_size(Evas_Object *o, Evas_Coord w, Evas_Coord h)
 {
-    Evas_Coord x, y, w, h, iw, ih, nw, nh;
+    Evas_Coord x, y, iw, ih, nw, nh;
     DECL_PRIV(o);
     double pw, ph, p;
 
-    edje_object_part_geometry_get(priv->edje, IMAGE, NULL, NULL, &w, &h);
     RETURN_IF_ZERO(w);
     RETURN_IF_ZERO(h);
 
-    evas_object_image_file_set(priv->image, path, NULL);
     evas_object_image_size_get(priv->image, &iw, &ih);
     RETURN_IF_ZERO(iw);
     RETURN_IF_ZERO(ih);
@@ -61,6 +59,22 @@ icon_image_set(Evas_Object *o, const char *path)
     edje_extern_object_aspect_set(priv->image, EDJE_ASPECT_CONTROL_BOTH,
                                   nw, nh);
     evas_object_image_fill_set(priv->image, 0, 0, nw, nh);
+}
+
+void
+icon_image_set(Evas_Object *o, const char *path)
+{
+    Evas_Coord w, h;
+    DECL_PRIV(o);
+
+    edje_object_freeze(priv->edje);
+
+    evas_object_image_file_set(priv->image, path, NULL);
+
+    edje_object_part_geometry_get(priv->edje, IMAGE, NULL, NULL, &w, &h);
+    _image_recalc_size(o, w, h);
+
+    edje_object_thaw(priv->edje);
 }
 
 void
@@ -104,6 +118,7 @@ _icon_add(Evas_Object *o)
     edje_object_file_set(priv->edje, theme, "icon_edje");
     edje_object_size_min_get(priv->edje, &w, &h);
     evas_object_resize(priv->edje, w, h);
+    evas_object_resize(o, w, h);
 
     priv->image = evas_object_image_add(evas_object_evas_get(o));
     edje_object_part_swallow(priv->edje, IMAGE, priv->image);
@@ -132,7 +147,12 @@ _icon_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
 {
     DECL_PRIV(o);
 
+    edje_object_freeze(priv->edje);
+
     evas_object_resize(priv->edje, w, h);
+    _image_recalc_size(o, w, h);
+
+    edje_object_thaw(priv->edje);
 }
 
 static void
