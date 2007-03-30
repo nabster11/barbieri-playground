@@ -225,6 +225,8 @@ collections {
 
    group {
       name: "list_item";
+      min: 20 56;
+
       parts {
          part {
             name: "base";
