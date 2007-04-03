@@ -1,7 +1,8 @@
 .PHONY: run clean all
 
 THEMES= default.edj \
-	light.edj
+	light.edj \
+	text.edj
 
 BINS= \
 	ball \
