@@ -9,53 +9,70 @@ SCREEN_DEPTH = 0
 FPS = 24
 
 class Image(object):
-    _cache_converted = {}
-    _cache_raw = {}
-    __slots__ = ("filename", "convert", "image")
+    _cache = {}
+    __slots__ = ("image", "filename", "convert", "has_alpha", "_spec")
 
-    def __init__(self, filename, convert=False):
+    def __init__(self, filename, has_alpha=False, convert=True):
         self.filename = filename
         self.convert = convert
-        if convert:
-            self.image = self._cache_converted.get(filename, None)
-        else:
-            self.image = self._cache_raw.get(filename, None)
+        self.has_alpha = has_alpha
+        self._spec = (filename, convert, has_alpha)
+        self.image = self._get_cache()
     # __init__()
+
+
+    def _set_cache(self):
+        self._cache[self._spec] = self.image
+    # _set_cache()
+
+
+    def _get_cache(self):
+        return self._cache.get(self._spec, None)
+    # _get_cache()
+
+
+    def _get_cache_raw(self):
+        return self._cache.get((self.filename, False, False), None)
+    # _get_cache_raw()
+
 
     def load(self):
         if self.image:
             return self.image
 
+        img = self._get_cache()
+        if img:
+            self.image = img
+            return img
+
+        img = self._get_cache_raw()
+        if not img:
+            img = pygame.image.load(self.filename)
+
         if self.convert:
-            img = self._cache_converted.get(self.filename, None)
-            if img:
-                self.image = img
-                return img
+            if self.has_alpha:
+                img.set_alpha(255, RLEACCEL)
+                img = img.convert_alpha()
+            else:
+                img = img.convert()
 
-            img = self._cache_raw.get(self.filename, None)
-            if not img:
-                img = pygame.image.load(self.filename)
-
-            img = img.convert()
-            self._cache_converted[self.filename] = img
-            self.image = img
-            return img
-
-        else:
-            img = self._cache_raw.get(self.filename, None)
-            if not img:
-                img = pygame.image.load(self.filename)
-
-            self._cache_raw[self.filename] = img
-            self.image = img
-            return img
+        self.image = img
+        self._set_cache()
+        return img
     # load()
+
+
+    def __str__(self):
+        return "%s(filename=%s, has_alpha=%s, convert=%s)" % \
+               (self.__class__.__name__, self.filename, self.has_alpha,
+                self.convert)
+    # __str__()
 # Image
 
 
 class Sun(SmartSpriteDrag):
-    img_on = Image("imgs/sun_on.png")
-    img_off = Image("imgs/sun_off.png")
+    img_on = Image("imgs/sun_on.png", has_alpha=True)
+    img_off = Image("imgs/sun_off.png", has_alpha=True)
     mask = Image("imgs/sun_mask.png")
 
     def __init__(self, app, x=0, y=0):
@@ -144,7 +161,7 @@ class Switcher(SmartSprite):
 
 
 class BouncingSun(SmartSprite):
-    img = Image("imgs/sun_on.png")
+    img = Image("imgs/sun_on.png", has_alpha=True)
 
     def __init__(self, app, x=0, y=0):
         SmartSprite.__init__(self, app.objs)
