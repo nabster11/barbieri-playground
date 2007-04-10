@@ -143,13 +143,17 @@ key_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
 static void
 move_up_start(void *d)
 {
-    fprintf(stderr, "mouse_up_start\n");
+    app_t *app = (app_t *)d;
+
+    vlist_scroll_start(app->list, VLIST_SCROLL_DIR_UP);
 }
 
 static void
 move_up_stop(void *d)
 {
-    fprintf(stderr, "mouse_up_stop\n");
+    app_t *app = (app_t *)d;
+
+    vlist_scroll_stop(app->list, VLIST_SCROLL_DIR_UP);
 }
 
 static void
@@ -179,13 +183,17 @@ mouse_up_arrow_up(void *d, Evas *e, Evas_Object *obj, void *event_info)
 static void
 move_down_start(void *d)
 {
-    fprintf(stderr, "mouse_up_start\n");
+    app_t *app = (app_t *)d;
+
+    vlist_scroll_start(app->list, VLIST_SCROLL_DIR_DOWN);
 }
 
 static void
 move_down_stop(void *d)
 {
-    fprintf(stderr, "mouse_down_stop\n");
+    app_t *app = (app_t *)d;
+
+    vlist_scroll_stop(app->list, VLIST_SCROLL_DIR_DOWN);
 }
 
 static void
