@@ -17,9 +17,9 @@ enum
 
 typedef enum
 {
-    VLIST_SCROLL_DIR_UP = -1,
+    VLIST_SCROLL_DIR_UP = 1,
     VLIST_SCROLL_DIR_NONE = 0,
-    VLIST_SCROLL_DIR_DOWN = 1
+    VLIST_SCROLL_DIR_DOWN = -1
 } vlist_scroll_dir_t;
 
 typedef void (*vlist_selection_changed_cb_t)(Evas_Object *o, const char *text, void *item_data, int index, void *user_data);

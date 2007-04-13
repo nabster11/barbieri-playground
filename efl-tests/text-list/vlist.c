@@ -660,9 +660,9 @@ static inline int
 _vlist_can_scroll(struct priv *priv, vlist_scroll_dir_t dir)
 {
     if (dir == VLIST_SCROLL_DIR_DOWN)
-        return !!priv->selected_content->prev;
-    else
         return !!priv->selected_content->next;
+    else
+        return !!priv->selected_content->prev;
 }
 
 static inline void
@@ -684,7 +684,7 @@ _vlist_update_objs_pos(struct priv *priv)
 }
 
 /*
- * Promote last item to head, rotating downwards.
+ * Promote last item to head, rotating upwards.
  *
  * Assumes:
  *  * items_over < evas_list_count(priv->objs)
@@ -692,7 +692,7 @@ _vlist_update_objs_pos(struct priv *priv)
  *  * priv->selected_content != NULL
  */
 static inline int
-_vlist_scroll_fix_y_down(struct priv *priv, int items_over)
+_vlist_scroll_fix_y_up(struct priv *priv, int items_over)
 {
     Evas_List *last, *cont_itr;
 
@@ -731,7 +731,7 @@ _vlist_scroll_fix_y_down(struct priv *priv, int items_over)
 }
 
 /*
- * Remove head, append it's data, rotating upwards
+ * Remove head, append it's data, rotating downwards
  *
  * Assumes:
  *  * items_over < evas_list_count(priv->objs)
@@ -739,7 +739,7 @@ _vlist_scroll_fix_y_down(struct priv *priv, int items_over)
  *  * priv->selected_content != NULL
  */
 static inline int
-_vlist_scroll_fix_y_up(struct priv *priv, int items_over)
+_vlist_scroll_fix_y_down(struct priv *priv, int items_over)
 {
     Evas_List *cont_itr;
 
@@ -774,13 +774,13 @@ _vlist_scroll_fix_y_up(struct priv *priv, int items_over)
 }
 
 /*
- * Walks down to the new selected content, then triggers recalc.
+ * Walks up to the new selected content, then triggers recalc.
  *
  * Assumes:
  *  * priv->selected_content != NULL
  */
 static inline int
-_vlist_scroll_fix_y_down_complete(struct priv *priv, int items_over)
+_vlist_scroll_fix_y_up_complete(struct priv *priv, int items_over)
 {
     Evas_List *cont_itr;
 
@@ -801,13 +801,13 @@ _vlist_scroll_fix_y_down_complete(struct priv *priv, int items_over)
 }
 
 /*
- * Walks up to the new selected content, then triggers recalc.
+ * Walks down to the new selected content, then triggers recalc.
  *
  * Assumes:
  *  * priv->selected_content != NULL
  */
 static inline int
-_vlist_scroll_fix_y_up_complete(struct priv *priv, int items_over)
+_vlist_scroll_fix_y_down_complete(struct priv *priv, int items_over)
 {
     Evas_List *cont_itr;
 
@@ -1051,7 +1051,7 @@ vlist_scroll_start(Evas_Object *o, vlist_scroll_dir_t dir)
     if (!priv->selected_content)
         return;
 
-    if (dir >= 0)
+    if (dir <= 0)
         dir = VLIST_SCROLL_DIR_DOWN;
     else
         dir = VLIST_SCROLL_DIR_UP;
@@ -1106,9 +1106,9 @@ _vlist_scroll_fix_stop(struct priv *priv)
 
     /* specify last position (y1), y0 already done by  */
     if (scroll_param->dir == VLIST_SCROLL_DIR_DOWN)
-        scroll_param->y1 = priv->scroll.y_max;
-    else
         scroll_param->y1 = priv->scroll.y_min;
+    else
+        scroll_param->y1 = priv->scroll.y_max;
 
     can_scroll = _vlist_can_scroll(priv, scroll_param->dir);
     if (!can_scroll)
