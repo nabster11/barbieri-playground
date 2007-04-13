@@ -26,12 +26,12 @@ struct scroll_param
     vlist_scroll_dir_t dir;
     struct timeval t0;
     int y0;
+    int y1;
     double v0;
     double accel;
     enum {
         STOP_NONE = 0,
-        STOP_INIT = 1,
-        STOP_CHECK = 2
+        STOP_CHECK = 1
     } stop;
 };
 
@@ -75,8 +75,10 @@ struct item
    struct priv *priv = evas_object_smart_data_get((o))
 #define DECL_PRIV_SAFE(o)                                               \
    struct priv *priv = (o) ? evas_object_smart_data_get((o)) : NULL
-#define DECL_SCROLL_PARAM(priv)                                          \
+#define DECL_SCROLL_PARAM(priv)                                         \
    struct scroll_param *scroll_param = &(priv)->scroll.param
+#define DECL_SCROLL_PARAM_CONST(priv)                                   \
+   const struct scroll_param *scroll_param = &(priv)->scroll.param
 #define DECL_SCROLL_PARAM_SAFE(priv)                                    \
    struct scroll_param *scroll_param = (priv) ? &(priv)->scroll.param : NULL
 
@@ -118,6 +120,12 @@ static inline unsigned long
 tv2ms(const struct timeval *tv)
 {
     return tv->tv_sec * 1000 + tv->tv_usec / 1000;
+}
+
+static inline int
+is_zero(double d)
+{
+    return d < F_PRECISION && d > -F_PRECISION;
 }
 
 static inline void
@@ -204,12 +212,162 @@ _obj_content_node_set(Evas_Object *child, Evas_List *node)
     if (node) {
         struct item *item = node->data;
 
-        edje_object_part_text_set(child, LABEL, item->text);
+        edje_object_part_text_set(child, LABEL, item->text ? item->text : "");
         item->obj = child;
     }
 
     evas_object_data_set(child, DATA_KEY, node);
     edje_object_thaw(child);
+}
+
+void
+_vlist_print(struct priv *priv)
+{
+    Evas_List *cont_itr, *obj_itr, *first_cont;
+    int window, bug_last, bug_selected, window_count;
+
+    bug_last = 0;
+    bug_selected = priv->contents && !priv->selected_content;
+    window_count = 0;
+
+    cont_itr = priv->contents;
+    obj_itr = priv->objs;
+
+    fprintf(stderr,
+            "STAT.     CONTENT     OBJECT STRING\n"
+            "-----   --------- ---------- ------\n");
+
+    first_cont = obj_itr ? _obj_content_node_get(obj_itr->data) : NULL;
+    while (!first_cont && obj_itr && obj_itr->next) {
+        int last;
+
+        last = (obj_itr == priv->last_used_obj);
+        if (last)
+            bug_last = 1;
+
+        fprintf(stderr,
+                "[ W %c] %10p %10p \"\"%s\n",
+                last ? 'L' : ' ',
+                NULL, obj_itr->data,
+                last ? " BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" : "");
+
+        obj_itr = obj_itr->next;
+        first_cont = _obj_content_node_get(obj_itr->data);
+        window_count++;
+    }
+
+    window = 0;
+    for (; cont_itr != NULL; cont_itr = cont_itr->next) {
+        int selected, last;
+        char pos[1024] = "";
+        struct item *item = cont_itr->data;
+
+        selected = 0;
+        if (first_cont == cont_itr && obj_itr) {
+            window = 1;
+            first_cont = first_cont->next;
+        }
+
+        if (!obj_itr)
+            window = 0;
+
+        if (window)
+            window_count++;
+
+        if (priv->selected_content == cont_itr) {
+            DECL_SCROLL_PARAM(priv);
+
+            if (window_count != SELECTED_ITEM_OFFSET + 2)
+                bug_selected = 2;
+
+            selected = 1;
+            sprintf(pos, " y=%0.3f (%d, %d), y0=%03d v=%0.4f, a=%0.4f",
+                    scroll_param->y, priv->scroll.y_min, priv->scroll.y_max,
+                    scroll_param->y0, scroll_param->v0, scroll_param->accel);
+        } else
+            pos[0] = '\0';
+
+        last = (window && obj_itr == priv->last_used_obj);
+        if (last && !(window &&
+                      (cont_itr->next == NULL || obj_itr->next == NULL)))
+            bug_last = 1;
+
+
+        if ((selected && bug_selected) ||
+            (last && bug_last))
+            strcat(pos, "    BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+
+        fprintf(stderr,
+                "[C%c%c%c] %10p %10p \"%s\"%s\n",
+                window ? 'W' : ' ',
+                selected ? 'S' : ' ',
+                last ? 'L' : ' ',
+                cont_itr,
+                (window && obj_itr) ? obj_itr->data : NULL,
+                item->text ? item->text : "",
+                pos);
+
+        if (window && obj_itr)
+            obj_itr = obj_itr->next;
+    }
+
+
+    for (; obj_itr; obj_itr = obj_itr->next) {
+        int last;
+
+        last = (obj_itr == priv->last_used_obj);
+        if (last)
+            bug_last = 1;
+
+        fprintf(stderr,
+                "[ W %c] %10p %10p \"\"%s\n",
+                last ? 'L' : ' ',
+                NULL, obj_itr->data,
+                last ? " BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" : "");
+    }
+
+    fprintf(stderr,
+            "-----   --------- ---------- ------\n"
+            "STAT.     CONTENT     OBJECT STRING\n");
+
+    if (bug_last || bug_selected) {
+        fprintf(stderr, "\nBUG REPORT:\n");
+
+        if (bug_last)
+            fprintf(stderr, "\tLAST: priv->last_used_obj is not correct!\n");
+
+
+        switch (bug_selected) {
+        case 1:
+            fprintf(stderr,
+                    "\tSELECTED: priv->selected_content not set, but "
+                    "priv->contents != NULL\n");
+            break;
+        case 2:
+            fprintf(stderr,
+                    "\tSELECTED: priv->selected_content is not the %d pos of "
+                    "window\n", SELECTED_ITEM_OFFSET + 2);
+            break;
+        default:
+            break;
+        }
+
+        fprintf(stderr, "\n\n");
+    }
+
+    for (obj_itr = priv->objs; obj_itr; obj_itr = obj_itr->next) {
+        Evas_List *cont;
+        struct item *item;
+
+        cont = _obj_content_node_get(obj_itr->data);
+        item = cont ? cont->data : NULL;
+
+        fprintf(stderr, "cont=%10p, obj=%10p    \"%s\"\n",
+                cont, obj_itr->data, item ? item->text : "");
+    }
+
+    assert(!bug_last && !bug_selected);
 }
 
 static inline int
@@ -235,7 +393,12 @@ _vlist_fill_blanks(struct priv *priv)
 {
     Evas_List *itr;
 
-    for (itr = priv->last_used_obj; itr != NULL; itr = itr->next)
+    if (priv->last_used_obj)
+        itr = priv->last_used_obj->next;
+    else
+        itr = priv->objs;
+
+    for (; itr != NULL; itr = itr->next)
         _obj_content_node_set(itr->data, NULL);
 }
 
@@ -252,15 +415,37 @@ _vlist_recalc(struct priv *priv)
     } else {
         int i;
 
+        if (!priv->selected_content)
+            priv->selected_content = priv->contents;
+
+
+        i = SELECTED_ITEM_OFFSET + 1;
+        cont_itr = priv->selected_content;
         obj_itr = priv->objs;
-        for (i=0; i < SELECTED_ITEM_OFFSET && obj_itr; i++)
+
+        /* go to first (previous) possible content */
+        if (cont_itr)
+            for (; i > 0 && cont_itr->prev; i--)
+                cont_itr = cont_itr->prev;
+
+        /* if not enough content, make object empty and go to next */
+        for (; i > 0 && obj_itr; i--) {
+            _obj_content_node_set(obj_itr->data, NULL);
             obj_itr = obj_itr->next;
-
-        cont_itr = priv->contents;
-        priv->selected_content = priv->contents;
+        }
     }
-
     _vlist_fill_objs(priv, obj_itr, cont_itr);
+    _vlist_fill_blanks(priv);
+}
+
+static inline int
+_vlist_can_scroll(struct priv *priv, vlist_scroll_dir_t dir)
+{
+    DBG("dir=%d ==> %d", dir, dir == 1 ? !!priv->selected_content->prev : !!priv->selected_content->next);
+    if (dir == VLIST_SCROLL_DIR_DOWN)
+        return !!priv->selected_content->prev;
+    else
+        return !!priv->selected_content->next;
 }
 
 static inline void
@@ -270,7 +455,7 @@ _vlist_update_objs_pos(struct priv *priv)
     Evas_Coord x, y;
 
     x = priv->geometry.x;
-    y = priv->geometry.y + priv->scroll.param.y;
+    y = priv->geometry.y + priv->scroll.param.y - priv->item_h;
 
     for (itr = priv->objs; itr != NULL; itr = itr->next) {
         Evas_Object *child;
@@ -279,66 +464,6 @@ _vlist_update_objs_pos(struct priv *priv)
         evas_object_move(child, x, y);
         y += priv->item_h;
     }
-}
-
-static void
-_vlist_scroll_end(struct priv *priv)
-{
-    DECL_SCROLL_PARAM(priv);
-
-    priv->scroll.anim = NULL;
-    scroll_param->stop = STOP_NONE;
-    scroll_param->dir = VLIST_SCROLL_DIR_NONE;
-    scroll_param->v0 = 0.0;
-    scroll_param->accel = 0.0;
-}
-
-static inline void
-_vlist_scroll_fix_stop(struct priv *priv, int y, const struct timeval now,
-                       int t)
-{
-    DECL_SCROLL_PARAM(priv);
-    int y1, idx;
-
-    if (scroll_param->stop != STOP_INIT) {
-        DBG("scroll.stop != STOP_INIT, %d", scroll_param->stop);
-        return;
-    }
-
-    scroll_param->stop = STOP_CHECK;
-
-    scroll_param->v0 += scroll_param->accel * t;
-    scroll_param->t0 = now;
-    scroll_param->y0 = y;
-
-/*     idx = app->current; */
-/*     if (scroll_param->dir == VLIST_SCROLL_DIR_DOWN) */
-/*         do { */
-/*             y1 = item_pos(app, idx); */
-/*             idx++; */
-/*         } while (y1 <= y); */
-/*     else */
-/*         do { */
-/*             y1 = item_pos(app, idx); */
-/*             idx--; */
-/*         } while (y1 >= y); */
-
-    if (y1 < priv->scroll.y_min)
-        y1 = priv->scroll.y_min;
-
-    if (y1 > priv->scroll.y_max)
-        y1 = priv->scroll.y_max;
-
-    if (y1 == y)
-        _vlist_scroll_end(priv);
-    else {
-        double v2;
-
-        v2 = scroll_param->v0 * scroll_param->v0;
-        scroll_param->accel = -v2 / (2 * (y1 - y));
-    }
-
-    DBG("fix stop!");
 }
 
 /*
@@ -354,31 +479,37 @@ _vlist_scroll_fix_y_down(struct priv *priv, int items_over)
     Evas_List *last, *cont_itr;
     int i;
 
-    DBG("BEG items_over=%d", items_over);
+    assert(priv->selected_content != NULL);
+    assert(priv->objs);
 
     last = evas_list_last(priv->objs);
     cont_itr = priv->selected_content;
+    i = SELECTED_ITEM_OFFSET + 2; /* item before the first in window */
 
-    for (i = 0; cont_itr && i < SELECTED_ITEM_OFFSET + 1; i++)
+    /* go to item before the first (previous) possible content */
+    for (; i > 0 && cont_itr; i--)
         cont_itr = cont_itr->prev;
 
-    for (; cont_itr && items_over > 0; items_over--) {
+    for (; priv->selected_content->prev && items_over > 0; items_over--) {
         Evas_List *tmp;
+        Evas_Object *child;
 
-        _obj_content_node_set(last->data, cont_itr);
-
-        if (priv->last_used_obj == last)
-            priv->last_used_obj = last->prev;
+        child = last->data;
 
         tmp = last->prev;
+        if (priv->last_used_obj == last)
+            priv->last_used_obj = tmp;
+
         priv->objs = evas_list_promote_list(priv->objs, last);
         last = tmp;
 
-        cont_itr = cont_itr->prev;
+        _obj_content_node_set(child, cont_itr);
+        if (cont_itr)
+            cont_itr = cont_itr->prev;
+
         priv->selected_content = priv->selected_content->prev;
     }
 
-    DBG("END items_over=%d", items_over);
     return items_over == 0;
 }
 
@@ -395,7 +526,8 @@ _vlist_scroll_fix_y_up(struct priv *priv, int items_over)
 {
     Evas_List *cont_itr;
 
-    DBG("BEG items_over=%d", items_over);
+    assert(priv->last_used_obj != NULL);
+    assert(priv->selected_content != NULL);
 
     cont_itr = _obj_content_node_get(priv->last_used_obj->data);
     cont_itr = cont_itr->next;
@@ -403,15 +535,12 @@ _vlist_scroll_fix_y_up(struct priv *priv, int items_over)
     for (; priv->selected_content->next && items_over > 0; items_over--) {
         Evas_Object *child;
 
-        if (priv->last_used_obj == priv->objs)
-            priv->last_used_obj = NULL;
-
         child = priv->objs->data;
         priv->objs = evas_list_remove_list(priv->objs, priv->objs);
         priv->objs = evas_list_append(priv->objs, child);
 
+        _obj_content_node_set(child, cont_itr);
         if (cont_itr) {
-            _obj_content_node_set(child, cont_itr);
             cont_itr = cont_itr->next;
             priv->last_used_obj = evas_list_last(priv->objs);
         }
@@ -419,64 +548,63 @@ _vlist_scroll_fix_y_up(struct priv *priv, int items_over)
         priv->selected_content = priv->selected_content->next;
     }
 
-    DBG("END items_over=%d", items_over);
-
     return items_over == 0;
 }
 
+/*
+ * Walks down to the new selected content, then triggers recalc.
+ *
+ * Assumes:
+ *  * priv->selected_content != NULL
+ */
 static inline int
 _vlist_scroll_fix_y_down_complete(struct priv *priv, int items_over)
 {
     Evas_List *cont_itr;
-    int pages, page_size;
 
-    DBG("BEG items_over=%d", items_over);
+    assert(priv->selected_content);
 
-    page_size = evas_list_count(priv->objs);
-    pages = items_over / page_size;
-    items_over = items_over % page_size;
+    cont_itr = priv->selected_content;
+    for (; cont_itr->prev && items_over > 0; items_over--)
+        cont_itr = cont_itr->prev;
 
-    /* go to first item to be used */
-    cont_itr = _obj_content_node_get(priv->last_used_obj->data);
-    for (; cont_itr && pages > 0; pages--) {
-        int i;
-        for (i = 0; cont_itr && i < page_size; i++)
-            cont_itr = cont_itr->next;
-    }
-
-    items_over -= _vlist_fill_objs(priv, priv->objs, cont_itr);
-    _vlist_fill_blanks(priv);
-
-    DBG("END items_over=%d", items_over);
+    priv->selected_content = cont_itr;
+    priv->last_used_obj = NULL;
+    _vlist_recalc(priv);
 
     return items_over == 0;
 }
 
+/*
+ * Walks up to the new selected content, then triggers recalc.
+ *
+ * Assumes:
+ *  * priv->selected_content != NULL
+ */
 static inline int
 _vlist_scroll_fix_y_up_complete(struct priv *priv, int items_over)
 {
     Evas_List *cont_itr;
 
-    DBG("BEG items_over=%d", items_over);
+    assert(priv->selected_content);
 
-    /* go to first item to be used */
-    cont_itr = _obj_content_node_get(priv->objs->data);
-    for (; cont_itr && items_over > 0; items_over--)
-        cont_itr = cont_itr->prev;
+    cont_itr = priv->selected_content;
+    for (; cont_itr->next && items_over > 0; items_over--)
+        cont_itr = cont_itr->next;
 
-    _vlist_fill_objs(priv, priv->objs, cont_itr);
-    _vlist_fill_blanks(priv);
-
-    DBG("END items_over=%d", items_over);
+    priv->selected_content = cont_itr;
+    priv->last_used_obj = NULL;
+    _vlist_recalc(priv);
 
     return items_over == 0;
 }
 
 static inline int
-_vlist_scroll_fix_y(struct priv *priv, double *py)
+_vlist_scroll_fix_y(struct priv *priv, double *py, const struct timeval now)
 {
     DECL_SCROLL_PARAM(priv);
-    int items_over, y;
+    struct timeval dif;
+    int items_over, y, t;
 
     DBG("y=%f", *py);
 
@@ -484,6 +612,13 @@ _vlist_scroll_fix_y(struct priv *priv, double *py)
 
     items_over = y / priv->item_h;
     *py = y % priv->item_h;
+
+    timersub(&now, &scroll_param->t0, &dif);
+    t = tv2ms(&dif);
+
+    scroll_param->y0 = *py;
+    scroll_param->t0 = now;
+    scroll_param->v0 += scroll_param->accel * t;
 
     if (items_over < 0)
         items_over = -items_over;
@@ -501,8 +636,98 @@ _vlist_scroll_fix_y(struct priv *priv, double *py)
             return _vlist_scroll_fix_y_up(priv, items_over);
     }
 
-    DBG("SHOULD NOT REACH");
+    assert(1 == 0 && "Should not be reached!");
+
     return 0;
+}
+
+static void
+_vlist_scroll_end(struct priv *priv)
+{
+    DECL_SCROLL_PARAM(priv);
+
+    DBG("y=%0.3f", scroll_param->y);
+    //_vlist_print(priv);
+
+    priv->scroll.anim = NULL;
+    scroll_param->stop = STOP_NONE;
+    scroll_param->dir = VLIST_SCROLL_DIR_NONE;
+    scroll_param->v0 = 0.0;
+    scroll_param->accel = 0.0;
+}
+
+static inline int
+_vlist_elapsed_ms(const struct priv *priv, const struct timeval *tv)
+{
+    struct timeval dif;
+    int t;
+
+    timersub(tv, &priv->scroll.param.t0, &dif);
+    t = tv2ms(&dif);
+
+    return t;
+}
+
+static inline int
+_vlist_elapsed_ms_now(const struct priv *priv)
+{
+    struct timeval now;
+
+    gettimeofday(&now, NULL);
+    return _vlist_elapsed_ms(priv, &now);
+}
+
+static inline double
+_vlist_pos_at_ms(const struct priv *priv, const int t)
+{
+    DECL_SCROLL_PARAM_CONST(priv);
+
+    return  scroll_param->y0 + scroll_param->v0 * t +
+        scroll_param->accel * t * t / 2;
+}
+
+static inline double
+_vlist_pos_at_tv(const struct priv *priv, const struct timeval *tv)
+{
+    int t;
+
+    t = _vlist_elapsed_ms(priv, tv);
+    return _vlist_pos_at_ms(priv, t);
+}
+
+static inline double
+_vlist_pos_now(const struct priv *priv)
+{
+    int t;
+
+    t = _vlist_elapsed_ms_now(priv);
+    return _vlist_pos_at_ms(priv, t);
+}
+
+static inline double
+_vlist_speed_at_ms(const struct priv *priv, const int t)
+{
+    DECL_SCROLL_PARAM_CONST(priv);
+
+    return scroll_param->v0 + scroll_param->accel * t;
+}
+
+static inline double
+_vlist_speed_at_tv(const struct priv *priv, const struct timeval *tv)
+{
+    int t;
+
+    t = _vlist_elapsed_ms(priv, tv);
+    return _vlist_speed_at_ms(priv, t);
+}
+
+static inline double
+_vlist_speed_now(const struct priv *priv)
+{
+    int t;
+
+    t = _vlist_elapsed_ms_now(priv);
+    return _vlist_speed_at_ms(priv, t);
 }
 
 static int
@@ -511,31 +736,45 @@ _vlist_scroll(void *data)
     Evas_Object *o = (Evas_Object *)data;
     DECL_PRIV(o);
     DECL_SCROLL_PARAM(priv);
-    struct timeval now, dif;
-    int t, r, idx;
+    struct timeval now;
+    int t, r;
     double y, v;
 
-    if (scroll_param->v0 < F_PRECISION &&
-        scroll_param->v0 > -F_PRECISION &&
-        scroll_param->accel < F_PRECISION &&
-        scroll_param->accel > -F_PRECISION) {
-
+    if (!priv->selected_content ||
+        (is_zero(scroll_param->v0) && is_zero(scroll_param->accel))) {
+        DBG("XXXXXXXXXXXXXXXXX CHECK XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        scroll_param->y = 0;
+        _vlist_update_objs_pos(priv);
         _vlist_scroll_end(priv);
         return 0;
     }
 
     gettimeofday(&now, NULL);
-    timersub(&now, &scroll_param->t0, &dif);
-    t = tv2ms(&dif);
+    t = _vlist_elapsed_ms(priv, &now);
+    y = _vlist_pos_at_ms(priv, t);
+    v = _vlist_speed_at_ms(priv, t);
 
-    v = scroll_param->v0 + scroll_param->accel * t;
-    y = scroll_param->y0 + scroll_param->v0 * t +
-        scroll_param->accel * t * t / 2;
+    DBG("y=%0.3f, v=%0.5f, a=%0.5f, t=%04d", y, v, scroll_param->accel, t);
 
-    /* bounds checking */
-    if (y < priv->scroll.y_min || y > priv->scroll.y_max)
-        r = _vlist_scroll_fix_y(priv, &y);
-    else
+    if (scroll_param->stop == STOP_CHECK &&
+        scroll_param->dir * v < F_PRECISION) {
+        DBG("STOP CHECKED");
+        y = scroll_param->y1;
+        r = 0;
+        _vlist_scroll_fix_y(priv, &y, now);
+
+    } else if (y < priv->scroll.y_min || y > priv->scroll.y_max) {
+        r = _vlist_scroll_fix_y(priv, &y, now);
+
+        if (r)
+            r = _vlist_can_scroll(priv, scroll_param->dir);
+
+        DBG("fixed y=%0.3f, continue scrolling=%d", y, r);
+
+        if (r == 0)
+            y = 0;
+
+    } else
         r = 1;
 
     /* check current item */
@@ -545,25 +784,12 @@ _vlist_scroll(void *data)
 /*         //dim_arrows(app); */
 /*     } */
 
-    switch (scroll_param->stop) {
-    case STOP_NONE:
-        break;
-    case STOP_INIT:
-        _vlist_scroll_fix_stop(priv, y, now, t);
-        break;
-    case STOP_CHECK:
-        if (scroll_param->dir * v < F_PRECISION) {
-/*             y = item_pos(app, app->current); */
-            r = 0;
-        }
-        break;
-    }
-
     scroll_param->y = y;
     _vlist_update_objs_pos(priv);
 
-    if (r == 0)
+    if (r == 0) {
         _vlist_scroll_end(priv);
+    }
 
     return r;
 }
@@ -613,24 +839,91 @@ vlist_scroll_start(Evas_Object *o, vlist_scroll_dir_t dir)
     DECL_PRIV_SAFE(o);
     DECL_SCROLL_PARAM_SAFE(priv);
     RETURN_IF_NULL(priv);
+    struct timeval now;
+    double y;
+
+    if (!priv->selected_content)
+        return;
 
     if (dir >= 0)
         dir = VLIST_SCROLL_DIR_DOWN;
     else
         dir = VLIST_SCROLL_DIR_UP;
 
-    scroll_param->dir = dir;
+    if (dir == scroll_param->dir)
+        return;
 
-    gettimeofday(&scroll_param->t0, NULL);
-    scroll_param->y0 = 0;
+    if (!_vlist_can_scroll(priv, dir))
+        return;
+
+    gettimeofday(&now, NULL);
+    y = _vlist_pos_at_tv(priv, &now);
+
+    scroll_param->dir = dir;
+    scroll_param->t0 = now;
+    scroll_param->y0 = y;
     scroll_param->v0 = dir * priv->scroll.init.speed;
     scroll_param->accel = dir * priv->scroll.init.accel;
     scroll_param->stop = STOP_NONE;
 
     DBG("dir=%d", dir);
+    //_vlist_print(priv);
 
     if (!priv->scroll.anim)
         priv->scroll.anim = ecore_animator_add(_vlist_scroll, o);
+}
+
+static inline void
+_vlist_scroll_fix_stop(struct priv *priv)
+{
+    DECL_SCROLL_PARAM(priv);
+    struct timeval now;
+    int t, d, can_scroll;
+
+    scroll_param->stop = STOP_CHECK;
+
+    gettimeofday(&now, NULL);
+    t = _vlist_elapsed_ms(priv, &now);
+    scroll_param->y = _vlist_pos_at_tv(priv, &now);
+
+    /* rearrange contents in objects, fix y and y0 */
+    if (scroll_param->y < priv->scroll.y_min ||
+        scroll_param->y > priv->scroll.y_max)
+        _vlist_scroll_fix_y(priv, &scroll_param->y, now);
+    else {
+        scroll_param->y0 = scroll_param->y;
+        scroll_param->t0 = now;
+    }
+
+    /* specify last position (y1), y0 already done by  */
+    if (scroll_param->dir == VLIST_SCROLL_DIR_DOWN)
+        scroll_param->y1 = priv->scroll.y_max;
+    else
+        scroll_param->y1 = priv->scroll.y_min;
+
+    can_scroll = _vlist_can_scroll(priv, scroll_param->dir);
+    if (!can_scroll)
+        scroll_param->y = 0;
+    _vlist_update_objs_pos(priv);
+
+    d = scroll_param->y1 - scroll_param->y0;
+    /* must stop now or later? */
+    if (d == 0 || !can_scroll) {
+        _vlist_scroll_end(priv);
+        ecore_animator_del(priv->scroll.anim);
+        priv->scroll.anim = NULL;
+    } else {
+        double v2;
+
+        scroll_param->v0 = _vlist_speed_at_tv(priv, &now);
+
+        v2 = scroll_param->v0 * scroll_param->v0;
+        scroll_param->accel = -v2 / (2 * d);
+
+        DBG("y=%0.3f, y0=%d, y1=%d, v=%0.5f, a=%0.5f, t=%05d  (d=%d)",
+            scroll_param->y, scroll_param->y0, scroll_param->y1,
+            scroll_param->v0, scroll_param->accel, t, d);
+    }
 }
 
 void
@@ -642,8 +935,8 @@ vlist_scroll_stop(Evas_Object *o, vlist_scroll_dir_t dir)
 
     DBG("dir=%d", dir);
 
-    if (scroll_param->dir == dir)
-        scroll_param->stop = STOP_INIT;
+    if (scroll_param->dir == dir && scroll_param->stop == STOP_NONE)
+        _vlist_scroll_fix_stop(priv);
 }
 
 /***********************************************************************
@@ -743,8 +1036,8 @@ _vlist_add(Evas_Object *o)
 
     priv->scroll.y_min = -priv->item_h;
     priv->scroll.y_max = priv->item_h;
-    priv->scroll.init.speed = 0.2;
-    priv->scroll.init.accel = 0.0001;
+    priv->scroll.init.speed = 0.1;
+    priv->scroll.init.accel = 0.001;
 
     evas_object_smart_data_set(o, priv);
 }
@@ -806,6 +1099,9 @@ _vlist_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
     int y, n_items;
     DECL_PRIV(o);
 
+    DBG("BEFORE");
+    _vlist_print(priv);
+
     n_items = h / priv->item_h;
     h = n_items * priv->item_h; /* just show full items */
 
@@ -817,6 +1113,9 @@ _vlist_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
     priv->geometry.w = w;
     priv->geometry.h = h;
     evas_object_resize(priv->clip, w, h);
+
+    if (n_items < SELECTED_ITEM_OFFSET + 1)
+        n_items = SELECTED_ITEM_OFFSET + 1;
 
     n_items += 2; /* spare items before and after visible area */
 
@@ -838,7 +1137,7 @@ _vlist_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
         evas_object_resize(itr->data, w, priv->item_h);
 
     y = priv->geometry.y + priv->scroll.param.y +
-        evas_list_count(priv->objs) * priv->item_h;
+        (evas_list_count(priv->objs) - 1) * priv->item_h;
 
     /* If grow, create new objects */
     if (n_items > evas_list_count(priv->objs)) {
@@ -854,6 +1153,8 @@ _vlist_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
         _vlist_recalc(priv);
     }
 
+    DBG("AFTER");
+    _vlist_print(priv);
     _thaw(priv);
 }
 
