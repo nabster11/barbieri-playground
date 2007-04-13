@@ -1056,7 +1056,7 @@ vlist_scroll_start(Evas_Object *o, vlist_scroll_dir_t dir)
     else
         dir = VLIST_SCROLL_DIR_UP;
 
-    if (dir == scroll_param->dir)
+    if (dir == scroll_param->dir && scroll_param->stop == STOP_NONE)
         return;
 
     if (!_vlist_can_scroll(priv, dir))
