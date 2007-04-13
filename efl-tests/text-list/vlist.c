@@ -40,10 +40,11 @@ struct priv
     Evas *evas;
     const char *theme;
     Evas_Coord item_h;
-    Evas_List *contents;
-    Evas_List *objs;
-    Evas_List *selected_content;
-    Evas_List *last_used_obj;
+    Evas_List *contents;         /**< list of struct item */
+    Evas_List *objs;             /**< list of Evas_Object */
+    Evas_List *selected_content; /**< pointer to node with struct item */
+    Evas_List *last_used_obj;    /**< pointer to node with Evas_Object */
+    Evas_List *first_used_obj;   /**< pointer to node with Evas_Object */
     Evas_Object *clip;
     struct {
         Evas_Coord x;
@@ -220,438 +221,6 @@ _obj_content_node_set(Evas_Object *child, Evas_List *node)
     edje_object_thaw(child);
 }
 
-void
-_vlist_print(struct priv *priv)
-{
-    Evas_List *cont_itr, *obj_itr, *first_cont;
-    int window, bug_last, bug_selected, window_count;
-
-    bug_last = 0;
-    bug_selected = priv->contents && !priv->selected_content;
-    window_count = 0;
-
-    cont_itr = priv->contents;
-    obj_itr = priv->objs;
-
-    fprintf(stderr,
-            "STAT.     CONTENT     OBJECT STRING\n"
-            "-----   --------- ---------- ------\n");
-
-    first_cont = obj_itr ? _obj_content_node_get(obj_itr->data) : NULL;
-    while (!first_cont && obj_itr && obj_itr->next) {
-        int last;
-
-        last = (obj_itr == priv->last_used_obj);
-        if (last)
-            bug_last = 1;
-
-        fprintf(stderr,
-                "[ W %c] %10p %10p \"\"%s\n",
-                last ? 'L' : ' ',
-                NULL, obj_itr->data,
-                last ? " BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" : "");
-
-        obj_itr = obj_itr->next;
-        first_cont = _obj_content_node_get(obj_itr->data);
-        window_count++;
-    }
-
-    window = 0;
-    for (; cont_itr != NULL; cont_itr = cont_itr->next) {
-        int selected, last;
-        char pos[1024] = "";
-        struct item *item = cont_itr->data;
-
-        selected = 0;
-        if (first_cont == cont_itr && obj_itr) {
-            window = 1;
-            first_cont = first_cont->next;
-        }
-
-        if (!obj_itr)
-            window = 0;
-
-        if (window)
-            window_count++;
-
-        if (priv->selected_content == cont_itr) {
-            DECL_SCROLL_PARAM(priv);
-
-            if (window_count != SELECTED_ITEM_OFFSET + 2)
-                bug_selected = 2;
-
-            selected = 1;
-            sprintf(pos, " y=%0.3f (%d, %d), y0=%03d v=%0.4f, a=%0.4f",
-                    scroll_param->y, priv->scroll.y_min, priv->scroll.y_max,
-                    scroll_param->y0, scroll_param->v0, scroll_param->accel);
-        } else
-            pos[0] = '\0';
-
-        last = (window && obj_itr == priv->last_used_obj);
-        if (last && !(window &&
-                      (cont_itr->next == NULL || obj_itr->next == NULL)))
-            bug_last = 1;
-
-
-        if ((selected && bug_selected) ||
-            (last && bug_last))
-            strcat(pos, "    BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
-
-        fprintf(stderr,
-                "[C%c%c%c] %10p %10p \"%s\"%s\n",
-                window ? 'W' : ' ',
-                selected ? 'S' : ' ',
-                last ? 'L' : ' ',
-                cont_itr,
-                (window && obj_itr) ? obj_itr->data : NULL,
-                item->text ? item->text : "",
-                pos);
-
-        if (window && obj_itr)
-            obj_itr = obj_itr->next;
-    }
-
-
-    for (; obj_itr; obj_itr = obj_itr->next) {
-        int last;
-
-        last = (obj_itr == priv->last_used_obj);
-        if (last)
-            bug_last = 1;
-
-        fprintf(stderr,
-                "[ W %c] %10p %10p \"\"%s\n",
-                last ? 'L' : ' ',
-                NULL, obj_itr->data,
-                last ? " BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" : "");
-    }
-
-    fprintf(stderr,
-            "-----   --------- ---------- ------\n"
-            "STAT.     CONTENT     OBJECT STRING\n");
-
-    if (bug_last || bug_selected) {
-        fprintf(stderr, "\nBUG REPORT:\n");
-
-        if (bug_last)
-            fprintf(stderr, "\tLAST: priv->last_used_obj is not correct!\n");
-
-
-        switch (bug_selected) {
-        case 1:
-            fprintf(stderr,
-                    "\tSELECTED: priv->selected_content not set, but "
-                    "priv->contents != NULL\n");
-            break;
-        case 2:
-            fprintf(stderr,
-                    "\tSELECTED: priv->selected_content is not the %d pos of "
-                    "window\n", SELECTED_ITEM_OFFSET + 2);
-            break;
-        default:
-            break;
-        }
-
-        fprintf(stderr, "\n\n");
-    }
-
-    for (obj_itr = priv->objs; obj_itr; obj_itr = obj_itr->next) {
-        Evas_List *cont;
-        struct item *item;
-
-        cont = _obj_content_node_get(obj_itr->data);
-        item = cont ? cont->data : NULL;
-
-        fprintf(stderr, "cont=%10p, obj=%10p    \"%s\"\n",
-                cont, obj_itr->data, item ? item->text : "");
-    }
-
-    assert(!bug_last && !bug_selected);
-}
-
-static inline int
-_vlist_fill_objs(struct priv *priv, Evas_List *obj_itr, Evas_List *cont_itr)
-{
-    int i;
-
-    i = 0;
-    while (obj_itr && cont_itr) {
-        priv->last_used_obj = obj_itr;
-        _obj_content_node_set(obj_itr->data, cont_itr);
-
-        obj_itr = obj_itr->next;
-        cont_itr = cont_itr->next;
-        i++;
-    }
-
-    return i;
-}
-
-static inline void
-_vlist_fill_blanks(struct priv *priv)
-{
-    Evas_List *itr;
-
-    if (priv->last_used_obj)
-        itr = priv->last_used_obj->next;
-    else
-        itr = priv->objs;
-
-    for (; itr != NULL; itr = itr->next)
-        _obj_content_node_set(itr->data, NULL);
-}
-
-static void
-_vlist_recalc(struct priv *priv)
-{
-    Evas_List *obj_itr, *cont_itr;
-
-    if (priv->last_used_obj) {
-        obj_itr = priv->last_used_obj->next;
-        cont_itr = _obj_content_node_get(priv->last_used_obj->data);
-        if (cont_itr)
-            cont_itr = cont_itr->next;
-    } else {
-        int i;
-
-        if (!priv->selected_content)
-            priv->selected_content = priv->contents;
-
-
-        i = SELECTED_ITEM_OFFSET + 1;
-        cont_itr = priv->selected_content;
-        obj_itr = priv->objs;
-
-        /* go to first (previous) possible content */
-        if (cont_itr)
-            for (; i > 0 && cont_itr->prev; i--)
-                cont_itr = cont_itr->prev;
-
-        /* if not enough content, make object empty and go to next */
-        for (; i > 0 && obj_itr; i--) {
-            _obj_content_node_set(obj_itr->data, NULL);
-            obj_itr = obj_itr->next;
-        }
-    }
-    _vlist_fill_objs(priv, obj_itr, cont_itr);
-    _vlist_fill_blanks(priv);
-}
-
-static inline int
-_vlist_can_scroll(struct priv *priv, vlist_scroll_dir_t dir)
-{
-    if (dir == VLIST_SCROLL_DIR_DOWN)
-        return !!priv->selected_content->prev;
-    else
-        return !!priv->selected_content->next;
-}
-
-static inline void
-_vlist_update_objs_pos(struct priv *priv)
-{
-    Evas_List *itr;
-    Evas_Coord x, y;
-
-    x = priv->geometry.x;
-    y = priv->geometry.y + priv->scroll.param.y - priv->item_h;
-
-    for (itr = priv->objs; itr != NULL; itr = itr->next) {
-        Evas_Object *child;
-
-        child = itr->data;
-        evas_object_move(child, x, y);
-        y += priv->item_h;
-    }
-}
-
-/*
- * Promote last item to head, rotating downwards.
- *
- * Assumes:
- *  * items_over < evas_list_count(priv->objs)
- *  * priv->selected_content != NULL
- */
-static inline int
-_vlist_scroll_fix_y_down(struct priv *priv, int items_over)
-{
-    Evas_List *last, *cont_itr;
-    int i;
-
-    assert(priv->selected_content != NULL);
-    assert(priv->objs);
-
-    last = evas_list_last(priv->objs);
-    cont_itr = priv->selected_content;
-    i = SELECTED_ITEM_OFFSET + 2; /* item before the first in window */
-
-    /* go to item before the first (previous) possible content */
-    for (; i > 0 && cont_itr; i--)
-        cont_itr = cont_itr->prev;
-
-    for (; priv->selected_content->prev && items_over > 0; items_over--) {
-        Evas_List *tmp;
-        Evas_Object *child;
-
-        child = last->data;
-
-        tmp = last->prev;
-        if (priv->last_used_obj == last)
-            priv->last_used_obj = tmp;
-
-        priv->objs = evas_list_promote_list(priv->objs, last);
-        last = tmp;
-
-        _obj_content_node_set(child, cont_itr);
-        if (cont_itr)
-            cont_itr = cont_itr->prev;
-
-        priv->selected_content = priv->selected_content->prev;
-    }
-
-    return items_over == 0;
-}
-
-/*
- * Remove head, append it's data, rotating upwards
- *
- * Assumes:
- *  * items_over < evas_list_count(priv->objs)
- *  * priv->last_used_obj != NULL
- *  * priv->selected_content != NULL
- */
-static inline int
-_vlist_scroll_fix_y_up(struct priv *priv, int items_over)
-{
-    Evas_List *cont_itr;
-
-    assert(priv->last_used_obj != NULL);
-    assert(priv->selected_content != NULL);
-
-    cont_itr = _obj_content_node_get(priv->last_used_obj->data);
-    cont_itr = cont_itr->next;
-
-    for (; priv->selected_content->next && items_over > 0; items_over--) {
-        Evas_Object *child;
-
-        child = priv->objs->data;
-        priv->objs = evas_list_remove_list(priv->objs, priv->objs);
-        priv->objs = evas_list_append(priv->objs, child);
-
-        _obj_content_node_set(child, cont_itr);
-        if (cont_itr) {
-            cont_itr = cont_itr->next;
-            priv->last_used_obj = evas_list_last(priv->objs);
-        }
-
-        priv->selected_content = priv->selected_content->next;
-    }
-
-    return items_over == 0;
-}
-
-/*
- * Walks down to the new selected content, then triggers recalc.
- *
- * Assumes:
- *  * priv->selected_content != NULL
- */
-static inline int
-_vlist_scroll_fix_y_down_complete(struct priv *priv, int items_over)
-{
-    Evas_List *cont_itr;
-
-    assert(priv->selected_content);
-
-    cont_itr = priv->selected_content;
-    for (; cont_itr->prev && items_over > 0; items_over--)
-        cont_itr = cont_itr->prev;
-
-    priv->selected_content = cont_itr;
-    priv->last_used_obj = NULL;
-    _vlist_recalc(priv);
-
-    return items_over == 0;
-}
-
-/*
- * Walks up to the new selected content, then triggers recalc.
- *
- * Assumes:
- *  * priv->selected_content != NULL
- */
-static inline int
-_vlist_scroll_fix_y_up_complete(struct priv *priv, int items_over)
-{
-    Evas_List *cont_itr;
-
-    assert(priv->selected_content);
-
-    cont_itr = priv->selected_content;
-    for (; cont_itr->next && items_over > 0; items_over--)
-        cont_itr = cont_itr->next;
-
-    priv->selected_content = cont_itr;
-    priv->last_used_obj = NULL;
-    _vlist_recalc(priv);
-
-    return items_over == 0;
-}
-
-static inline int
-_vlist_scroll_fix_y(struct priv *priv, double *py, const struct timeval now)
-{
-    DECL_SCROLL_PARAM(priv);
-    struct timeval dif;
-    int items_over, y, t;
-
-    DBG("y=%f", *py);
-
-    y = (*py);
-
-    items_over = y / priv->item_h;
-    *py = y % priv->item_h;
-
-    timersub(&now, &scroll_param->t0, &dif);
-    t = tv2ms(&dif);
-
-    scroll_param->y0 = *py;
-    scroll_param->t0 = now;
-    scroll_param->v0 += scroll_param->accel * t;
-
-    if (items_over < 0)
-        items_over = -items_over;
-
-    /* Check if to do rotation and how to do it */
-    if (items_over > evas_list_count(priv->objs)) {
-        if (scroll_param->dir == VLIST_SCROLL_DIR_DOWN)
-            return _vlist_scroll_fix_y_down_complete(priv, items_over);
-        else if (scroll_param->dir == VLIST_SCROLL_DIR_UP)
-            return _vlist_scroll_fix_y_up_complete(priv, items_over);
-    } else {
-        if (scroll_param->dir == VLIST_SCROLL_DIR_DOWN)
-            return _vlist_scroll_fix_y_down(priv, items_over);
-        else if (scroll_param->dir == VLIST_SCROLL_DIR_UP)
-            return _vlist_scroll_fix_y_up(priv, items_over);
-    }
-
-    assert(1 == 0 && "Should not be reached!");
-
-    return 0;
-}
-
-static void
-_vlist_scroll_end(struct priv *priv)
-{
-    DECL_SCROLL_PARAM(priv);
-
-    priv->scroll.anim = NULL;
-    scroll_param->stop = STOP_NONE;
-    scroll_param->dir = VLIST_SCROLL_DIR_NONE;
-    scroll_param->v0 = 0.0;
-    scroll_param->accel = 0.0;
-}
-
 static inline int
 _vlist_elapsed_ms(const struct priv *priv, const struct timeval *tv)
 {
@@ -726,6 +295,461 @@ _vlist_speed_now(const struct priv *priv)
     return _vlist_speed_at_ms(priv, t);
 }
 
+void
+_vlist_print(struct priv *priv)
+{
+    Evas_List *cont_itr, *obj_itr, *first_cont;
+    int window, bug_last, bug_first, bug_selected, window_count;
+
+    bug_last = 0;
+    bug_first = 0;
+    bug_selected = priv->contents && !priv->selected_content;
+    window_count = 0;
+
+    cont_itr = priv->contents;
+    obj_itr = priv->objs;
+
+    fprintf(stderr,
+            "STAT.     CONTENT     OBJECT STRING\n"
+            "-----   --------- ---------- ------\n");
+
+    first_cont = obj_itr ? _obj_content_node_get(obj_itr->data) : NULL;
+    while (!first_cont && obj_itr && obj_itr->next) {
+        int last, first;
+
+        last = (obj_itr == priv->last_used_obj);
+        if (last)
+            bug_last = 1;
+
+        first = (obj_itr == priv->first_used_obj);
+        if (first)
+            bug_first = 1;
+
+        fprintf(stderr,
+                "[ W %c%c] %10p %10p \"\"%s\n",
+                first ? 'F' : ' ',
+                last ? 'L' : ' ',
+                NULL, obj_itr->data,
+                last ? " BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" : "");
+
+        obj_itr = obj_itr->next;
+        first_cont = _obj_content_node_get(obj_itr->data);
+        window_count++;
+    }
+
+    window = 0;
+    for (; cont_itr != NULL; cont_itr = cont_itr->next) {
+        int selected, last, first;
+        char pos[1024] = "";
+        struct item *item = cont_itr->data;
+
+        selected = 0;
+        if (first_cont == cont_itr && obj_itr) {
+            window = 1;
+            first_cont = first_cont->next;
+        }
+
+        if (!obj_itr)
+            window = 0;
+
+        if (window)
+            window_count++;
+
+        if (priv->selected_content == cont_itr) {
+            DECL_SCROLL_PARAM(priv);
+
+            if (window_count != SELECTED_ITEM_OFFSET + 2)
+                bug_selected = 2;
+
+            selected = 1;
+            sprintf(pos, " y=%0.3f (%d, %d), y0=%03d v=%0.4f, a=%0.4f",
+                    scroll_param->y, priv->scroll.y_min, priv->scroll.y_max,
+                    scroll_param->y0, scroll_param->v0, scroll_param->accel);
+        } else
+            pos[0] = '\0';
+
+        last = (window && obj_itr == priv->last_used_obj);
+        if (last && !(cont_itr->next == NULL || obj_itr->next == NULL))
+            bug_last = 1;
+
+        first = (window && obj_itr == priv->first_used_obj);
+        if (first && !(cont_itr->prev == NULL || obj_itr->prev == NULL))
+            bug_first = 1;
+
+
+        if ((selected && bug_selected) ||
+            (last && bug_last) ||
+            (first && bug_first))
+            strcat(pos, "    BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+
+        fprintf(stderr,
+                "[C%c%c%c%c] %10p %10p \"%s\"%s\n",
+                window ? 'W' : ' ',
+                selected ? 'S' : ' ',
+                first ? 'F' : ' ',
+                last ? 'L' : ' ',
+                cont_itr,
+                (window && obj_itr) ? obj_itr->data : NULL,
+                item->text ? item->text : "",
+                pos);
+
+        if (window && obj_itr)
+            obj_itr = obj_itr->next;
+    }
+
+
+    for (; obj_itr; obj_itr = obj_itr->next) {
+        int last, first;
+
+        last = (obj_itr == priv->last_used_obj);
+        if (last)
+            bug_last = 1;
+
+        first = (obj_itr == priv->first_used_obj);
+        if (first)
+            bug_first = 1;
+
+        fprintf(stderr,
+                "[ W %c%c] %10p %10p \"\"%s\n",
+                first ? 'F' : ' ',
+                last ? 'L' : ' ',
+                NULL, obj_itr->data,
+                last ? " BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" : "");
+    }
+
+    fprintf(stderr,
+            "-----   --------- ---------- ------\n"
+            "STAT.     CONTENT     OBJECT STRING\n");
+
+    if (bug_last || bug_selected) {
+        fprintf(stderr, "\nBUG REPORT:\n");
+
+        if (bug_last)
+            fprintf(stderr, "\tLAST: priv->last_used_obj is not correct!\n");
+
+
+        switch (bug_selected) {
+        case 1:
+            fprintf(stderr,
+                    "\tSELECTED: priv->selected_content not set, but "
+                    "priv->contents != NULL\n");
+            break;
+        case 2:
+            fprintf(stderr,
+                    "\tSELECTED: priv->selected_content is not the %d pos of "
+                    "window\n", SELECTED_ITEM_OFFSET + 2);
+            break;
+        default:
+            break;
+        }
+
+        fprintf(stderr, "\n\n");
+    }
+
+    for (obj_itr = priv->objs; obj_itr; obj_itr = obj_itr->next) {
+        Evas_List *cont;
+        struct item *item;
+
+        cont = _obj_content_node_get(obj_itr->data);
+        item = cont ? cont->data : NULL;
+
+        fprintf(stderr, "cont=%10p, obj=%10p    \"%s\"\n",
+                cont, obj_itr->data, item ? item->text : "");
+    }
+
+    assert(!bug_last && !bug_selected);
+}
+
+static inline int
+_vlist_fill_objs(struct priv *priv, Evas_List *obj_itr, Evas_List *cont_itr)
+{
+    int i;
+
+    if (!priv->first_used_obj)
+        priv->first_used_obj = obj_itr;
+
+    i = 0;
+    while (obj_itr && cont_itr) {
+        priv->last_used_obj = obj_itr;
+        _obj_content_node_set(obj_itr->data, cont_itr);
+
+        obj_itr = obj_itr->next;
+        cont_itr = cont_itr->next;
+        i++;
+    }
+
+    return i;
+}
+
+static inline void
+_vlist_fill_blanks(struct priv *priv)
+{
+    Evas_List *itr;
+
+    if (priv->last_used_obj)
+        itr = priv->last_used_obj->next;
+    else
+        itr = priv->objs;
+
+    for (; itr != NULL; itr = itr->next)
+        _obj_content_node_set(itr->data, NULL);
+
+    if (priv->first_used_obj)
+        for (itr = priv->first_used_obj->prev; itr != NULL; itr = itr->prev)
+            _obj_content_node_set(itr->data, NULL);
+}
+
+static void
+_vlist_recalc(struct priv *priv)
+{
+    Evas_List *obj_itr, *cont_itr;
+
+    if (priv->last_used_obj) {
+        obj_itr = priv->last_used_obj->next;
+        cont_itr = _obj_content_node_get(priv->last_used_obj->data);
+        if (cont_itr)
+            cont_itr = cont_itr->next;
+    } else {
+        int i;
+
+        if (!priv->selected_content)
+            priv->selected_content = priv->contents;
+
+        i = SELECTED_ITEM_OFFSET + 1;
+        cont_itr = priv->selected_content;
+        /* go to first (previous) possible content */
+        if (cont_itr)
+            for (; i > 0 && cont_itr->prev; i--)
+                cont_itr = cont_itr->prev;
+
+        obj_itr = priv->objs;
+        /* if not enough content, skip those empty */
+        for (; i > 0 && obj_itr; i--)
+            obj_itr = obj_itr->next;
+        priv->first_used_obj = obj_itr;
+    }
+    _vlist_fill_objs(priv, obj_itr, cont_itr);
+    _vlist_fill_blanks(priv);
+    //_vlist_print(priv);
+}
+
+static inline int
+_vlist_can_scroll(struct priv *priv, vlist_scroll_dir_t dir)
+{
+    if (dir == VLIST_SCROLL_DIR_DOWN)
+        return !!priv->selected_content->prev;
+    else
+        return !!priv->selected_content->next;
+}
+
+static inline void
+_vlist_update_objs_pos(struct priv *priv)
+{
+    Evas_List *itr;
+    Evas_Coord x, y;
+
+    x = priv->geometry.x;
+    y = priv->geometry.y + priv->scroll.param.y - priv->item_h;
+
+    for (itr = priv->objs; itr != NULL; itr = itr->next) {
+        Evas_Object *child;
+
+        child = itr->data;
+        evas_object_move(child, x, y);
+        y += priv->item_h;
+    }
+}
+
+/*
+ * Promote last item to head, rotating downwards.
+ *
+ * Assumes:
+ *  * items_over < evas_list_count(priv->objs)
+ *  * priv->first_used_obj != NULL
+ *  * priv->selected_content != NULL
+ */
+static inline int
+_vlist_scroll_fix_y_down(struct priv *priv, int items_over)
+{
+    Evas_List *last, *cont_itr;
+
+    assert(priv->first_used_obj != NULL);
+    assert(priv->selected_content != NULL);
+
+    last = evas_list_last(priv->objs);
+
+    cont_itr = _obj_content_node_get(priv->first_used_obj->data);
+    cont_itr = cont_itr->prev;
+
+    for (; priv->selected_content->prev && items_over > 0; items_over--) {
+        Evas_List *tmp;
+        Evas_Object *child;
+
+        child = last->data;
+
+        tmp = last->prev;
+        if (priv->last_used_obj == last)
+            priv->last_used_obj = tmp;
+
+        priv->objs = evas_list_promote_list(priv->objs, last);
+        last = tmp;
+
+        _obj_content_node_set(child, cont_itr);
+        if (cont_itr) {
+            cont_itr = cont_itr->prev;
+            priv->first_used_obj = priv->objs;
+        }
+
+        priv->selected_content = priv->selected_content->prev;
+    }
+
+    return items_over == 0;
+}
+
+/*
+ * Remove head, append it's data, rotating upwards
+ *
+ * Assumes:
+ *  * items_over < evas_list_count(priv->objs)
+ *  * priv->last_used_obj != NULL
+ *  * priv->selected_content != NULL
+ */
+static inline int
+_vlist_scroll_fix_y_up(struct priv *priv, int items_over)
+{
+    Evas_List *cont_itr;
+
+    assert(priv->last_used_obj != NULL);
+    assert(priv->selected_content != NULL);
+
+    cont_itr = _obj_content_node_get(priv->last_used_obj->data);
+    cont_itr = cont_itr->next;
+
+    for (; priv->selected_content->next && items_over > 0; items_over--) {
+        Evas_Object *child;
+
+        child = priv->objs->data;
+
+        if (priv->first_used_obj == priv->objs)
+            priv->first_used_obj = priv->objs->next;
+
+        priv->objs = evas_list_remove_list(priv->objs, priv->objs);
+        priv->objs = evas_list_append(priv->objs, child);
+
+        _obj_content_node_set(child, cont_itr);
+        if (cont_itr) {
+            cont_itr = cont_itr->next;
+            priv->last_used_obj = evas_list_last(priv->objs);
+        }
+
+        priv->selected_content = priv->selected_content->next;
+    }
+
+    return items_over == 0;
+}
+
+/*
+ * Walks down to the new selected content, then triggers recalc.
+ *
+ * Assumes:
+ *  * priv->selected_content != NULL
+ */
+static inline int
+_vlist_scroll_fix_y_down_complete(struct priv *priv, int items_over)
+{
+    Evas_List *cont_itr;
+
+    assert(priv->selected_content);
+
+    cont_itr = priv->selected_content;
+    for (; cont_itr->prev && items_over > 0; items_over--)
+        cont_itr = cont_itr->prev;
+
+    priv->selected_content = cont_itr;
+    priv->first_used_obj = NULL;
+    priv->last_used_obj = NULL;
+    _vlist_recalc(priv);
+
+    return items_over == 0;
+}
+
+/*
+ * Walks up to the new selected content, then triggers recalc.
+ *
+ * Assumes:
+ *  * priv->selected_content != NULL
+ */
+static inline int
+_vlist_scroll_fix_y_up_complete(struct priv *priv, int items_over)
+{
+    Evas_List *cont_itr;
+
+    assert(priv->selected_content);
+
+    cont_itr = priv->selected_content;
+    for (; cont_itr->next && items_over > 0; items_over--)
+        cont_itr = cont_itr->next;
+
+    priv->selected_content = cont_itr;
+    priv->first_used_obj = NULL;
+    priv->last_used_obj = NULL;
+    _vlist_recalc(priv);
+
+    return items_over == 0;
+}
+
+static inline int
+_vlist_scroll_fix_y(struct priv *priv, double *py, const struct timeval now)
+{
+    DECL_SCROLL_PARAM(priv);
+    int items_over, y, t;
+
+    DBG("y=%f", *py);
+
+    y = (*py);
+
+    items_over = y / priv->item_h;
+    *py = y % priv->item_h;
+
+    t = _vlist_elapsed_ms(priv, &now);
+    scroll_param->y0 = *py;
+    scroll_param->t0 = now;
+    scroll_param->v0 = _vlist_speed_at_ms(priv, t);
+
+    if (items_over < 0)
+        items_over = -items_over;
+
+    /* Check if to do rotation and how to do it */
+    if (items_over > evas_list_count(priv->objs)) {
+        if (scroll_param->dir == VLIST_SCROLL_DIR_DOWN)
+            return _vlist_scroll_fix_y_down_complete(priv, items_over);
+        else if (scroll_param->dir == VLIST_SCROLL_DIR_UP)
+            return _vlist_scroll_fix_y_up_complete(priv, items_over);
+    } else {
+        if (scroll_param->dir == VLIST_SCROLL_DIR_DOWN)
+            return _vlist_scroll_fix_y_down(priv, items_over);
+        else if (scroll_param->dir == VLIST_SCROLL_DIR_UP)
+            return _vlist_scroll_fix_y_up(priv, items_over);
+    }
+
+    assert(1 == 0 && "Should not be reached!");
+
+    return 0;
+}
+
+static void
+_vlist_scroll_end(struct priv *priv)
+{
+    DECL_SCROLL_PARAM(priv);
+
+    priv->scroll.anim = NULL;
+    scroll_param->stop = STOP_NONE;
+    scroll_param->dir = VLIST_SCROLL_DIR_NONE;
+    scroll_param->v0 = 0.0;
+    scroll_param->accel = 0.0;
+}
+
 static int
 _vlist_scroll(void *data)
 {
@@ -779,6 +803,8 @@ _vlist_scroll(void *data)
 
     if (r == 0)
         _vlist_scroll_end(priv);
+
+    //_vlist_print(priv);
 
     return r;
 }
