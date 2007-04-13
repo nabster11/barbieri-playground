@@ -32,5 +32,7 @@ void vlist_scroll_stop(Evas_Object *o, vlist_scroll_dir_t dir);
 int  vlist_count(Evas_Object *o);
 void vlist_selected_content_get(Evas_Object *o, const char **text, void **item_data, int *index);
 void vlist_connect_selection_changed(Evas_Object *o, vlist_selection_changed_cb_t func, void *user_data);
+void vlist_freeze(Evas_Object *o);
+void vlist_thaw(Evas_Object *o);
 
 #endif /* __VLIST_H__ */

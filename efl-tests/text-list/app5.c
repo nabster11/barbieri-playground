@@ -338,7 +338,9 @@ main(int argc, char *argv[])
     evas_object_show(app.list);
     ecore_evas_show(app.ee);
 
+    vlist_freeze(app.list);
     _populate(&app);
+    vlist_thaw(app.list);
 
     ecore_event_handler_add(ECORE_EVENT_SIGNAL_EXIT, app_signal_exit, NULL);
     ecore_evas_callback_resize_set(app.ee, resize_cb);

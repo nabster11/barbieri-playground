@@ -39,6 +39,8 @@ struct priv
 {
     Evas_Object *self;
     Evas *evas;
+    int frozen;
+    int dirty;
     const char *theme;
     Evas_Coord item_h;
     Evas_List *contents;         /**< list of struct item */
@@ -98,7 +100,7 @@ struct item
 #define RETURN_VAL_IF_NULL(v, r)                                        \
    do { if ((v) == NULL) return (r); } while(0)
 
-#ifndef _NDEBUG
+#ifndef NDEBUG
 static inline void
 _dbg(const char *file, int line, const char *func, const char *fmt, ...)
 {
@@ -142,22 +144,56 @@ _freeze(struct priv *priv)
 {
     Evas_List *itr;
 
-    evas_event_freeze(priv->evas);
-    for (itr = priv->objs; itr != NULL; itr = itr->next)
-        edje_object_freeze(itr->data);
+    priv->frozen++;
+
+    if (priv->frozen == 1) {
+        evas_event_freeze(priv->evas);
+        for (itr = priv->objs; itr != NULL; itr = itr->next)
+            edje_object_freeze(itr->data);
+    }
 }
+
+static void _vlist_recalc(struct priv *priv);
+
 
 static inline void
 _thaw(struct priv *priv)
 {
     Evas_List *itr;
 
-    for (itr = priv->objs; itr != NULL; itr = itr->next)
-        edje_object_thaw(itr->data);
+    priv->frozen--;
 
-    evas_event_thaw(priv->evas);
+    if (priv->frozen == 0) {
+        if (priv->dirty)
+            _vlist_recalc(priv);
+
+        for (itr = priv->objs; itr != NULL; itr = itr->next)
+            edje_object_thaw(itr->data);
+
+        evas_event_thaw(priv->evas);
+    } else if (priv->frozen < 0) {
+        DBG("Thaw count larger than freeze! (frozen=%d)", priv->frozen);
+        priv->frozen = 0;
+    }
 }
 
+void
+vlist_freeze(Evas_Object *o)
+{
+    DECL_PRIV_SAFE(o);
+    RETURN_IF_NULL(priv);
+
+    _freeze(priv);
+}
+
+void
+vlist_thaw(Evas_Object *o)
+{
+    DECL_PRIV_SAFE(o);
+    RETURN_IF_NULL(priv);
+
+    _thaw(priv);
+}
 
 static struct item *
 _item_new(const char *text, void *data, int flags)
@@ -373,6 +409,9 @@ _vlist_print(struct priv *priv)
             if (window_count != SELECTED_ITEM_OFFSET + 2)
                 bug_selected = 2;
 
+            if (!window)
+                bug_selected = 3;
+
             if (priv->selected_index != cont_count) {
                 bug_index = 1;
                 correct_index = cont_count;
@@ -399,7 +438,6 @@ _vlist_print(struct priv *priv)
             (last && bug_last) ||
             (first && bug_first))
             strcat(pos, "    BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
 
         fprintf(stderr,
                 "[C%c%c%c%c] %10p %10p \"%s\"%s\n",
@@ -458,6 +496,10 @@ _vlist_print(struct priv *priv)
                     "\tSELECTED: priv->selected_content is not the %d pos of "
                     "window\n", SELECTED_ITEM_OFFSET + 2);
             break;
+        case 3:
+            fprintf(stderr,
+                    "\tSELECTED: priv->selected_content out of window\n");
+            break;
         default:
             break;
         }
@@ -481,8 +523,23 @@ _vlist_print(struct priv *priv)
                 cont, obj_itr->data, item ? item->text : "");
     }
 
+    if (priv->frozen)
+        fprintf(stderr, "Frozen count=%d\n", priv->frozen);
+
     assert(!bug_last && !bug_selected && !bug_index);
 }
+
+#ifdef VLIST_DEBUG
+#define DBG_INTERNALS(priv, fmt, ...)                                       \
+   do {                                                                     \
+      _dbg(__FILE__, __LINE__, __FUNCTION__, fmt, ## __VA_ARGS__);          \
+      _vlist_print(priv);                                                   \
+      _dbg(__FILE__, __LINE__, __FUNCTION__, fmt, ## __VA_ARGS__);          \
+   } while(0)
+#else
+#define DBG_INTERNALS(priv, fmt, ...)                                       \
+   _dbg(__FILE__, __LINE__, __FUNCTION__, fmt, ## __VA_ARGS__)
+#endif /* VLIST_DEBUG */
 
 static inline int
 _vlist_fill_objs(struct priv *priv, Evas_List *obj_itr, Evas_List *cont_itr)
@@ -544,6 +601,11 @@ _vlist_recalc(struct priv *priv)
 {
     Evas_List *obj_itr, *cont_itr, *prev_selected;
 
+    if (priv->frozen > 0) {
+        priv->dirty = 1;
+        return;
+    }
+
     prev_selected = priv->selected_content;
 
     if (priv->last_used_obj) {
@@ -556,7 +618,10 @@ _vlist_recalc(struct priv *priv)
 
         if (!priv->selected_content) {
             priv->selected_content = priv->contents;
-            priv->selected_index = 0;
+            if (priv->contents)
+                priv->selected_index = 0;
+            else
+                priv->selected_index = -1;
         }
 
         i = SELECTED_ITEM_OFFSET + 1;
@@ -574,11 +639,13 @@ _vlist_recalc(struct priv *priv)
     }
     _vlist_fill_objs(priv, obj_itr, cont_itr);
     _vlist_fill_blanks(priv);
-    //_vlist_print(priv);
+    DBG_INTERNALS(priv, "After recalc");
 
     /* check current item */
     if (prev_selected != priv->selected_content)
         _vlist_emit_selection_changed(priv);
+
+    priv->dirty = 0;
 }
 
 static inline int
@@ -824,10 +891,14 @@ _vlist_scroll(void *data)
     if (!priv->selected_content ||
         (is_zero(scroll_param->v0) && is_zero(scroll_param->accel))) {
         scroll_param->y = 0;
+        _freeze(priv);
         _vlist_update_objs_pos(priv);
         _vlist_scroll_end(priv);
+        _thaw(priv);
         return 0;
     }
+
+    _freeze(priv);
 
     gettimeofday(&now, NULL);
     t = _vlist_elapsed_ms(priv, &now);
@@ -858,7 +929,9 @@ _vlist_scroll(void *data)
     if (r == 0)
         _vlist_scroll_end(priv);
 
-    _vlist_print(priv);
+    _thaw(priv);
+
+    DBG_INTERNALS(priv, "After scroll");
 
     return r;
 }
@@ -946,6 +1019,8 @@ _vlist_scroll_fix_stop(struct priv *priv)
     struct timeval now;
     int t, d, can_scroll;
 
+    _freeze(priv);
+
     scroll_param->stop = STOP_CHECK;
 
     gettimeofday(&now, NULL);
@@ -984,6 +1059,8 @@ _vlist_scroll_fix_stop(struct priv *priv)
         v2 = scroll_param->v0 * scroll_param->v0;
         scroll_param->accel = -v2 / (2 * d);
     }
+
+    _thaw(priv);
 }
 
 void
@@ -1128,6 +1205,7 @@ _vlist_add(Evas_Object *o)
     priv->self = o;
     priv->evas = evas_object_evas_get(o);
     priv->theme = evas_object_data_get(o, "edje_file");
+    priv->selected_index = -1;
 
     if (!priv->theme) {
         Evas_Hash *hash;
