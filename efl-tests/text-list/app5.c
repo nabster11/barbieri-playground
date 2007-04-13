@@ -327,6 +327,7 @@ main(int argc, char *argv[])
     }
 
     app.list = vlist_new(app.evas);
+    vlist_conf_set(app.list, 0, 1, 0.1, 0.001);
     vlist_connect_selection_changed(app.list, list_selection_changed, &app);
 
     evas_object_move(app.edje_main, 0, 0);

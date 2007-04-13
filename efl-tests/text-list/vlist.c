@@ -15,7 +15,6 @@
 #define DATA_KEY "vlist_node"
 
 #define F_PRECISION 0.00001
-#define SELECTED_ITEM_OFFSET 1
 
 static int _vlist_error = VLIST_ERROR_NONE;
 static inline Evas_Smart *_vlist_get_smart(void);
@@ -41,6 +40,8 @@ struct priv
     Evas *evas;
     int frozen;
     int dirty;
+    int centered_selected_item;
+    int selected_item_offset;
     const char *theme;
     Evas_Coord item_h;
     Evas_List *contents;         /**< list of struct item */
@@ -406,7 +407,7 @@ _vlist_print(struct priv *priv)
         if (priv->selected_content == cont_itr) {
             DECL_SCROLL_PARAM(priv);
 
-            if (window_count != SELECTED_ITEM_OFFSET + 2)
+            if (window_count != priv->selected_item_offset + 2)
                 bug_selected = 2;
 
             if (!window)
@@ -494,7 +495,7 @@ _vlist_print(struct priv *priv)
         case 2:
             fprintf(stderr,
                     "\tSELECTED: priv->selected_content is not the %d pos of "
-                    "window\n", SELECTED_ITEM_OFFSET + 2);
+                    "window\n", priv->selected_item_offset + 2);
             break;
         case 3:
             fprintf(stderr,
@@ -624,7 +625,7 @@ _vlist_recalc(struct priv *priv)
                 priv->selected_index = -1;
         }
 
-        i = SELECTED_ITEM_OFFSET + 1;
+        i = priv->selected_item_offset + 1;
         cont_itr = priv->selected_content;
         /* go to first (previous) possible content */
         if (cont_itr)
@@ -959,6 +960,52 @@ int
 vlist_error_get(void)
 {
     return _vlist_error;
+}
+
+void
+vlist_conf_set(Evas_Object *o, int centered_selected_item,
+               int selected_item_offset, double speed,  double accel)
+{
+    DECL_PRIV(o);
+    RETURN_IF_NULL(priv);
+
+    if (speed < 0.0)
+        speed = -speed;
+
+    if (accel < 0.0)
+        accel = -accel;
+
+    if (selected_item_offset < 0)
+        centered_selected_item = 1;
+
+    priv->centered_selected_item = centered_selected_item;
+    priv->selected_item_offset = selected_item_offset;
+    priv->scroll.init.speed = speed;
+    priv->scroll.init.accel = accel;
+
+    priv->first_used_obj = NULL;
+    priv->last_used_obj = NULL;
+    _vlist_recalc(priv);
+}
+
+void
+vlist_conf_get(Evas_Object *o, int *centered_selected_item,
+               int *selected_item_offset, double *speed, double *accel)
+{
+    DECL_PRIV(o);
+    RETURN_IF_NULL(priv);
+
+    if (centered_selected_item)
+        *centered_selected_item = priv->centered_selected_item;
+
+    if (selected_item_offset)
+        *selected_item_offset = priv->selected_item_offset;
+
+    if (speed)
+        *speed = priv->scroll.init.speed;
+
+    if (accel)
+        *accel = priv->scroll.init.accel;
 }
 
 void
@@ -1305,8 +1352,25 @@ _vlist_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
     priv->geometry.h = h;
     evas_object_resize(priv->clip, w, h);
 
-    if (n_items < SELECTED_ITEM_OFFSET + 1)
-        n_items = SELECTED_ITEM_OFFSET + 1;
+    if (n_items < 1)
+        return;
+
+    if (priv->centered_selected_item) {
+        int val;
+
+        val = n_items / 2;
+        if (val != priv->selected_item_offset) {
+            priv->selected_item_offset = val;
+            priv->first_used_obj = NULL;
+            priv->last_used_obj = NULL;
+            priv->dirty = 1;
+            fprintf(stderr, "selected_item_offset = %d, n_items=%d\n",
+                    priv->selected_item_offset, n_items);
+        }
+    }
+
+    if (n_items < priv->selected_item_offset + 1)
+        n_items = priv->selected_item_offset + 1;
 
     n_items += 2; /* spare items before and after visible area */
 
