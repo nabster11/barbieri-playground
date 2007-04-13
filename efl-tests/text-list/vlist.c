@@ -441,7 +441,6 @@ _vlist_recalc(struct priv *priv)
 static inline int
 _vlist_can_scroll(struct priv *priv, vlist_scroll_dir_t dir)
 {
-    DBG("dir=%d ==> %d", dir, dir == 1 ? !!priv->selected_content->prev : !!priv->selected_content->next);
     if (dir == VLIST_SCROLL_DIR_DOWN)
         return !!priv->selected_content->prev;
     else
@@ -646,9 +645,6 @@ _vlist_scroll_end(struct priv *priv)
 {
     DECL_SCROLL_PARAM(priv);
 
-    DBG("y=%0.3f", scroll_param->y);
-    //_vlist_print(priv);
-
     priv->scroll.anim = NULL;
     scroll_param->stop = STOP_NONE;
     scroll_param->dir = VLIST_SCROLL_DIR_NONE;
@@ -742,7 +738,6 @@ _vlist_scroll(void *data)
 
     if (!priv->selected_content ||
         (is_zero(scroll_param->v0) && is_zero(scroll_param->accel))) {
-        DBG("XXXXXXXXXXXXXXXXX CHECK XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
         scroll_param->y = 0;
         _vlist_update_objs_pos(priv);
         _vlist_scroll_end(priv);
@@ -754,11 +749,8 @@ _vlist_scroll(void *data)
     y = _vlist_pos_at_ms(priv, t);
     v = _vlist_speed_at_ms(priv, t);
 
-    DBG("y=%0.3f, v=%0.5f, a=%0.5f, t=%04d", y, v, scroll_param->accel, t);
-
     if (scroll_param->stop == STOP_CHECK &&
         scroll_param->dir * v < F_PRECISION) {
-        DBG("STOP CHECKED");
         y = scroll_param->y1;
         r = 0;
         _vlist_scroll_fix_y(priv, &y, now);
@@ -768,8 +760,6 @@ _vlist_scroll(void *data)
 
         if (r)
             r = _vlist_can_scroll(priv, scroll_param->dir);
-
-        DBG("fixed y=%0.3f, continue scrolling=%d", y, r);
 
         if (r == 0)
             y = 0;
@@ -787,9 +777,8 @@ _vlist_scroll(void *data)
     scroll_param->y = y;
     _vlist_update_objs_pos(priv);
 
-    if (r == 0) {
+    if (r == 0)
         _vlist_scroll_end(priv);
-    }
 
     return r;
 }
@@ -866,9 +855,6 @@ vlist_scroll_start(Evas_Object *o, vlist_scroll_dir_t dir)
     scroll_param->accel = dir * priv->scroll.init.accel;
     scroll_param->stop = STOP_NONE;
 
-    DBG("dir=%d", dir);
-    //_vlist_print(priv);
-
     if (!priv->scroll.anim)
         priv->scroll.anim = ecore_animator_add(_vlist_scroll, o);
 }
@@ -919,10 +905,6 @@ _vlist_scroll_fix_stop(struct priv *priv)
 
         v2 = scroll_param->v0 * scroll_param->v0;
         scroll_param->accel = -v2 / (2 * d);
-
-        DBG("y=%0.3f, y0=%d, y1=%d, v=%0.5f, a=%0.5f, t=%05d  (d=%d)",
-            scroll_param->y, scroll_param->y0, scroll_param->y1,
-            scroll_param->v0, scroll_param->accel, t, d);
     }
 }
 
@@ -932,8 +914,6 @@ vlist_scroll_stop(Evas_Object *o, vlist_scroll_dir_t dir)
     DECL_PRIV_SAFE(o);
     DECL_SCROLL_PARAM_SAFE(priv);
     RETURN_IF_NULL(priv);
-
-    DBG("dir=%d", dir);
 
     if (scroll_param->dir == dir && scroll_param->stop == STOP_NONE)
         _vlist_scroll_fix_stop(priv);
@@ -1099,9 +1079,6 @@ _vlist_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
     int y, n_items;
     DECL_PRIV(o);
 
-    DBG("BEFORE");
-    _vlist_print(priv);
-
     n_items = h / priv->item_h;
     h = n_items * priv->item_h; /* just show full items */
 
@@ -1153,8 +1130,6 @@ _vlist_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
         _vlist_recalc(priv);
     }
 
-    DBG("AFTER");
-    _vlist_print(priv);
     _thaw(priv);
 }
 
