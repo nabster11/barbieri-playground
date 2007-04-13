@@ -836,6 +836,8 @@ _vlist_scroll_fix_y(struct priv *priv, double *py, const struct timeval now)
 
     DBG("y=%f", *py);
 
+    r = -1;
+
     prev_selected = priv->selected_content;
 
     y = (*py);
@@ -867,6 +869,8 @@ _vlist_scroll_fix_y(struct priv *priv, double *py, const struct timeval now)
     /* check current item */
     if (prev_selected != priv->selected_content)
         _vlist_emit_selection_changed(priv);
+
+    assert(r != -1);
 
     return r;
 }
