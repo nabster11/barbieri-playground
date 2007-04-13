@@ -1059,10 +1059,14 @@ vlist_scroll_start(Evas_Object *o, vlist_scroll_dir_t dir)
         return;
 
     gettimeofday(&now, NULL);
-    y = _vlist_pos_at_tv(priv, &now);
+    if (scroll_param->dir == VLIST_SCROLL_DIR_NONE)
+        y = 0.0;
+    else
+        y = _vlist_pos_at_tv(priv, &now);
 
     scroll_param->dir = dir;
     scroll_param->t0 = now;
+    scroll_param->y = y;
     scroll_param->y0 = y;
     scroll_param->v0 = dir * priv->scroll.init.speed;
     scroll_param->accel = dir * priv->scroll.init.accel;
