@@ -62,6 +62,7 @@ struct priv
         struct {
             double speed;
             double accel;
+            double min_stop_speed;
         } init;
         Evas_Coord y_min;
         Evas_Coord y_max;
@@ -135,9 +136,15 @@ tv2ms(const struct timeval *tv)
 }
 
 static inline int
-is_zero(double d)
+in_interval(const double d, const double delim)
 {
-    return d < F_PRECISION && d > -F_PRECISION;
+    return d < delim && d > -delim;
+}
+
+static inline int
+is_zero(const double d)
+{
+    return in_interval(d, F_PRECISION);
 }
 
 static inline void
@@ -964,7 +971,8 @@ vlist_error_get(void)
 
 void
 vlist_conf_set(Evas_Object *o, int centered_selected_item,
-               int selected_item_offset, double speed,  double accel)
+               int selected_item_offset, double speed,  double accel,
+               double min_stop_speed)
 {
     DECL_PRIV(o);
     RETURN_IF_NULL(priv);
@@ -982,6 +990,7 @@ vlist_conf_set(Evas_Object *o, int centered_selected_item,
     priv->selected_item_offset = selected_item_offset;
     priv->scroll.init.speed = speed;
     priv->scroll.init.accel = accel;
+    priv->scroll.init.min_stop_speed = min_stop_speed;
 
     priv->first_used_obj = NULL;
     priv->last_used_obj = NULL;
@@ -990,7 +999,8 @@ vlist_conf_set(Evas_Object *o, int centered_selected_item,
 
 void
 vlist_conf_get(Evas_Object *o, int *centered_selected_item,
-               int *selected_item_offset, double *speed, double *accel)
+               int *selected_item_offset, double *speed, double *accel,
+               double *min_stop_speed)
 {
     DECL_PRIV(o);
     RETURN_IF_NULL(priv);
@@ -1006,6 +1016,9 @@ vlist_conf_get(Evas_Object *o, int *centered_selected_item,
 
     if (accel)
         *accel = priv->scroll.init.accel;
+
+    if (min_stop_speed)
+        *min_stop_speed = priv->scroll.init.min_stop_speed;
 }
 
 void
@@ -1099,9 +1112,13 @@ _vlist_scroll_fix_stop(struct priv *priv)
     if (d == 0 || !can_scroll)
         _vlist_scroll_end(priv);
     else {
-        double v2;
+        double v2, min_stop_speed;
 
         scroll_param->v0 = _vlist_speed_at_tv(priv, &now);
+
+        min_stop_speed = priv->scroll.init.min_stop_speed;
+        if (in_interval(scroll_param->v0, min_stop_speed))
+            scroll_param->v0 = scroll_param->dir * min_stop_speed;
 
         v2 = scroll_param->v0 * scroll_param->v0;
         scroll_param->accel = -v2 / (2 * d);

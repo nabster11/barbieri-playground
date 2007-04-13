@@ -25,8 +25,8 @@ typedef enum
 typedef void (*vlist_selection_changed_cb_t)(Evas_Object *o, const char *text, void *item_data, int index, void *user_data);
 
 Evas_Object *vlist_new(Evas *evas);
-void vlist_conf_set(Evas_Object *o, int centered_selected_item, int selected_item_offset, double speed,  double accel);
-void vlist_conf_get(Evas_Object *o, int *centered_selected_item, int *selected_item_offset, double *speed, double *accel);
+void vlist_conf_set(Evas_Object *o, int centered_selected_item, int selected_item_offset, double speed,  double accel, double min_stop_speed);
+void vlist_conf_get(Evas_Object *o, int *centered_selected_item, int *selected_item_offset, double *speed, double *accel, double *min_stop_speed);
 
 void vlist_append(Evas_Object *o, const char *text, void *data, int flags);
 int  vlist_error_get(void);
