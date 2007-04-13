@@ -226,6 +226,45 @@ mouse_down_back_button(void *d, Evas *e, Evas_Object *obj, void *event_info)
     ecore_main_loop_quit();
 }
 
+static void
+dim_arrows(app_t *app, int index)
+{
+    double p;
+    int c, total;
+
+    total = vlist_count(app->list);
+    if (total < 1)
+        return;
+
+    p = ((float)(index + 1)) / ((float)total);
+    c = 255 * p;
+    if (c > 255)
+        c = 255;
+    if (c < 0)
+        c = 0;
+    evas_object_color_set(app->arrow_up, c, c, c, c);
+
+    p = (float)index / ((float)total);
+    c = 255 * (1.0 - p);
+    if (c > 255)
+        c = 255;
+    if (c < 0)
+        c = 0;
+    evas_object_color_set(app->arrow_down, c, c, c, c);
+}
+
+static void
+list_selection_changed(Evas_Object *o, const char *text, void *item_data,
+                       int index, void *user_data)
+{
+    app_t *app = (app_t *)user_data;
+
+    dim_arrows(app, index);
+
+    fprintf(stderr, "now selected: \"%s\" (%d/%d)\n",
+            text, index, vlist_count(o));
+}
+
 static int
 app_signal_exit(void *data, int type, void *event)
 {
@@ -288,6 +327,7 @@ main(int argc, char *argv[])
     }
 
     app.list = vlist_new(app.evas);
+    vlist_connect_selection_changed(app.list, list_selection_changed, &app);
 
     evas_object_move(app.edje_main, 0, 0);
     evas_object_resize(app.edje_main, WIDTH, HEIGHT);
@@ -333,6 +373,8 @@ main(int argc, char *argv[])
     evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN,
                                    mouse_down_back_button,
                                    &app);
+
+    dim_arrows(&app, 0);
 
     ecore_main_loop_begin();
 
