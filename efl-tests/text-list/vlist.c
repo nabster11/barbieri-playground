@@ -975,26 +975,16 @@ vlist_error_get(void)
 
 void
 vlist_conf_set(Evas_Object *o, int centered_selected_item,
-               int selected_item_offset, double speed,  double accel,
-               double min_stop_speed)
+               int selected_item_offset)
 {
     DECL_PRIV(o);
     RETURN_IF_NULL(priv);
-
-    if (speed < 0.0)
-        speed = -speed;
-
-    if (accel < 0.0)
-        accel = -accel;
 
     if (selected_item_offset < 0)
         centered_selected_item = 1;
 
     priv->centered_selected_item = centered_selected_item;
     priv->selected_item_offset = selected_item_offset;
-    priv->scroll.init.speed = speed;
-    priv->scroll.init.accel = accel;
-    priv->scroll.init.min_stop_speed = min_stop_speed;
 
     priv->first_used_obj = NULL;
     priv->last_used_obj = NULL;
@@ -1003,8 +993,7 @@ vlist_conf_set(Evas_Object *o, int centered_selected_item,
 
 void
 vlist_conf_get(Evas_Object *o, int *centered_selected_item,
-               int *selected_item_offset, double *speed, double *accel,
-               double *min_stop_speed)
+               int *selected_item_offset)
 {
     DECL_PRIV(o);
     RETURN_IF_NULL(priv);
@@ -1015,7 +1004,34 @@ vlist_conf_get(Evas_Object *o, int *centered_selected_item,
     if (selected_item_offset)
         *selected_item_offset = priv->selected_item_offset;
 
-    if (speed)
+}
+
+void
+vlist_scroll_conf_set(Evas_Object *o, double speed,  double accel,
+                      double min_stop_speed)
+{
+    DECL_PRIV(o);
+    RETURN_IF_NULL(priv);
+
+    if (speed < 0.0)
+        speed = -speed;
+
+    if (accel < 0.0)
+        accel = -accel;
+
+    priv->scroll.init.speed = speed;
+    priv->scroll.init.accel = accel;
+    priv->scroll.init.min_stop_speed = min_stop_speed;
+}
+
+void
+vlist_scroll_conf_get(Evas_Object *o, double *speed, double *accel,
+                      double *min_stop_speed)
+{
+    DECL_PRIV(o);
+    RETURN_IF_NULL(priv);
+
+   if (speed)
         *speed = priv->scroll.init.speed;
 
     if (accel)

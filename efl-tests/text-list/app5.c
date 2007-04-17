@@ -288,7 +288,8 @@ int
 main(int argc, char *argv[])
 {
     app_t app;
-    int i;
+    int i, selected_offset;
+    double speed, accel;
     Evas_Object *o;
     Evas_Hash *hash;
 
@@ -306,12 +307,21 @@ main(int argc, char *argv[])
     ecore_evas_title_set(app.ee, TITLE);
     ecore_evas_name_class_set(app.ee, WM_NAME, WM_CLASS);
     app.theme = THEME;
+    speed = 0.1;
+    accel = 0.00001;
+    selected_offset = 1;
 
     for (i=1; i < argc; i++)
         if (strcmp (argv[i], "-fs") == 0)
             ecore_evas_fullscreen_set(app.ee, 1);
         else if (strncmp (argv[i], "-theme=", sizeof("-theme=") - 1) == 0)
             app.theme = argv[i] + sizeof("-theme=") - 1;
+        else if (strncmp (argv[i], "-speed=", sizeof("-speed=") - 1) == 0)
+            speed = atof(argv[i] + sizeof("-theme=") - 1);
+        else if (strncmp (argv[i], "-accel=", sizeof("-accel=") - 1) == 0)
+            accel = atof(argv[i] + sizeof("-accel=") - 1);
+        else if (strncmp (argv[i], "-offset=", sizeof("-offset=") - 1) == 0)
+            selected_offset = atoi(argv[i] + sizeof("-offset=") - 1);
         else if (argv[i][0] != '-')
             app.infile = argv[i];
 
@@ -327,7 +337,8 @@ main(int argc, char *argv[])
     }
 
     app.list = vlist_new(app.evas);
-    vlist_conf_set(app.list, 0, 1, 0.0, 0.0001, 0.2);
+    vlist_conf_set(app.list, 0, selected_offset);
+    vlist_scroll_conf_set(app.list, speed, accel, 0.2);
     vlist_connect_selection_changed(app.list, list_selection_changed, &app);
 
     evas_object_move(app.edje_main, 0, 0);
