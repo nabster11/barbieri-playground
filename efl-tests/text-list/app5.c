@@ -357,15 +357,17 @@ main(int argc, char *argv[])
     evas_object_focus_set(app.edje_main, 1);
 
     app.arrow_down = edje_object_part_object_get(app.edje_main, "arrow_down");
-    evas_object_event_callback_add(app.arrow_down, EVAS_CALLBACK_MOUSE_DOWN,
+    o = edje_object_part_object_get(app.edje_main, "arrow_down_area");
+    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN,
                                    mouse_down_arrow_down,
                                    &app);
-    evas_object_event_callback_add(app.arrow_down, EVAS_CALLBACK_MOUSE_UP,
+    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_UP,
                                    mouse_up_arrow_down,
                                    &app);
 
     app.arrow_up = edje_object_part_object_get(app.edje_main, "arrow_up");
-    evas_object_event_callback_add(app.arrow_up, EVAS_CALLBACK_MOUSE_DOWN,
+    o = edje_object_part_object_get(app.edje_main, "arrow_up_area");
+    evas_object_event_callback_add(o, EVAS_CALLBACK_MOUSE_DOWN,
                                    mouse_down_arrow_up,
                                    &app);
     evas_object_event_callback_add(app.arrow_up, EVAS_CALLBACK_MOUSE_UP,
