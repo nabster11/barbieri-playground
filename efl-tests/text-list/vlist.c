@@ -958,6 +958,8 @@ vlist_new(Evas *evas, int item_h, vlist_row_ops_t row_ops, void *user_data)
     }
 
     priv->item_h = item_h;
+    priv->scroll.y_min = -priv->item_h;
+    priv->scroll.y_max = priv->item_h;
     priv->row_ops = row_ops;
     priv->row_ops_data = user_data;
 
@@ -1256,8 +1258,6 @@ _vlist_add(Evas_Object *o)
     evas_object_smart_member_add(priv->clip, o);
     evas_object_color_set(priv->clip, 255, 255, 255, 255);
 
-    priv->scroll.y_min = -priv->item_h;
-    priv->scroll.y_max = priv->item_h;
     priv->scroll.init.speed = 0.1;
     priv->scroll.init.accel = 0.001;
 
