@@ -24,8 +24,6 @@ typedef struct app
     Ecore_Evas  *ee;
     Evas *evas;
     int steps;
-    int dx;
-    int dy;
 } app_t;
 
 int
@@ -33,7 +31,7 @@ main(int argc, char *argv[])
 {
     struct timeval start, end, dif;
     app_t app;
-    int i, x, y;
+    int i, c, d;
 
     ecore_init();
     ecore_app_args_set(argc, (const char **)argv);
@@ -49,18 +47,12 @@ main(int argc, char *argv[])
 
     app.theme = THEME;
     app.steps = 500;
-    app.dx = 300;
-    app.dy = 300;
 
     for (i=1; i < argc; i++)
         if (strcmp (argv[i], "-fs") == 0)
             ecore_evas_fullscreen_set(app.ee, 1);
         else if (strncmp (argv[i], "-theme=", sizeof("-theme=") - 1) == 0)
             app.theme = argv[i] + sizeof("-theme=") - 1;
-        else if (strncmp (argv[i], "-dx=", sizeof("-dx=") - 1) == 0)
-            app.dx = atoi(argv[i] + sizeof("-dx=") - 1);
-        else if (strncmp (argv[i], "-dy=", sizeof("-dy=") - 1) == 0)
-            app.dy = atoi(argv[i] + sizeof("-dy=") - 1);
         else if (strncmp (argv[i], "-steps=", sizeof("-steps=") - 1) == 0)
             app.steps = atoi(argv[i] + sizeof("-steps=") - 1);
 
@@ -82,20 +74,19 @@ main(int argc, char *argv[])
     evas_object_show(app.edje_main);
     ecore_evas_show(app.ee);
 
-    x = 0;
-    y = 0;
-
+    c = 0;
+    d = 1;
     gettimeofday(&start, NULL);
     for (i=0; i < app.steps; i++) {
-        evas_object_move(app.obj, x, y);
+        evas_object_color_set(app.obj, c, c, c, c);
         evas_render_updates(app.evas);
-        if (x == app.dx || y == app.dy) {
-            x = 0;
-            y = 0;
-        } else {
-            x = app.dx;
-            y = app.dy;
-        }
+
+        c += d;
+
+        if (d == 1 && c == 255)
+            d = -1;
+        else if (d == -1 && c == 0)
+            d = 1;
     }
     gettimeofday(&end, NULL);
     timersub(&end, &start, &dif);

@@ -1,7 +1,8 @@
 .PHONY: run clean all
 
 BINS= \
-	mover
+	mover \
+	alpha
 
 THEMES= \
 	default.edj
