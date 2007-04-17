@@ -6,6 +6,7 @@ BINS= \
 	app3 \
 	app4 \
 	app5 \
+	app6 \
 	test-events
 
 THEMES= \
@@ -45,6 +46,12 @@ all: $(BUILT)
 	$^ -o $@
 
 app5: app5.c vlist.c key_monitor.c
+	gcc $(CFLAGS) \
+	`edje-config --cflags --libs` \
+	`ecore-config --cflags --libs` \
+	$^ -o $@
+
+app6: app6.c vlist.c key_monitor.c icon_edje.c
 	gcc $(CFLAGS) \
 	`edje-config --cflags --libs` \
 	`ecore-config --cflags --libs` \
