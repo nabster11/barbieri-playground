@@ -60,8 +60,6 @@ struct priv
             double accel;
             double min_stop_speed;
         } init;
-        Evas_Coord y_min;
-        Evas_Coord y_max;
         Ecore_Animator *anim;
     } scroll;
     struct {
@@ -420,7 +418,7 @@ _vlist_print(struct priv *priv)
             selected = 1;
             sprintf(pos, " idx=%d y=%0.3f (%d, %d), y0=%03d v=%0.4f, a=%0.4f",
                     priv->selected_index,
-                    scroll_param->y, priv->scroll.y_min, priv->scroll.y_max,
+                    scroll_param->y, -priv->item_h, priv->item_h,
                     scroll_param->y0, scroll_param->v0, scroll_param->accel);
         } else
             pos[0] = '\0';
@@ -914,7 +912,7 @@ _vlist_scroll(void *data)
         r = 0;
         _vlist_scroll_fix_y(priv, &y, now);
 
-    } else if (y < priv->scroll.y_min || y > priv->scroll.y_max) {
+    } else if (y < -priv->item_h || y > priv->item_h) {
         r = _vlist_scroll_fix_y(priv, &y, now);
 
         if (r)
@@ -958,8 +956,6 @@ vlist_new(Evas *evas, int item_h, vlist_row_ops_t row_ops, void *user_data)
     }
 
     priv->item_h = item_h;
-    priv->scroll.y_min = -priv->item_h;
-    priv->scroll.y_max = priv->item_h;
     priv->row_ops = row_ops;
     priv->row_ops_data = user_data;
 
@@ -1111,19 +1107,14 @@ _vlist_scroll_fix_stop(struct priv *priv)
     scroll_param->y = _vlist_pos_at_tv(priv, &now);
 
     /* rearrange contents in objects, fix y and y0 */
-    if (scroll_param->y < priv->scroll.y_min ||
-        scroll_param->y > priv->scroll.y_max)
+    if (scroll_param->y < -priv->item_h ||
+        scroll_param->y > priv->item_h)
         _vlist_scroll_fix_y(priv, &scroll_param->y, now);
     else {
         scroll_param->y0 = scroll_param->y;
         scroll_param->t0 = now;
     }
-
-    /* specify last position (y1), y0 already done by  */
-    if (scroll_param->dir == VLIST_SCROLL_DIR_DOWN)
-        scroll_param->y1 = priv->scroll.y_min;
-    else
-        scroll_param->y1 = priv->scroll.y_max;
+    scroll_param->y1 = scroll_param->dir * priv->item_h;
 
     can_scroll = _vlist_can_scroll(priv, scroll_param->dir);
     if (!can_scroll)
