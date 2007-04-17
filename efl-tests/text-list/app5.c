@@ -45,9 +45,9 @@ eq(const char *a, const char *b)
 }
 
 static inline void
-_add_item(app_t *app, const char *txt)
+_add_item(app_t *app, char *txt)
 {
-    vlist_append(app->list, txt, NULL, VLIST_APPEND_NONE);
+    vlist_append(app->list, txt);
 }
 
 static void
@@ -84,7 +84,7 @@ _populate(app_t *app)
 
         line[i - 1] = '\0';
 
-        _add_item(app, line);
+        _add_item(app, strdup(line));
     }
 
     free(line);
@@ -254,15 +254,15 @@ dim_arrows(app_t *app, int index)
 }
 
 static void
-list_selection_changed(Evas_Object *o, const char *text, void *item_data,
-                       int index, void *user_data)
+list_selection_changed(Evas_Object *o, void *item_data, int index,
+                       void *user_data)
 {
     app_t *app = (app_t *)user_data;
 
     dim_arrows(app, index);
 
-    fprintf(stderr, "now selected: \"%s\" (%d/%d)\n",
-            text, index, vlist_count(o));
+    fprintf(stderr, "now selected: %p (%d/%d)\n", item_data, index,
+            vlist_count(o));
 }
 
 static int
@@ -284,14 +284,50 @@ resize_cb(Ecore_Evas *ee)
     evas_object_resize(app->edje_main, w, h);
 }
 
+static Evas_Object *
+list_row_new(Evas_Object *list, Evas *evas, void *user_data)
+{
+    app_t *app;
+    Evas_Object *o;
+
+    app = user_data;
+    o = edje_object_add(evas);
+    edje_object_file_set(o, app->theme, "list_item");
+    return o;
+}
+
+static void
+list_row_set(Evas_Object *list, Evas_Object *row, void *data, void *user_data)
+{
+    edje_object_part_text_set(row, "label", data ? (char*)data : "");
+}
+
+static void
+list_row_freeze(Evas_Object *list, Evas_Object *row, void *user_data)
+{
+    edje_object_freeze(row);
+}
+
+static void
+list_row_thaw(Evas_Object *list, Evas_Object *row, void *user_data)
+{
+    edje_object_thaw(row);
+}
+
 int
 main(int argc, char *argv[])
 {
     app_t app;
-    int i, selected_offset;
+    int i, selected_offset, item_h;
     double speed, accel;
     Evas_Object *o;
     Evas_Hash *hash;
+    vlist_row_ops_t row_ops = {
+        .new = list_row_new,
+        .set = list_row_set,
+        .freeze = list_row_freeze,
+        .thaw = list_row_thaw
+    };
 
     ecore_init();
     ecore_app_args_set(argc, (const char **)argv);
@@ -336,7 +372,20 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    app.list = vlist_new(app.evas);
+    o = edje_object_add(app.evas);
+    if (!edje_object_file_set(o, app.theme, "list_item")) {
+        fprintf(stderr, "Failed to load file \"%s\", part \"list_item\".\n",
+                app.theme);
+        return 1;
+    }
+    edje_object_size_min_get(o, NULL, &item_h);
+    if (item_h < 1) {
+        fprintf(stderr, "Invalid minimum height for part \"list_item\".\n");
+        return 1;
+    }
+    evas_object_del(o);
+
+    app.list = vlist_new(app.evas, item_h, row_ops, &app);
     vlist_conf_set(app.list, 0, selected_offset);
     vlist_scroll_conf_set(app.list, speed, accel, 0.2);
     vlist_connect_selection_changed(app.list, list_selection_changed, &app);

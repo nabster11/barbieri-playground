@@ -3,15 +3,11 @@
 
 #include <Evas.h>
 
-#define VLIST_APPEND_NONE  0
-#define VLIST_APPEND_SHARE 1 /* share text, don't duplicate it */
-
 typedef struct _Evas_List vlist_item_handle_t;
 
 enum
 {
     VLIST_ERROR_NONE = 0,
-    VLIST_ERROR_NO_EDJE,
     VLIST_ERROR_NO_ITEM_SIZE
 };
 
@@ -22,20 +18,32 @@ typedef enum
     VLIST_SCROLL_DIR_DOWN = -1
 } vlist_scroll_dir_t;
 
-typedef void (*vlist_selection_changed_cb_t)(Evas_Object *o, const char *text, void *item_data, int index, void *user_data);
+typedef void (*vlist_selection_changed_cb_t)(Evas_Object *o, void *item_data, int index, void *user_data);
+typedef Evas_Object *(*vlist_row_new_t)(Evas_Object *list, Evas *evas, void *user_data);
+typedef void (*vlist_row_set_t)(Evas_Object *list, Evas_Object *row, void *item_data, void *user_data);
+typedef void (*vlist_row_freeze_t)(Evas_Object *list, Evas_Object *row, void *user_data);
+typedef void (*vlist_row_thaw_t)(Evas_Object *list, Evas_Object *row, void *user_data);
 
-Evas_Object *vlist_new(Evas *evas);
+typedef struct
+{
+    vlist_row_new_t new;
+    vlist_row_set_t set;
+    vlist_row_freeze_t freeze;
+    vlist_row_thaw_t thaw;
+} vlist_row_ops_t;
+
+Evas_Object *vlist_new(Evas *evas, int item_h, vlist_row_ops_t row_ops, void *user_data);
 void vlist_conf_set(Evas_Object *o, int centered_selected_item, int selected_item_offset);
 void vlist_conf_get(Evas_Object *o, int *centered_selected_item, int *selected_item_offset);
 void vlist_scroll_conf_set(Evas_Object *o, double speed,  double accel, double min_stop_speed);
 void vlist_scroll_conf_get(Evas_Object *o, double *speed, double *accel, double *min_stop_speed);
 
-void vlist_append(Evas_Object *o, const char *text, void *data, int flags);
+void vlist_append(Evas_Object *o, void *data);
 int  vlist_error_get(void);
 void vlist_scroll_start(Evas_Object *o, vlist_scroll_dir_t dir);
 void vlist_scroll_stop(Evas_Object *o, vlist_scroll_dir_t dir);
 int  vlist_count(Evas_Object *o);
-void vlist_selected_content_get(Evas_Object *o, const char **text, void **item_data, int *index);
+void vlist_selected_content_get(Evas_Object *o, void **item_data, int *index);
 void vlist_connect_selection_changed(Evas_Object *o, vlist_selection_changed_cb_t func, void *user_data);
 void vlist_freeze(Evas_Object *o);
 void vlist_thaw(Evas_Object *o);

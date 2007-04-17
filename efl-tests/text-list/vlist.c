@@ -1,6 +1,5 @@
 #define _GNU_SOURCE
 #include "vlist.h"
-#include <Edje.h>
 #include <Ecore.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,8 +9,6 @@
 #include <assert.h>
 #include <sys/time.h>
 
-#define ITEM "list_item"
-#define LABEL "label"
 #define DATA_KEY "vlist_node"
 
 #define F_PRECISION 0.00001
@@ -42,7 +39,6 @@ struct priv
     int dirty;
     int centered_selected_item;
     int selected_item_offset;
-    const char *theme;
     Evas_Coord item_h;
     Evas_List *contents;         /**< list of struct item */
     Evas_List *objs;             /**< list of Evas_Object */
@@ -74,14 +70,14 @@ struct priv
     struct {
         void *selection_changed;
     } callback_data;
+    vlist_row_ops_t row_ops;
+    void *row_ops_data;
 };
 
 struct item
 {
-    char *text;
     void *data;
     Evas_Object *obj;
-    int flags;
 };
 
 #define DECL_PRIV(o)                                                    \
@@ -150,14 +146,17 @@ is_zero(const double d)
 static inline void
 _freeze(struct priv *priv)
 {
-    Evas_List *itr;
-
     priv->frozen++;
 
     if (priv->frozen == 1) {
         evas_event_freeze(priv->evas);
-        for (itr = priv->objs; itr != NULL; itr = itr->next)
-            edje_object_freeze(itr->data);
+        if (priv->row_ops.freeze) {
+            vlist_row_freeze_t func = priv->row_ops.freeze;
+            Evas_List *itr;
+
+            for (itr = priv->objs; itr != NULL; itr = itr->next)
+                func(priv->self, itr->data, priv->row_ops_data);
+        }
     }
 }
 
@@ -167,16 +166,19 @@ static void _vlist_recalc(struct priv *priv);
 static inline void
 _thaw(struct priv *priv)
 {
-    Evas_List *itr;
-
     priv->frozen--;
 
     if (priv->frozen == 0) {
         if (priv->dirty)
             _vlist_recalc(priv);
 
-        for (itr = priv->objs; itr != NULL; itr = itr->next)
-            edje_object_thaw(itr->data);
+        if (priv->row_ops.thaw) {
+            vlist_row_thaw_t func = priv->row_ops.thaw;
+            Evas_List *itr;
+
+            for (itr = priv->objs; itr != NULL; itr = itr->next)
+                func(priv->self, itr->data, priv->row_ops_data);
+        }
 
         evas_event_thaw(priv->evas);
     } else if (priv->frozen < 0) {
@@ -203,33 +205,21 @@ vlist_thaw(Evas_Object *o)
     _thaw(priv);
 }
 
-static struct item *
-_item_new(const char *text, void *data, int flags)
+static inline struct item *
+_item_new(void *data)
 {
     struct item *item;
 
     item = malloc(sizeof(*item));
     item->data = data;
     item->obj = NULL;
-    item->flags = flags;
-    if (!text || *text == '\0')
-        item->text = NULL;
-    else {
-        if (flags & VLIST_APPEND_SHARE)
-            item->text = (char *)text;
-        else
-            item->text = strdup(text);
-    }
 
     return item;
 }
 
-static void
+static inline void
 _item_del(struct item *item)
 {
-    if (item->text && !(item->flags & VLIST_APPEND_SHARE))
-        free(item->text);
-
     if (item->obj)
         evas_object_data_del(item->obj, DATA_KEY);
 
@@ -237,7 +227,7 @@ _item_del(struct item *item)
 }
 
 static inline void
-_obj_content_node_del(Evas_Object *child)
+_obj_content_node_del(struct priv *priv, Evas_Object *child)
 {
     Evas_List *old;
 
@@ -247,7 +237,7 @@ _obj_content_node_del(Evas_Object *child)
         old_item->obj = NULL;
     }
 
-    edje_object_part_text_set(child, LABEL, "");
+    priv->row_ops.set(priv->self, child, NULL, priv->row_ops_data);
 }
 
 static inline Evas_List *
@@ -257,20 +247,22 @@ _obj_content_node_get(Evas_Object *child)
 }
 
 static inline void
-_obj_content_node_set(Evas_Object *child, Evas_List *node)
+_obj_content_node_set(struct priv *priv, Evas_Object *child, Evas_List *node)
 {
-    edje_object_freeze(child);
-    _obj_content_node_del(child);
+    if (priv->row_ops.freeze)
+        priv->row_ops.freeze(priv->self, child, priv->row_ops_data);
+    _obj_content_node_del(priv, child);
 
     if (node) {
         struct item *item = node->data;
 
-        edje_object_part_text_set(child, LABEL, item->text ? item->text : "");
+        priv->row_ops.set(priv->self, child, item->data, priv->row_ops_data);
         item->obj = child;
     }
 
     evas_object_data_set(child, DATA_KEY, node);
-    edje_object_thaw(child);
+    if (priv->row_ops.thaw)
+        priv->row_ops.thaw(priv->self, child, priv->row_ops_data);
 }
 
 static inline int
@@ -448,14 +440,14 @@ _vlist_print(struct priv *priv)
             strcat(pos, "    BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
         fprintf(stderr,
-                "[C%c%c%c%c] %10p %10p \"%s\"%s\n",
+                "[C%c%c%c%c] %10p %10p %p%s\n",
                 window ? 'W' : ' ',
                 selected ? 'S' : ' ',
                 first ? 'F' : ' ',
                 last ? 'L' : ' ',
                 cont_itr,
                 (window && obj_itr) ? obj_itr->data : NULL,
-                item->text ? item->text : "",
+                item->data,
                 pos);
 
         if (window && obj_itr)
@@ -527,8 +519,8 @@ _vlist_print(struct priv *priv)
         cont = _obj_content_node_get(obj_itr->data);
         item = cont ? cont->data : NULL;
 
-        fprintf(stderr, "cont=%10p, obj=%10p    \"%s\"\n",
-                cont, obj_itr->data, item ? item->text : "");
+        fprintf(stderr, "cont=%10p, obj=%10p    %p\n",
+                cont, obj_itr->data, item ? item->data : NULL);
     }
 
     if (priv->frozen)
@@ -560,7 +552,7 @@ _vlist_fill_objs(struct priv *priv, Evas_List *obj_itr, Evas_List *cont_itr)
     i = 0;
     while (obj_itr && cont_itr) {
         priv->last_used_obj = obj_itr;
-        _obj_content_node_set(obj_itr->data, cont_itr);
+        _obj_content_node_set(priv, obj_itr->data, cont_itr);
 
         obj_itr = obj_itr->next;
         cont_itr = cont_itr->next;
@@ -581,11 +573,11 @@ _vlist_fill_blanks(struct priv *priv)
         itr = priv->objs;
 
     for (; itr != NULL; itr = itr->next)
-        _obj_content_node_set(itr->data, NULL);
+        _obj_content_node_set(priv, itr->data, NULL);
 
     if (priv->first_used_obj)
         for (itr = priv->first_used_obj->prev; itr != NULL; itr = itr->prev)
-            _obj_content_node_set(itr->data, NULL);
+            _obj_content_node_set(priv, itr->data, NULL);
 }
 
 static void
@@ -598,7 +590,6 @@ _vlist_emit_selection_changed(struct priv *priv)
 
     item = priv->selected_content->data;
     priv->callback.selection_changed(priv->self,
-                                     item->text,
                                      item->data,
                                      priv->selected_index,
                                      priv->callback_data.selection_changed);
@@ -717,7 +708,7 @@ _vlist_scroll_fix_y_up(struct priv *priv, int items_over)
         priv->objs = evas_list_promote_list(priv->objs, last);
         last = tmp;
 
-        _obj_content_node_set(child, cont_itr);
+        _obj_content_node_set(priv, child, cont_itr);
         if (cont_itr) {
             cont_itr = cont_itr->prev;
             priv->first_used_obj = priv->objs;
@@ -760,7 +751,7 @@ _vlist_scroll_fix_y_down(struct priv *priv, int items_over)
         priv->objs = evas_list_remove_list(priv->objs, priv->objs);
         priv->objs = evas_list_append(priv->objs, child);
 
-        _obj_content_node_set(child, cont_itr);
+        _obj_content_node_set(priv, child, cont_itr);
         if (cont_itr) {
             cont_itr = cont_itr->next;
             priv->last_used_obj = evas_list_last(priv->objs);
@@ -952,17 +943,23 @@ _vlist_scroll(void *data)
  * Public API
  **********************************************************************/
 Evas_Object *
-vlist_new(Evas *evas)
+vlist_new(Evas *evas, int item_h, vlist_row_ops_t row_ops, void *user_data)
 {
     Evas_Object *obj;
+    struct priv *priv;
 
     _vlist_error = VLIST_ERROR_NONE;
 
     obj = evas_object_smart_add(evas, _vlist_get_smart());
-    if (!evas_object_smart_data_get(obj)) {
+    priv = evas_object_smart_data_get(obj);
+    if (!priv) {
         evas_object_del(obj);
         return NULL;
     }
+
+    priv->item_h = item_h;
+    priv->row_ops = row_ops;
+    priv->row_ops_data = user_data;
 
     return obj;
 }
@@ -1042,13 +1039,13 @@ vlist_scroll_conf_get(Evas_Object *o, double *speed, double *accel,
 }
 
 void
-vlist_append(Evas_Object *o, const char *text, void *data, int flags)
+vlist_append(Evas_Object *o, void *data)
 {
     struct item *item;
     DECL_PRIV_SAFE(o);
     RETURN_IF_NULL(priv);
 
-    item = _item_new(text, data, flags);
+    item = _item_new(data);
     RETURN_IF_NULL(item);
 
     priv->contents = evas_list_append(priv->contents, item);
@@ -1180,15 +1177,12 @@ vlist_count(Evas_Object *o)
 }
 
 void
-vlist_selected_content_get(Evas_Object *o, const char **text,
-                           void **item_data, int *index)
+vlist_selected_content_get(Evas_Object *o, void **item_data, int *index)
 {
     DECL_PRIV_SAFE(o);
     RETURN_IF_NULL(priv);
 
     if (!priv->selected_content) {
-        if (text)
-            *text = NULL;
         if (item_data)
             *item_data = NULL;
         if (index)
@@ -1197,8 +1191,6 @@ vlist_selected_content_get(Evas_Object *o, const char **text,
         struct item *item;
 
         item = priv->selected_content->data;
-        if (text)
-            *text = item->text;
         if (item_data)
             *item_data = item->data;
         if (index)
@@ -1223,24 +1215,12 @@ vlist_connect_selection_changed(Evas_Object *o,
  * Private API
  **********************************************************************/
 static Evas_Object *
-_edje_item_new(const struct priv *priv)
-{
-    Evas_Object *o;
-
-    o = edje_object_add(priv->evas);
-    edje_object_file_set(o, priv->theme, ITEM);
-
-    return o;
-}
-
-static Evas_Object *
 _vlist_child_new(Evas_Object *o)
 {
     Evas_Object *child;
     DECL_PRIV(o);
 
-    child = _edje_item_new(priv);
-    edje_object_part_text_set(child, LABEL, "");
+    child = priv->row_ops.new(priv->self, priv->evas, priv->row_ops_data);
     evas_object_resize(child, priv->geometry.w, priv->item_h);
     evas_object_smart_member_add(child, o);
     evas_object_clip_set(child, priv->clip);
@@ -1250,36 +1230,14 @@ _vlist_child_new(Evas_Object *o)
 }
 
 static void
-_vlist_child_del(Evas_Object *child)
+_vlist_child_del(struct priv *priv, Evas_Object *child)
 {
     evas_object_hide(child);
 
-    _obj_content_node_del(child);
+    _obj_content_node_del(priv, child);
     evas_object_smart_member_del(child);
     evas_object_clip_unset(child);
     evas_object_del(child);
-}
-
-static int
-_test_and_cache_edje(struct priv *priv)
-{
-    Evas_Object *tmp_obj;
-    int r;
-
-    tmp_obj = _edje_item_new(priv);
-
-    r = edje_object_load_error_get(tmp_obj);
-    if (r != EDJE_LOAD_ERROR_NONE) {
-        priv->theme = NULL;
-        _vlist_error = VLIST_ERROR_NO_EDJE;
-    } else {
-        edje_object_size_min_get(tmp_obj, NULL, &priv->item_h);
-        if (priv->item_h < 1)
-            _vlist_error = VLIST_ERROR_NO_ITEM_SIZE;
-    }
-    evas_object_del(tmp_obj);
-
-    return (priv->theme && priv->item_h > 0);
 }
 
 static void
@@ -1292,25 +1250,7 @@ _vlist_add(Evas_Object *o)
 
     priv->self = o;
     priv->evas = evas_object_evas_get(o);
-    priv->theme = evas_object_data_get(o, "edje_file");
     priv->selected_index = -1;
-
-    if (!priv->theme) {
-        Evas_Hash *hash;
-
-        hash = evas_data_attach_get(priv->evas);
-        priv->theme = evas_hash_find(hash, "edje_file");
-    }
-
-    if (!priv->theme) {
-        free(priv);
-        return;
-    }
-
-    if (!_test_and_cache_edje(priv)) {
-        free(priv);
-        return;
-    }
 
     priv->clip = evas_object_rectangle_add(priv->evas);
     evas_object_smart_member_add(priv->clip, o);
@@ -1348,7 +1288,7 @@ _vlist_del(Evas_Object *o)
         Evas_Object *child;
 
         child = itr->data;
-        _vlist_child_del(child);
+        _vlist_child_del(priv, child);
 
         itr = evas_list_remove_list(itr, itr);
     }
@@ -1420,7 +1360,7 @@ _vlist_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
         Evas_List *n;
 
         n = evas_list_last(priv->objs);
-        _vlist_child_del(n->data);
+        _vlist_child_del(priv, n->data);
 
         if (priv->last_used_obj == n)
             priv->last_used_obj = n->prev;
