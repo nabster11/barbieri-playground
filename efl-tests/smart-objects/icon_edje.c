@@ -177,6 +177,30 @@ _icon_hide(Evas_Object *o)
     evas_object_hide(priv->edje);
 }
 
+static void
+_icon_color_set(Evas_Object *o, int r, int g, int b, int a)
+{
+    DECL_PRIV(o);
+
+    evas_object_color_set(priv->edje, r, g, b, a);
+}
+
+static void
+_icon_clip_set(Evas_Object *o, Evas_Object *clip)
+{
+    DECL_PRIV(o);
+
+    evas_object_clip_set(priv->edje, clip);
+}
+
+static void
+_icon_clip_unset(Evas_Object *o)
+{
+    DECL_PRIV(o);
+
+    evas_object_clip_unset(priv->edje);
+}
+
 static inline Evas_Smart *
 _icon_get_smart(void)
 {
@@ -195,9 +219,9 @@ _icon_get_smart(void)
                                _icon_resize,
                                _icon_show,
                                _icon_hide,
-                               NULL, /* color_set */
-                               NULL, /* clip_set */
-                               NULL, /* clip_unset */
+                               _icon_color_set,
+                               _icon_clip_set,
+                               _icon_clip_unset,
                                NULL /* data */
             );
     }
