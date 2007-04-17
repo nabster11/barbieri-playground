@@ -12,6 +12,8 @@ struct priv
 {
     Evas_Object *edje;
     Evas_Object *image;
+    Evas_Coord w;
+    Evas_Coord h;
 };
 
 #define DECL_PRIV(o) struct priv *priv = evas_object_smart_data_get((o))
@@ -31,21 +33,21 @@ icon_new(Evas *evas)
 }
 
 static void
-_image_recalc_size(Evas_Object *o, Evas_Coord w, Evas_Coord h)
+_image_recalc_size(Evas_Object *o)
 {
     Evas_Coord x, y, iw, ih, nw, nh;
     DECL_PRIV(o);
     double pw, ph, p;
 
-    RETURN_IF_ZERO(w);
-    RETURN_IF_ZERO(h);
+    RETURN_IF_ZERO(priv->w);
+    RETURN_IF_ZERO(priv->h);
 
     evas_object_image_size_get(priv->image, &iw, &ih);
     RETURN_IF_ZERO(iw);
     RETURN_IF_ZERO(ih);
 
-    pw = (double)w / (double)iw;
-    ph = (double)h / (double)ih;
+    pw = (double)priv->w / (double)iw;
+    ph = (double)priv->h / (double)ih;
 
     p = pw;
     if (p > ph)
@@ -53,8 +55,8 @@ _image_recalc_size(Evas_Object *o, Evas_Coord w, Evas_Coord h)
 
     nw = iw * p;
     nh = ih * p;
-    x = (w - nw) / 2;
-    y = (h - nh) / 2;
+    x = (priv->w - nw) / 2;
+    y = (priv->h - nh) / 2;
 
     edje_extern_object_aspect_set(priv->image, EDJE_ASPECT_CONTROL_BOTH,
                                   nw, nh);
@@ -64,15 +66,12 @@ _image_recalc_size(Evas_Object *o, Evas_Coord w, Evas_Coord h)
 void
 icon_image_set(Evas_Object *o, const char *path)
 {
-    Evas_Coord w, h;
     DECL_PRIV(o);
 
     edje_object_freeze(priv->edje);
 
     evas_object_image_file_set(priv->image, path, NULL);
-
-    edje_object_part_geometry_get(priv->edje, IMAGE, NULL, NULL, &w, &h);
-    _image_recalc_size(o, w, h);
+    _image_recalc_size(o);
 
     edje_object_thaw(priv->edje);
 }
@@ -120,6 +119,9 @@ _icon_add(Evas_Object *o)
     evas_object_resize(priv->edje, w, h);
     evas_object_resize(o, w, h);
 
+    edje_object_part_geometry_get(priv->edje, IMAGE, NULL, NULL,
+                                  &priv->w, &priv->h);
+
     priv->image = evas_object_image_add(evas_object_evas_get(o));
     edje_object_part_swallow(priv->edje, IMAGE, priv->image);
 }
@@ -150,9 +152,13 @@ _icon_resize(Evas_Object *o, Evas_Coord w, Evas_Coord h)
     edje_object_freeze(priv->edje);
 
     evas_object_resize(priv->edje, w, h);
-    _image_recalc_size(o, w, h);
+    _image_recalc_size(o);
 
     edje_object_thaw(priv->edje);
+
+
+    edje_object_part_geometry_get(priv->edje, IMAGE, NULL, NULL,
+                                  &priv->w, &priv->h);
 }
 
 static void
