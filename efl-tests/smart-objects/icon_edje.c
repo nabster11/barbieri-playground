@@ -84,6 +84,21 @@ icon_text_set(Evas_Object *o, const char *text)
     edje_object_part_text_set(priv->edje, LABEL, text);
 }
 
+void
+icon_freeze(Evas_Object *o)
+{
+    DECL_PRIV(o);
+
+    edje_object_freeze(priv->edje);
+}
+
+void
+icon_thaw(Evas_Object *o)
+{
+    DECL_PRIV(o);
+
+    edje_object_thaw(priv->edje);
+}
 
 
 /***********************************************************************

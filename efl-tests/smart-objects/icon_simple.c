@@ -65,6 +65,15 @@ icon_text_set(Evas_Object *o, const char *text)
     _icon_rearrange(o, NULL, NULL, NULL, NULL);
 }
 
+void
+icon_freeze(Evas_Object *o)
+{
+}
+
+void
+icon_thaw(Evas_Object *o)
+{
+}
 
 
 /***********************************************************************
