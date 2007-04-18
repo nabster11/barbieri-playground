@@ -84,6 +84,21 @@ icon_text_set(Evas_Object *o, const char *text)
     edje_object_part_text_set(priv->edje, LABEL, text);
 }
 
+void
+icon_freeze(Evas_Object *o)
+{
+    DECL_PRIV(o);
+
+    edje_object_freeze(priv->edje);
+}
+
+void
+icon_thaw(Evas_Object *o)
+{
+    DECL_PRIV(o);
+
+    edje_object_thaw(priv->edje);
+}
 
 
 /***********************************************************************
@@ -114,6 +129,7 @@ _icon_add(Evas_Object *o)
     }
 
     priv->edje = edje_object_add(evas);
+    evas_object_smart_member_add(priv->edje, o);
     edje_object_file_set(priv->edje, theme, "icon_edje");
     edje_object_size_min_get(priv->edje, &w, &h);
     evas_object_resize(priv->edje, w, h);
@@ -123,6 +139,7 @@ _icon_add(Evas_Object *o)
                                   &priv->w, &priv->h);
 
     priv->image = evas_object_image_add(evas_object_evas_get(o));
+    evas_object_smart_member_add(priv->image, o);
     edje_object_part_swallow(priv->edje, IMAGE, priv->image);
 }
 
