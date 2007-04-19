@@ -161,7 +161,7 @@ class PluginSet(object):
 
 
     def get(self, name, default=None):
-        self.map.get(name, default)
+        return self.map.get(name, default)
     # get()
 
 
