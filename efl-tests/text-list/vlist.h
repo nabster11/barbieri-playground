@@ -18,6 +18,7 @@ typedef enum
     VLIST_SCROLL_DIR_DOWN = -1
 } vlist_scroll_dir_t;
 
+typedef int (*vlist_search_func_t)(const Evas_Object *o, const void *func_data, const void *item_data);
 typedef void (*vlist_selection_changed_cb_t)(Evas_Object *o, void *item_data, int index, void *user_data);
 typedef Evas_Object *(*vlist_row_new_t)(Evas_Object *list, Evas *evas, void *user_data);
 typedef void (*vlist_row_set_t)(Evas_Object *list, Evas_Object *row, void *item_data, void *user_data);
@@ -38,7 +39,24 @@ void vlist_conf_get(Evas_Object *o, int *centered_selected_item, int *selected_i
 void vlist_scroll_conf_set(Evas_Object *o, double speed,  double accel, double min_stop_speed);
 void vlist_scroll_conf_get(Evas_Object *o, double *speed, double *accel, double *min_stop_speed);
 
+int   vlist_find(Evas_Object *o, const void *data);
+int   vlist_rfind(Evas_Object *o, const void *data);
+int   vlist_search(Evas_Object *o, vlist_search_func_t func, const void *func_data, void **item_data);
+int   vlist_rsearch(Evas_Object *o, vlist_search_func_t func, const void *func_data, void **item_data);
+void *vlist_item_nth(Evas_Object *o, int index);
+
+const Evas_List *vlist_itr_nth(Evas_Object *o, int index);
+const Evas_List *vlist_itr_find(Evas_Object *o, const void *data);
+const Evas_List *vlist_itr_rfind(Evas_Object *o, const void *data);
+const Evas_List *vlist_itr_search(Evas_Object *o, vlist_search_func_t func, const void *func_data, void **item_data);
+const Evas_List *vlist_itr_rsearch(Evas_Object *o, vlist_search_func_t func, const void *func_data, void **item_data);
+void            *vlist_itr_item(Evas_Object *o, const Evas_List *itr);
+
 void vlist_append(Evas_Object *o, void *data);
+void vlist_prepend(Evas_Object *o, void *data);
+void vlist_itr_append(Evas_Object *o, void *data, const Evas_List *itr);
+void vlist_itr_prepend(Evas_Object *o, void *data, const Evas_List *itr);
+
 int  vlist_error_get(void);
 void vlist_scroll_start(Evas_Object *o, vlist_scroll_dir_t dir);
 void vlist_scroll_stop(Evas_Object *o, vlist_scroll_dir_t dir);

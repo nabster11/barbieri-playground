@@ -138,6 +138,49 @@ key_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
         key_monitor_up(&app->keys.down);
     else if (eq(k, "Up"))
         key_monitor_up(&app->keys.up);
+    else if (eq(k, "a")) {
+        struct timeval now;
+        char *txt;
+
+        gettimeofday(&now, NULL);
+        asprintf(&txt, "Appended %lu.%06lu", now.tv_sec, now.tv_usec);
+        fprintf(stderr, "%s\n", txt);
+
+        vlist_append(app->list, txt);
+    } else if (eq(k, "p")) {
+        struct timeval now;
+        char *txt;
+
+        gettimeofday(&now, NULL);
+        asprintf(&txt, "Prepend %lu.%06lu", now.tv_sec, now.tv_usec);
+        fprintf(stderr, "%s\n", txt);
+
+        vlist_prepend(app->list, txt);
+    } else if (eq(k, "r")) {
+        struct timeval now;
+        char *txt;
+        const Evas_List *itr;
+
+        itr = vlist_itr_nth(app->list, 0);
+
+        gettimeofday(&now, NULL);
+        asprintf(&txt, "Append relative %lu.%06lu", now.tv_sec, now.tv_usec);
+        fprintf(stderr, "%s, itr=%p\n", txt, itr);
+
+        vlist_itr_append(app->list, txt, itr);
+    } else if (eq(k, "t")) {
+        struct timeval now;
+        char *txt;
+        const Evas_List *itr;
+
+        itr = vlist_itr_nth(app->list, 1);
+
+        gettimeofday(&now, NULL);
+        asprintf(&txt, "Prepend relative %lu.%06lu", now.tv_sec, now.tv_usec);
+        fprintf(stderr, "%s, itr=%p\n", txt, itr);
+
+        vlist_itr_prepend(app->list, txt, itr);
+    }
 }
 
 static void
