@@ -1735,27 +1735,24 @@ _vlist_clip_unset(Evas_Object *o)
 static inline Evas_Smart *
 _vlist_get_smart(void)
 {
+    static Evas_Smart_Class cls = {
+        .name = "vlist",
+        .version = EVAS_SMART_CLASS_VERSION,
+        .add = _vlist_add,
+        .del = _vlist_del,
+        .move = _vlist_move,
+        .resize = _vlist_resize,
+        .show = _vlist_show,
+        .hide = _vlist_hide,
+        .color_set = _vlist_color_set,
+        .clip_set = _vlist_clip_set,
+        .clip_unset = _vlist_clip_unset,
+        .data = NULL
+    };
     static Evas_Smart *smart = NULL;
 
-    if (!smart) {
-        smart = evas_smart_new("vlist",
-                               _vlist_add,
-                               _vlist_del,
-                               NULL, /* layer_set */
-                               NULL, /* raise */
-                               NULL, /* lower */
-                               NULL, /* stack_above */
-                               NULL, /* stack_below */
-                               _vlist_move,
-                               _vlist_resize,
-                               _vlist_show,
-                               _vlist_hide,
-                               _vlist_color_set,
-                               _vlist_clip_set,
-                               _vlist_clip_unset,
-                               NULL /* data */
-            );
-    }
+    if (!smart)
+        smart = evas_smart_class_new(&cls);
 
     return smart;
 }
