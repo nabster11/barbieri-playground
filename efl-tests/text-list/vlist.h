@@ -43,14 +43,16 @@ int   vlist_find(Evas_Object *o, const void *data);
 int   vlist_rfind(Evas_Object *o, const void *data);
 int   vlist_search(Evas_Object *o, vlist_search_func_t func, const void *func_data, void **item_data);
 int   vlist_rsearch(Evas_Object *o, vlist_search_func_t func, const void *func_data, void **item_data);
-void *vlist_item_nth(Evas_Object *o, int index);
+void *vlist_item_nth_get(Evas_Object *o, int index);
+void *vlist_item_nth_set(Evas_Object *o, int index, void *new_data);
 
 const Evas_List *vlist_itr_nth(Evas_Object *o, int index);
 const Evas_List *vlist_itr_find(Evas_Object *o, const void *data);
 const Evas_List *vlist_itr_rfind(Evas_Object *o, const void *data);
 const Evas_List *vlist_itr_search(Evas_Object *o, vlist_search_func_t func, const void *func_data, void **item_data);
 const Evas_List *vlist_itr_rsearch(Evas_Object *o, vlist_search_func_t func, const void *func_data, void **item_data);
-void            *vlist_itr_item(Evas_Object *o, const Evas_List *itr);
+void            *vlist_itr_item_get(Evas_Object *o, const Evas_List *itr);
+void            *vlist_itr_item_set(Evas_Object *o, const Evas_List *itr, void *new_data);
 
 void vlist_append(Evas_Object *o, void *data);
 void vlist_prepend(Evas_Object *o, void *data);

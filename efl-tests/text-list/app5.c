@@ -224,9 +224,9 @@ key_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
         int index;
 
         if (vlist_count(app->list) > 1)
-            data = vlist_item_nth(app->list, 1);
+            data = vlist_item_nth_get(app->list, 1);
         else
-            data = vlist_item_nth(app->list, 0);
+            data = vlist_item_nth_get(app->list, 0);
 
         vlist_remove(app->list, data);
         vlist_selected_content_get(app->list, NULL, &index);
@@ -243,6 +243,39 @@ key_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
         vlist_itr_remove(app->list, itr);
         vlist_selected_content_get(app->list, NULL, &index);
         dim_arrows(app, index);
+    } else if (eq(k, "s")) {
+        char *old, *txt;
+        struct timeval now;
+
+        gettimeofday(&now, NULL);
+        asprintf(&txt, "Replaced %lu.%06lu", now.tv_sec, now.tv_usec);
+        fprintf(stderr, "%s\n", txt);
+
+        if (vlist_count(app->list) > 1)
+            old = vlist_item_nth_set(app->list, 1, txt);
+        else
+            old = vlist_item_nth_set(app->list, 0, txt);
+
+        fprintf(stderr, "old item was \"%s\"\n", old);
+        free(old);
+    } else if (eq(k, "x")) {
+        const Evas_List *itr;
+        char *old, *txt;
+        struct timeval now;
+
+        if (vlist_count(app->list) > 1)
+            itr = vlist_itr_nth(app->list, 1);
+        else
+            itr = vlist_itr_nth(app->list, 0);
+
+        gettimeofday(&now, NULL);
+        asprintf(&txt, "Replaced relative %lu.%06lu", now.tv_sec, now.tv_usec);
+        fprintf(stderr, "%s, itr=%p\n", txt, itr);
+
+        old = vlist_itr_item_set(app->list, itr, txt);
+
+        fprintf(stderr, "old item was \"%s\"\n", old);
+        free(old);
     }
 }
 
