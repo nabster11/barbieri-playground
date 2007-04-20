@@ -221,27 +221,24 @@ _icon_clip_unset(Evas_Object *o)
 static inline Evas_Smart *
 _icon_get_smart(void)
 {
+    static Evas_Smart_Class cls = {
+        .name = "icon_edje",
+        .version = EVAS_SMART_CLASS_VERSION,
+        .add = _icon_add,
+        .del = _icon_del,
+        .move = _icon_move,
+        .resize = _icon_resize,
+        .show = _icon_show,
+        .hide = _icon_hide,
+        .color_set = _icon_color_set,
+        .clip_set = _icon_clip_set,
+        .clip_unset = _icon_clip_unset,
+        .data = NULL
+    };
     static Evas_Smart *smart = NULL;
 
-    if (!smart) {
-        smart = evas_smart_new("icon_edje",
-                               _icon_add,
-                               _icon_del,
-                               NULL, /* layer_set */
-                               NULL, /* raise */
-                               NULL, /* lower */
-                               NULL, /* stack_above */
-                               NULL, /* stack_below */
-                               _icon_move,
-                               _icon_resize,
-                               _icon_show,
-                               _icon_hide,
-                               _icon_color_set,
-                               _icon_clip_set,
-                               _icon_clip_unset,
-                               NULL /* data */
-            );
-    }
+    if (!smart)
+        smart = evas_smart_class_new(&cls);
 
     return smart;
 }
