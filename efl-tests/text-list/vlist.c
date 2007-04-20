@@ -40,9 +40,9 @@ struct priv
     int centered_selected_item;
     int selected_item_offset;
     Evas_Coord item_h;
-    Evas_List *contents;         /**< list of struct item */
+    Evas_List *contents;         /**< list of void pointer */
     Evas_List *objs;             /**< list of Evas_Object */
-    Evas_List *selected_content; /**< pointer to node with struct item */
+    Evas_List *selected_content; /**< pointer to node with void pointer */
     int selected_index;          /**< index of selected item */
     Evas_List *last_used_obj;    /**< pointer to node with Evas_Object */
     Evas_List *first_used_obj;   /**< pointer to node with Evas_Object */
@@ -70,12 +70,6 @@ struct priv
     } callback_data;
     vlist_row_ops_t row_ops;
     void *row_ops_data;
-};
-
-struct item
-{
-    void *data;
-    Evas_Object *obj;
 };
 
 #define DECL_PRIV(o)                                                    \
@@ -203,38 +197,10 @@ vlist_thaw(Evas_Object *o)
     _thaw(priv);
 }
 
-static inline struct item *
-_item_new(void *data)
-{
-    struct item *item;
-
-    item = malloc(sizeof(*item));
-    item->data = data;
-    item->obj = NULL;
-
-    return item;
-}
-
-static inline void
-_item_del(struct item *item)
-{
-    if (item->obj)
-        evas_object_data_del(item->obj, DATA_KEY);
-
-    free(item);
-}
-
 static inline void
 _obj_content_node_del(struct priv *priv, Evas_Object *child)
 {
-    Evas_List *old;
-
-    old = evas_object_data_del(child, DATA_KEY);
-    if (old && old->data) {
-        struct item *old_item = old->data;
-        old_item->obj = NULL;
-    }
-
+    evas_object_data_del(child, DATA_KEY);
     priv->row_ops.set(priv->self, child, NULL, priv->row_ops_data);
 }
 
@@ -251,12 +217,8 @@ _obj_content_node_set(struct priv *priv, Evas_Object *child, Evas_List *node)
         priv->row_ops.freeze(priv->self, child, priv->row_ops_data);
     _obj_content_node_del(priv, child);
 
-    if (node) {
-        struct item *item = node->data;
-
-        priv->row_ops.set(priv->self, child, item->data, priv->row_ops_data);
-        item->obj = child;
-    }
+    priv->row_ops.set(priv->self, child,
+                      node ? node->data : NULL, priv->row_ops_data);
 
     evas_object_data_set(child, DATA_KEY, node);
     if (priv->row_ops.thaw)
@@ -387,7 +349,6 @@ _vlist_print(struct priv *priv)
     for (; cont_itr != NULL; cont_itr = cont_itr->next, cont_count++) {
         int selected, last, first;
         char pos[1024] = "";
-        struct item *item = cont_itr->data;
 
         selected = 0;
         if (first_cont == cont_itr && obj_itr) {
@@ -445,7 +406,7 @@ _vlist_print(struct priv *priv)
                 last ? 'L' : ' ',
                 cont_itr,
                 (window && obj_itr) ? obj_itr->data : NULL,
-                item->data,
+                cont_itr->data,
                 pos);
 
         if (window && obj_itr)
@@ -512,13 +473,13 @@ _vlist_print(struct priv *priv)
 
     for (obj_itr = priv->objs; obj_itr; obj_itr = obj_itr->next) {
         Evas_List *cont;
-        struct item *item;
+        void *item;
 
         cont = _obj_content_node_get(obj_itr->data);
         item = cont ? cont->data : NULL;
 
         fprintf(stderr, "cont=%10p, obj=%10p    %p\n",
-                cont, obj_itr->data, item ? item->data : NULL);
+                cont, obj_itr->data, item);
     }
 
     if (priv->frozen)
@@ -581,14 +542,11 @@ _vlist_fill_blanks(struct priv *priv)
 static void
 _vlist_emit_selection_changed(struct priv *priv)
 {
-    struct item *item;
-
     if (!priv->callback.selection_changed || !priv->selected_content)
         return;
 
-    item = priv->selected_content->data;
     priv->callback.selection_changed(priv->self,
-                                     item->data,
+                                     priv->selected_content->data,
                                      priv->selected_index,
                                      priv->callback_data.selection_changed);
 }
@@ -1044,13 +1002,9 @@ vlist_find(Evas_Object *o, const void *data)
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, -1);
 
-    for (itr = priv->contents, i = 0; itr != NULL; itr = itr->next, i++) {
-        struct item *item;
-
-        item = itr->data;
-        if (item->data == data)
+    for (itr = priv->contents, i = 0; itr != NULL; itr = itr->next, i++)
+        if (itr->data == data)
             return i;
-    }
 
     return -1;
 }
@@ -1065,13 +1019,9 @@ vlist_rfind(Evas_Object *o, const void *data)
 
     i = evas_list_count(priv->contents) - 1;
     itr = evas_list_last(priv->contents);
-    for (; itr != NULL; itr = itr->prev, i--) {
-        struct item *item;
-
-        item = itr->data;
-        if (item->data == data)
+    for (; itr != NULL; itr = itr->prev, i--)
+        if (itr->data == data)
             return i;
-    }
 
     return -1;
 }
@@ -1085,16 +1035,12 @@ vlist_search(Evas_Object *o, vlist_search_func_t func,
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, -1);
 
-    for (itr = priv->contents, i = 0; itr != NULL; itr = itr->next, i++) {
-        struct item *item;
-
-        item = itr->data;
-        if (func(o, func_data, item->data)) {
+    for (itr = priv->contents, i = 0; itr != NULL; itr = itr->next, i++)
+        if (func(o, func_data, itr->data)) {
             if (item_data)
-                *item_data = item->data;
+                *item_data = itr->data;
             return i;
         }
-    }
 
     return -1;
 }
@@ -1110,16 +1056,12 @@ vlist_rsearch(Evas_Object *o, vlist_search_func_t func,
 
     i = evas_list_count(priv->contents) - 1;
     itr = evas_list_last(priv->contents);
-    for (; itr != NULL; itr = itr->prev, i--) {
-        struct item *item;
-
-        item = itr->data;
-        if (func(o, func_data, item->data)) {
+    for (; itr != NULL; itr = itr->prev, i--)
+        if (func(o, func_data, itr->data)) {
             if (item_data)
-                *item_data = item->data;
+                *item_data = itr->data;
             return i;
         }
-    }
 
     return -1;
 }
@@ -1127,22 +1069,16 @@ vlist_rsearch(Evas_Object *o, vlist_search_func_t func,
 void *
 vlist_item_nth_get(Evas_Object *o, int index)
 {
-    struct item *item;
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, NULL);
 
-    item = evas_list_nth(priv->contents, index);
-    if (item)
-        return item->data;
-
-    return NULL;
+    return evas_list_nth(priv->contents, index);
 }
 
 void *
 vlist_item_nth_set(Evas_Object *o, int index, void *new_data)
 {
-    Evas_List *itr;
-    struct item *item;
+    Evas_List *itr, *obj_itr;
     void *old_data;
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, NULL);
@@ -1151,11 +1087,14 @@ vlist_item_nth_set(Evas_Object *o, int index, void *new_data)
     if (!itr)
         return NULL;
 
-    item = itr->data;
-    old_data = item->data;
-    item->data = new_data;
-    if (item->obj)
-        _obj_content_node_set(priv, item->obj, itr);
+    old_data = itr->data;
+    itr->data = new_data;
+
+    for (obj_itr = priv->objs; obj_itr != NULL; obj_itr = obj_itr->next)
+        if (_obj_content_node_get(obj_itr->data) == itr) {
+            _obj_content_node_set(priv, obj_itr->data, itr);
+            break;
+        }
 
     return old_data;
 }
@@ -1176,13 +1115,9 @@ vlist_itr_find(Evas_Object *o, const void *data)
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, NULL);
 
-    for (itr = priv->contents; itr != NULL; itr = itr->next) {
-        struct item *item;
-
-        item = itr->data;
-        if (item->data == data)
+    for (itr = priv->contents; itr != NULL; itr = itr->next)
+        if (itr->data == data)
             return itr;
-    }
 
     return NULL;
 }
@@ -1195,13 +1130,9 @@ vlist_itr_rfind(Evas_Object *o, const void *data)
     RETURN_VAL_IF_NULL(priv, NULL);
 
     itr = evas_list_last(priv->contents);
-    for (; itr != NULL; itr = itr->prev) {
-        struct item *item;
-
-        item = itr->data;
-        if (item->data == data)
+    for (; itr != NULL; itr = itr->prev)
+        if (itr->data == data)
             return itr;
-    }
 
     return NULL;
 }
@@ -1214,16 +1145,12 @@ vlist_itr_search(Evas_Object *o, vlist_search_func_t func,
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, NULL);
 
-    for (itr = priv->contents; itr != NULL; itr = itr->next) {
-        struct item *item;
-
-        item = itr->data;
-        if (func(o, func_data, item->data)) {
+    for (itr = priv->contents; itr != NULL; itr = itr->next)
+        if (func(o, func_data, itr->data)) {
             if (item_data)
-                *item_data = item->data;
+                *item_data = itr->data;
             return itr;
         }
-    }
 
     return NULL;
 }
@@ -1237,16 +1164,12 @@ vlist_itr_rsearch(Evas_Object *o, vlist_search_func_t func,
     RETURN_VAL_IF_NULL(priv, NULL);
 
     itr = evas_list_last(priv->contents);
-    for (; itr != NULL; itr = itr->prev) {
-        struct item *item;
-
-        item = itr->data;
-        if (func(o, func_data, item->data)) {
+    for (; itr != NULL; itr = itr->prev)
+        if (func(o, func_data, itr->data)) {
             if (item_data)
-                *item_data = item->data;
+                *item_data = itr->data;
             return itr;
         }
-    }
 
     return NULL;
 }
@@ -1254,30 +1177,32 @@ vlist_itr_rsearch(Evas_Object *o, vlist_search_func_t func,
 void *
 vlist_itr_item_get(Evas_Object *o, const Evas_List *itr)
 {
-    struct item *item;
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, NULL);
     RETURN_VAL_IF_NULL(itr, NULL);
 
-    item = itr->data;
-    return item->data;
+    return itr->data;
 }
 
 void *
 vlist_itr_item_set(Evas_Object *o, const Evas_List *itr, void *new_data)
 {
-    struct item *item;
     void *old_data;
+    Evas_List *citr, *obj_itr;
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, NULL);
     RETURN_VAL_IF_NULL(itr, NULL);
 
-    item = itr->data;
-    old_data = item->data;
-    item->data = new_data;
+    citr = (Evas_List*)itr;
 
-    if (item->obj)
-        _obj_content_node_set(priv, item->obj, (Evas_List *)itr);
+    old_data = citr->data;
+    citr->data = new_data;
+
+    for (obj_itr = priv->objs; obj_itr != NULL; obj_itr = obj_itr->next)
+        if (_obj_content_node_get(obj_itr->data) == itr) {
+            _obj_content_node_set(priv, obj_itr->data, (Evas_List *)itr);
+            break;
+        }
 
     return old_data;
 }
@@ -1285,30 +1210,22 @@ vlist_itr_item_set(Evas_Object *o, const Evas_List *itr, void *new_data)
 void
 vlist_append(Evas_Object *o, void *data)
 {
-    struct item *item;
     DECL_PRIV_SAFE(o);
     RETURN_IF_NULL(priv);
 
-    item = _item_new(data);
-    RETURN_IF_NULL(item);
-
-    priv->contents = evas_list_append(priv->contents, item);
+    priv->contents = evas_list_append(priv->contents, data);
     _vlist_recalc(priv);
 }
 
 void
 vlist_prepend(Evas_Object *o, void *data)
 {
-    struct item *item;
     DECL_PRIV_SAFE(o);
     RETURN_IF_NULL(priv);
 
-    item = _item_new(data);
-    RETURN_IF_NULL(item);
-
     priv->first_used_obj = NULL;
     priv->last_used_obj = NULL;
-    priv->contents = evas_list_prepend(priv->contents, item);
+    priv->contents = evas_list_prepend(priv->contents, data);
     priv->selected_index++;
     _vlist_recalc(priv);
 }
@@ -1323,13 +1240,10 @@ vlist_remove(Evas_Object *o, void *data)
 
     selected_found = 0;
     for (itr = priv->contents; itr != NULL; itr = itr->next) {
-        struct item *item;
-
         if (priv->selected_content == itr)
             selected_found = 1;
 
-        item = itr->data;
-        if (item->data == data) {
+        if (itr->data == data) {
 
             if (priv->selected_content == itr) {
                 if (itr->prev) {
@@ -1341,7 +1255,6 @@ vlist_remove(Evas_Object *o, void *data)
                 priv->selected_index--;
 
             priv->contents = evas_list_remove_list(priv->contents, itr);
-            _item_del(item);
 
             priv->first_used_obj = NULL;
             priv->last_used_obj = NULL;
@@ -1386,7 +1299,6 @@ _vlist_selected_is_after_node(const struct priv *priv, const Evas_List *itr)
 void
 vlist_itr_append(Evas_Object *o, void *data, const Evas_List *itr)
 {
-    struct item *item;
     DECL_PRIV_SAFE(o);
     RETURN_IF_NULL(priv);
 
@@ -1395,12 +1307,9 @@ vlist_itr_append(Evas_Object *o, void *data, const Evas_List *itr)
         return;
     }
 
-    item = _item_new(data);
-    RETURN_IF_NULL(item);
-
     priv->first_used_obj = NULL;
     priv->last_used_obj = NULL;
-    priv->contents = evas_list_append_relative_list(priv->contents, item,
+    priv->contents = evas_list_append_relative_list(priv->contents, data,
                                                     (Evas_List *)itr);
 
     if (priv->selected_content != itr &&
@@ -1413,7 +1322,6 @@ vlist_itr_append(Evas_Object *o, void *data, const Evas_List *itr)
 void
 vlist_itr_prepend(Evas_Object *o, void *data, const Evas_List *itr)
 {
-    struct item *item;
     DECL_PRIV_SAFE(o);
     RETURN_IF_NULL(priv);
 
@@ -1422,12 +1330,9 @@ vlist_itr_prepend(Evas_Object *o, void *data, const Evas_List *itr)
         return;
     }
 
-    item = _item_new(data);
-    RETURN_IF_NULL(item);
-
     priv->first_used_obj = NULL;
     priv->last_used_obj = NULL;
-    priv->contents = evas_list_prepend_relative_list(priv->contents, item,
+    priv->contents = evas_list_prepend_relative_list(priv->contents, data,
                                                      (Evas_List *)itr);
 
     if (priv->selected_content == itr ||
@@ -1440,7 +1345,6 @@ vlist_itr_prepend(Evas_Object *o, void *data, const Evas_List *itr)
 void *
 vlist_itr_remove(Evas_Object *o, const Evas_List *itr)
 {
-    struct item *item;
     void *data;
     DECL_PRIV_SAFE(o);
     RETURN_VAL_IF_NULL(priv, NULL);
@@ -1455,10 +1359,8 @@ vlist_itr_remove(Evas_Object *o, const Evas_List *itr)
     } else if (_vlist_selected_is_after_node(priv, itr))
         priv->selected_index--;
 
-    item = itr->data;
-    data = item->data;
+    data = itr->data;
     priv->contents = evas_list_remove_list(priv->contents, (Evas_List *)itr);
-    _item_del(item);
 
     priv->first_used_obj = NULL;
     priv->last_used_obj = NULL;
@@ -1598,11 +1500,8 @@ vlist_selected_content_get(Evas_Object *o, void **item_data, int *index)
         if (index)
             *index = -1;
     } else {
-        struct item *item;
-
-        item = priv->selected_content->data;
         if (item_data)
-            *item_data = item->data;
+            *item_data = priv->selected_content->data;
         if (index)
             *index = priv->selected_index;
     }
@@ -1681,15 +1580,7 @@ _vlist_del(Evas_Object *o)
 
     _freeze(priv);
 
-    itr = priv->contents;
-    while (itr) {
-        struct item *item;
-
-        item = itr->data;
-        _item_del(item);
-
-        itr = evas_list_remove_list(itr, itr);
-    }
+    evas_list_free(priv->contents);
 
     itr = priv->objs;
     while (itr) {
