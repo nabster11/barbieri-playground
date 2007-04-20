@@ -94,6 +94,33 @@ _populate(app_t *app)
 }
 
 static void
+dim_arrows(app_t *app, int index)
+{
+    double p;
+    int c, total;
+
+    total = vlist_count(app->list);
+    if (total < 1)
+        return;
+
+    p = ((float)(index + 1)) / ((float)total);
+    c = 255 * p;
+    if (c > 255)
+        c = 255;
+    if (c < 0)
+        c = 0;
+    evas_object_color_set(app->arrow_up, c, c, c, c);
+
+    p = (float)index / ((float)total);
+    c = 255 * (1.0 - p);
+    if (c > 255)
+        c = 255;
+    if (c < 0)
+        c = 0;
+    evas_object_color_set(app->arrow_down, c, c, c, c);
+}
+
+static void
 key_down(void *data, Evas *e, Evas_Object *obj, void *event_info)
 {
     Evas_Event_Key_Down *ev;
@@ -141,25 +168,32 @@ key_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
     else if (eq(k, "a")) {
         struct timeval now;
         char *txt;
+        int index;
 
         gettimeofday(&now, NULL);
         asprintf(&txt, "Appended %lu.%06lu", now.tv_sec, now.tv_usec);
         fprintf(stderr, "%s\n", txt);
 
         vlist_append(app->list, txt);
+        vlist_selected_content_get(app->list, NULL, &index);
+        dim_arrows(app, index);
     } else if (eq(k, "p")) {
         struct timeval now;
         char *txt;
+        int index;
 
         gettimeofday(&now, NULL);
         asprintf(&txt, "Prepend %lu.%06lu", now.tv_sec, now.tv_usec);
         fprintf(stderr, "%s\n", txt);
 
         vlist_prepend(app->list, txt);
+        vlist_selected_content_get(app->list, NULL, &index);
+        dim_arrows(app, index);
     } else if (eq(k, "r")) {
         struct timeval now;
         char *txt;
         const Evas_List *itr;
+        int index;
 
         itr = vlist_itr_nth(app->list, 0);
 
@@ -168,10 +202,13 @@ key_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
         fprintf(stderr, "%s, itr=%p\n", txt, itr);
 
         vlist_itr_append(app->list, txt, itr);
+        vlist_selected_content_get(app->list, NULL, &index);
+        dim_arrows(app, index);
     } else if (eq(k, "t")) {
         struct timeval now;
         char *txt;
         const Evas_List *itr;
+        int index;
 
         itr = vlist_itr_nth(app->list, 1);
 
@@ -180,22 +217,32 @@ key_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
         fprintf(stderr, "%s, itr=%p\n", txt, itr);
 
         vlist_itr_prepend(app->list, txt, itr);
+        vlist_selected_content_get(app->list, NULL, &index);
+        dim_arrows(app, index);
     } else if (eq(k, "d")) {
         void *data;
+        int index;
 
         if (vlist_count(app->list) > 1)
             data = vlist_item_nth(app->list, 1);
         else
             data = vlist_item_nth(app->list, 0);
+
         vlist_remove(app->list, data);
+        vlist_selected_content_get(app->list, NULL, &index);
+        dim_arrows(app, index);
     } else if (eq(k, "e")) {
         const Evas_List *itr;
+        int index;
 
         if (vlist_count(app->list) > 1)
             itr = vlist_itr_nth(app->list, 1);
         else
             itr = vlist_itr_nth(app->list, 0);
+
         vlist_itr_remove(app->list, itr);
+        vlist_selected_content_get(app->list, NULL, &index);
+        dim_arrows(app, index);
     }
 }
 
@@ -283,33 +330,6 @@ static void
 mouse_down_back_button(void *d, Evas *e, Evas_Object *obj, void *event_info)
 {
     ecore_main_loop_quit();
-}
-
-static void
-dim_arrows(app_t *app, int index)
-{
-    double p;
-    int c, total;
-
-    total = vlist_count(app->list);
-    if (total < 1)
-        return;
-
-    p = ((float)(index + 1)) / ((float)total);
-    c = 255 * p;
-    if (c > 255)
-        c = 255;
-    if (c < 0)
-        c = 0;
-    evas_object_color_set(app->arrow_up, c, c, c, c);
-
-    p = (float)index / ((float)total);
-    c = 255 * (1.0 - p);
-    if (c > 255)
-        c = 255;
-    if (c < 0)
-        c = 0;
-    evas_object_color_set(app->arrow_down, c, c, c, c);
 }
 
 static void
