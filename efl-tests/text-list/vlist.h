@@ -57,6 +57,9 @@ void vlist_prepend(Evas_Object *o, void *data);
 void vlist_itr_append(Evas_Object *o, void *data, const Evas_List *itr);
 void vlist_itr_prepend(Evas_Object *o, void *data, const Evas_List *itr);
 
+void *vlist_remove(Evas_Object *o, void *data);
+void *vlist_itr_remove(Evas_Object *o, const Evas_List *itr);
+
 int  vlist_error_get(void);
 void vlist_scroll_start(Evas_Object *o, vlist_scroll_dir_t dir);
 void vlist_scroll_stop(Evas_Object *o, vlist_scroll_dir_t dir);

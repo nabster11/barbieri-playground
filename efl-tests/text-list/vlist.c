@@ -1275,6 +1275,47 @@ vlist_prepend(Evas_Object *o, void *data)
     _vlist_recalc(priv);
 }
 
+void *
+vlist_remove(Evas_Object *o, void *data)
+{
+    Evas_List *itr;
+    int selected_found;
+    DECL_PRIV_SAFE(o);
+    RETURN_VAL_IF_NULL(priv, NULL);
+
+    selected_found = 0;
+    for (itr = priv->contents; itr != NULL; itr = itr->next) {
+        struct item *item;
+
+        if (priv->selected_content == itr)
+            selected_found = 1;
+
+        item = itr->data;
+        if (item->data == data) {
+
+            if (priv->selected_content == itr) {
+                if (itr->prev) {
+                    priv->selected_content = itr->prev;
+                    priv->selected_index--;
+                } else
+                    priv->selected_content = itr->next;
+            } else if (!selected_found)
+                priv->selected_index--;
+
+            priv->contents = evas_list_remove_list(priv->contents, itr);
+            _item_del(item);
+
+            priv->first_used_obj = NULL;
+            priv->last_used_obj = NULL;
+            _vlist_recalc(priv);
+
+            return data;
+        }
+    }
+
+    return NULL;
+}
+
 static inline int
 _is_node_before(const Evas_List *mark, const Evas_List *itr)
 {
@@ -1356,6 +1397,36 @@ vlist_itr_prepend(Evas_Object *o, void *data, const Evas_List *itr)
         priv->selected_index++;
 
     _vlist_recalc(priv);
+}
+
+void *
+vlist_itr_remove(Evas_Object *o, const Evas_List *itr)
+{
+    struct item *item;
+    void *data;
+    DECL_PRIV_SAFE(o);
+    RETURN_VAL_IF_NULL(priv, NULL);
+    RETURN_VAL_IF_NULL(itr, NULL);
+
+    if (priv->selected_content == itr) {
+        if (itr->prev) {
+            priv->selected_content = itr->prev;
+            priv->selected_index--;
+        } else
+            priv->selected_content = itr->next;
+    } else if (_vlist_selected_is_after_node(priv, itr))
+        priv->selected_index--;
+
+    item = itr->data;
+    data = item->data;
+    priv->contents = evas_list_remove_list(priv->contents, (Evas_List *)itr);
+    _item_del(item);
+
+    priv->first_used_obj = NULL;
+    priv->last_used_obj = NULL;
+    _vlist_recalc(priv);
+
+     return data;
 }
 
 void

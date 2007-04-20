@@ -180,6 +180,22 @@ key_up(void *data, Evas *e, Evas_Object *obj, void *event_info)
         fprintf(stderr, "%s, itr=%p\n", txt, itr);
 
         vlist_itr_prepend(app->list, txt, itr);
+    } else if (eq(k, "d")) {
+        void *data;
+
+        if (vlist_count(app->list) > 1)
+            data = vlist_item_nth(app->list, 1);
+        else
+            data = vlist_item_nth(app->list, 0);
+        vlist_remove(app->list, data);
+    } else if (eq(k, "e")) {
+        const Evas_List *itr;
+
+        if (vlist_count(app->list) > 1)
+            itr = vlist_itr_nth(app->list, 1);
+        else
+            itr = vlist_itr_nth(app->list, 0);
+        vlist_itr_remove(app->list, itr);
     }
 }
 
