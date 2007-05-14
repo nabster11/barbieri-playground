@@ -2,7 +2,8 @@
 
 BINS= \
 	mover \
-	alpha
+	alpha \
+	multi-mover
 
 THEMES= \
 	default.edj
