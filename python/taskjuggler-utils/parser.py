@@ -266,6 +266,7 @@ class Document(object):
                 prj = self.prjs[node.get("projectId")]
                 task = Task(self, prj, node)
                 prj.tasks.append(task)
+                prj.register_task(task)
     # _process_tasks()
 
 

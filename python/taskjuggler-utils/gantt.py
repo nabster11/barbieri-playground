@@ -21,7 +21,7 @@ class Plotter(object):
     comp_height = 0.1
     page_width = 20.0
 
-    text_encoding = "utf8"
+    text_encoding = "latin1"
 
     label_pos = 0 # 0 is left, 1 is right, 2 is top
     task_format = r"{\footnotesize {%(text)s}}"
@@ -86,12 +86,12 @@ class Plotter(object):
     # __init__()
 
 
-    def process(self):
+    def process(self, scenario="plan"):
         self.canvas = canvas.canvas()
         self._setup_text()
         self._setup_page_height()
         self._setup_time_range()
-        self.output_document()
+        self.output_document(scenario)
     # process()
 
 
@@ -466,7 +466,7 @@ class Plotter(object):
     # output_now_line()
 
 
-    def output_project(self, prj):
+    def output_project(self, prj, scenario="plan"):
         level = 0
 
         def task_cmp(a, b):
@@ -488,17 +488,17 @@ class Plotter(object):
         prj.tasks.sort(task_cmp)
 
         for t in prj.tasks:
-            level = self.output_task(prj, t, "plan", level)
+            level = self.output_task(prj, t, scenario, level)
 
         self.output_now_line(prj)
     # output_project()
 
 
-    def output_document(self):
+    def output_document(self, scenario="plan"):
         self.output_timeline()
 
         for p in self.doc.prjs.itervalues():
-            self.output_project(p)
+            self.output_project(p, scenario)
     # output_document()
 
 
@@ -626,7 +626,7 @@ if __name__ == "__main__":
     plot = Plotter(doc)
     plot.bar_height = 0.4
     plot.bar_vskip = 0.2
-    plot.process()
+    plot.process("plan")
     plot.save_pdf("test.pdf")
 
     plot.page_width = 50
