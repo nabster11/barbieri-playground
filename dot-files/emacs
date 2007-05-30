@@ -376,3 +376,5 @@ It takes 2 parameters:
   (interactive)
   (insert-license)
   (insert-include-config))
+
+(put 'downcase-region 'disabled nil)
