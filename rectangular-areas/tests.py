@@ -13,6 +13,14 @@ cases = (
      ((0, 0, 100, 100), (50, 0, 100, 100))),
     ("vertical",
      ((0, 0, 100, 100), (0, 50, 100, 100))),
+    ("T_1",
+     ((0, 50, 150, 50), (100, 0, 100, 150))),
+    ("T_2",
+     ((100, 0, 100, 150), (0, 50, 150, 50))),
+    ("T_3",
+     ((50, 0, 50, 150), (0, 100, 150, 100))),
+    ("T_4",
+     ((0, 100, 150, 100), (50, 0, 50, 150))),
     ("cascade-no-merge_1",
      ((0, 0, 100, 100), (50, 50, 100, 100), (100, 100, 100, 100))),
     ("cascade-no-merge_2",
@@ -104,6 +112,7 @@ if __name__ == "__main__":
                 elif e.type == KEYDOWN:
                     return
 
+
     def draw_rect(r, c, dx, dy):
         surf = pygame.Surface(r.size, SRCALPHA, 32).convert_alpha()
         r2 = (0, 0) + r.size
@@ -113,6 +122,23 @@ if __name__ == "__main__":
         r.left += dx
         r.top += dy
         screen.blit(surf, r)
+
+
+    def draw_rect_list_same_color(lst, c, dx, dy):
+        for r in lst:
+            draw_rect(Rect(r), c, dx, dy)
+        pygame.display.flip()
+
+
+    def draw_rect_list(lst, dx, dy, pause=True):
+        for i, r in enumerate(lst):
+            draw_rect(r, color[i % len(color)], dx, dy)
+            if pause:
+                pygame.display.flip()
+                wait()
+        if not pause:
+            pygame.display.flip()
+
 
     for name, rects in cases:
         print "test:", name
@@ -135,40 +161,32 @@ if __name__ == "__main__":
         non_overlaps = split.RectSplitter()
         for r in rects:
             print "ADD:", split.Rect(r)
+            # 2 pass
             idx = len(non_overlaps.rects)
             idx -= non_overlaps._split(split.Rect(*r), accepted_error=300)
 
-            for i, r2 in enumerate(non_overlaps.rects):
-                pygame.display.set_caption("test: %s, split after %s, HIT ENTER..." % \
-                                           (name, r))
-                draw_rect(r2, color[i % len(color)], dx, dy)
-            pygame.display.flip()
+            pygame.display.set_caption(
+                "test: %s, split after %s, HIT ENTER..." % (name, r))
+            draw_rect_list(non_overlaps.rects, dx, dy, False)
             wait()
             screen.fill(0xffffff, r_clear)
-
 
             non_overlaps._merge(idx, accepted_error=300)
 
-#            non_overlaps.add(split.Rect(*r), accepted_error=300)
-#            non_overlaps.split_strict(split.Rect(*r))
+            # non_overlaps.add(split.Rect(*r), accepted_error=300)
+            # non_overlaps.split_strict(split.Rect(*r))
 
-            for i, r2 in enumerate(non_overlaps.rects):
-                pygame.display.set_caption("test: %s, add %s, HIT ENTER..." % \
-                                           (name, r))
-                draw_rect(r2, color[i % len(color)], dx, dy)
-            pygame.display.flip()
+            draw_rect_list(non_overlaps.rects, dx, dy, False)
             wait()
             screen.fill(0xffffff, r_clear)
 
-        for i, r in enumerate(rects):
-            draw_rect(Rect(r), (0, 0, 0, 20), dx, dy)
+
+        draw_rect_list_same_color(rects, (0, 0, 0, 20), dx, dy)
+        wait()
 
         pprint.pprint(non_overlaps.rects)
-        for i, r in enumerate(non_overlaps.rects):
-            pygame.display.set_caption("test: %s, DONE! HIT ENTER..." % name)
-            draw_rect(r, color[i % len(color)], dx, dy)
-            pygame.display.flip()
-            wait()
+        pygame.display.set_caption("test: %s, DONE! HIT ENTER..." % name)
+        draw_rect_list(non_overlaps.rects, dx, dy)
 
         screen.fill(0xffffff)
 
