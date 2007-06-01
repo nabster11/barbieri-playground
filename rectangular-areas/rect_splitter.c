@@ -104,20 +104,20 @@ rect_list_concat(list_t *rects, list_t *other)
 }
 
 inline list_node_t *
-rect_list_unlink_next(list_t *rects, list_node_t *parent_child)
+rect_list_unlink_next(list_t *rects, list_node_t *parent_node)
 {
     list_node_t *node;
 
-    if (parent_child) {
-        node = parent_child->next;
-        parent_child->next = node->next;
+    if (parent_node) {
+        node = parent_node->next;
+        parent_node->next = node->next;
     } else {
         node = rects->head;
         rects->head = node->next;
     }
 
     if (rects->tail == node)
-        rects->tail = parent_child;
+        rects->tail = parent_node;
 
     *node = list_node_zeroed;
 
@@ -125,11 +125,11 @@ rect_list_unlink_next(list_t *rects, list_node_t *parent_child)
 }
 
 inline void
-rect_list_del_next(list_t *rects, list_node_t *parent_child)
+rect_list_del_next(list_t *rects, list_node_t *parent_node)
 {
     list_node_t *node;
 
-    node = rect_list_unlink_next(rects, parent_child);
+    node = rect_list_unlink_next(rects, parent_node);
     free(node);
 }
 
