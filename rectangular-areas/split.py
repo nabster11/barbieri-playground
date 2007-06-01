@@ -5,13 +5,7 @@ Split given rectangles so rectangles don't overlap.
 """
 
 import heapq
-from pygame import Rect as _R
-
-class Rect(_R):
-    def __cmp__(self, other):
-        return -cmp(self.width * self.height, other.width * other.height)
-# Rect
-
+from pygame import Rect
 
 class RectSplitter(object):
     def __init__(self):
@@ -336,7 +330,7 @@ class RectSplitter(object):
                 area = r1_area + r2_area
 
                 if outer_area - area <= accepted_error:
-                    # remobe both r1 and r2, create r3
+                    # remove both r1 and r2, create r3
                     # actually r3 uses r1 instance, saves memory
                     r1.left = min_left
                     r1.top = min_top
