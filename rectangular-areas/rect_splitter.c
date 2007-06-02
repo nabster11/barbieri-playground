@@ -242,18 +242,64 @@ _split_strict(list_t *dirty, const rect_t current, rect_t r)
 }
 
 void
-rect_list_add_split_strict(list_t *rects, const rect_t r)
+rect_list_del_split_strict(list_t *rects, const rect_t del_r)
+{
+    list_t modified = list_zeroed;
+    list_node_t *cur_node, *prev_node;
+
+    prev_node = NULL;
+    cur_node = rects->head;
+    while (cur_node) {
+        int intra_width, intra_height;
+        rect_t current;
+
+        current = ((rect_node_t*)cur_node)->rect;
+
+        _calc_intra_rect_area(del_r, current, &intra_width, &intra_height);
+        if ((intra_width <= 0) || (intra_height <= 0)) {
+            /*  .---.current      .---.del_r
+             *  |   |             |   |
+             *  `---+---.del_r    `---+---.current
+             *      |   |             |   |
+             *      `---'             `---'
+             * no interception, nothing to do
+             */
+            prev_node = cur_node;
+            cur_node = cur_node->next;
+        } else if ((intra_width == current.width) &&
+                   (intra_height == current.height)) {
+            /*  .-------.del_r
+             *  | .---. |
+             *  | |   | |
+             *  | `---'current
+             *  `-------'
+             * current is contained, remove from rects
+             */
+            cur_node = cur_node->next;
+            rect_list_del_next(rects, prev_node);
+        } else {
+            _split_strict(&modified, del_r, current);
+            cur_node = cur_node->next;
+            rect_list_del_next(rects, prev_node);
+        }
+    }
+
+    rect_list_concat(rects, &modified);
+}
+
+void
+rect_list_add_split_strict(list_t *rects, list_node_t *node)
 {
     list_t dirty = list_zeroed;
     list_t new_dirty = list_zeroed;
     list_node_t *cur_node;
 
     if (!rects->head) {
-        rect_list_append(rects, r);
+        rect_list_append_node(rects, node);
         return;
     }
 
-    rect_list_append(&dirty, r);
+    rect_list_append_node(&dirty, node);
 
     cur_node = rects->head;
     while (dirty.head) {
@@ -443,7 +489,7 @@ _split_fuzzy(list_t *dirty, const rect_t a, rect_t *b)
 }
 
 list_node_t *
-rect_list_add_split_fuzzy(list_t *rects, const rect_t r, int accepted_error)
+rect_list_add_split_fuzzy(list_t *rects, list_node_t *node, int accepted_error)
 {
     list_t dirty = list_zeroed;
     list_node_t *old_last;
@@ -451,11 +497,11 @@ rect_list_add_split_fuzzy(list_t *rects, const rect_t r, int accepted_error)
     old_last = rects->tail;
 
     if (!rects->head) {
-        rect_list_append(rects, r);
+        rect_list_append_node(rects, node);
         return old_last;
     }
 
-    rect_list_append(&dirty, r);
+    rect_list_append_node(&dirty, node);
     while (dirty.head) {
         list_node_t *d_node, *cur_node, *prev_cur_node;
         int keep_dirty;
@@ -656,13 +702,13 @@ rect_list_merge_rects(list_t *rects, list_t *to_merge, int accepted_error)
 }
 
 void
-rect_list_add_split_fuzzy_and_merge(list_t *rects, const rect_t r,
+rect_list_add_split_fuzzy_and_merge(list_t *rects, list_node_t *node,
                                     int split_accepted_error,
                                     int merge_accepted_error)
 {
     list_node_t *n;
 
-    n = rect_list_add_split_fuzzy(rects, r, split_accepted_error);
+    n = rect_list_add_split_fuzzy(rects, node, split_accepted_error);
     if (n && n->next) {
         list_t to_merge;
 

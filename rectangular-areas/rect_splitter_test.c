@@ -52,6 +52,22 @@ static struct test_case test_cases[] = {
     {.name = "vertical",
      .n_rects = 2,
      .rects = {{0, 0, 100, 100}, {0, 50, 100, 100}}},
+    {.name = "rotative_hole_1",
+     .n_rects = 4,
+     .rects = {{0, 0, 300, 100}, {200, 0, 100, 300},
+               {0, 200, 300, 100}, {0, 0, 100, 300}}},
+    {.name = "rotative_hole_2",
+     .n_rects = 4,
+     .rects = {{0, 0, 30, 10}, {20, 0, 10, 30},
+               {0, 20, 30, 10}, {0, 0, 10, 30}}},
+    {.name = "rotative_fill_1",
+     .n_rects = 5,
+     .rects = {{0, 0, 300, 100}, {200, 0, 100, 300},
+               {0, 200, 300, 100}, {0, 0, 100, 300}, {100, 100, 100, 100}}},
+    {.name = "rotative_fill_2",
+     .n_rects = 5,
+     .rects = {{0, 0, 30, 10}, {20, 0, 10, 30},
+               {0, 20, 30, 10}, {0, 0, 10, 30}, {10, 10, 10, 10}}},
     {.name = "T_1",
      .n_rects = 2,
      .rects = {{0, 50, 150, 50}, {100, 0, 100, 150}}},
@@ -353,11 +369,16 @@ test_case_process_and_draw(SDL_Surface *screen,
     for (i = 0; i < test_case->n_rects; i++) {
         char title[128];
         rect_t r;
+        rect_node_t *rn;
 
         r = rect_from_sdl(test_case->rects[i]);
 
+        rn = malloc(sizeof(rect_node_t));
+        rn->_lst.next = NULL;
+        rn->rect = r;
+
         printf("ADD: ");
-        rect_print(r);
+        rect_print(rn->rect);
         putchar('\n');
 
 #define ACCEPTED_SPLIT_ERROR 300
@@ -366,10 +387,11 @@ test_case_process_and_draw(SDL_Surface *screen,
 //#define TEST_SPLIT_FUZZY 1
 //#define TEST_MERGE
 #if defined(TEST_SPLIT_STRICT)
-        rect_list_add_split_strict(&non_overlaps, r);
+        rect_list_add_split_strict(&non_overlaps, (list_node_t *)rn);
 #elif defined(TEST_SPLIT_FUZZY)
         list_node_t *n;
-        n = rect_list_add_split_fuzzy(&non_overlaps, r, ACCEPTED_SPLIT_ERROR);
+        n = rect_list_add_split_fuzzy(&non_overlaps, (list_node_t *)rn,
+                                      ACCEPTED_SPLIT_ERROR);
         rect_list_check_consistent(non_overlaps);
 
 #if defined(TEST_MERGE)
@@ -393,7 +415,7 @@ test_case_process_and_draw(SDL_Surface *screen,
         }
 #endif /* TEST_MERGE */
 #elif defined(TEST_SPLIT_AND_MERGE)
-        rect_list_add_split_fuzzy_and_merge(&non_overlaps, r,
+        rect_list_add_split_fuzzy_and_merge(&non_overlaps, (list_node_t *)rn,
                                             ACCEPTED_SPLIT_ERROR,
                                             ACCEPTED_MERGE_ERROR);
         rect_list_check_consistent(non_overlaps);
