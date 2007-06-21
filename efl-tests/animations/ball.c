@@ -23,6 +23,7 @@ typedef struct app
     Evas_Object *obj;
     Ecore_Evas  *ee;
     Evas *evas;
+    int fs;
     int dx;
     int dy;
     Ecore_Animator *anim;
@@ -109,11 +110,34 @@ do_anim(void *data)
     return 1;
 }
 
+static Ecore_Evas *
+init_ecore_evas(const char *engine)
+{
+    Ecore_Evas *ee = NULL;
+
+    if (strcmp(engine, "x11-16") == 0)
+        if (ecore_evas_engine_type_supported_get
+            (ECORE_EVAS_ENGINE_SOFTWARE_X11_16)) {
+            ee = ecore_evas_software_x11_16_new(NULL, 0,  0, 0, WIDTH, HEIGHT);
+            fprintf(stderr, "Using X11 16bpp engine!\n");
+        } else {
+            ee = ecore_evas_software_x11_new(NULL, 0,  0, 0, WIDTH, HEIGHT);
+            fprintf(stderr, "Using X11 engine!\n");
+        }
+    else if (strcmp(engine, "x11") == 0) {
+        ee = ecore_evas_software_x11_new(NULL, 0,  0, 0, WIDTH, HEIGHT);
+        fprintf(stderr, "Using X11 engine!\n");
+    }
+
+    return ee;
+}
+
 int
 main(int argc, char *argv[])
 {
     app_t app;
     int i;
+    char *engine = "x11-16";
 
     ecore_init();
     ecore_app_args_set(argc, (const char **)argv);
@@ -128,22 +152,30 @@ main(int argc, char *argv[])
     app.dx = (random() * 10) / RAND_MAX - 5;
     app.dy = (random() * 10) / RAND_MAX - 5;
 
-    app.ee = ecore_evas_software_x11_new(NULL, 0,  0, 0, WIDTH, HEIGHT);
-    ecore_evas_data_set(app.ee, "app", &app);
-    ecore_evas_title_set(app.ee, TITLE);
-    ecore_evas_name_class_set(app.ee, WM_NAME, WM_CLASS);
-
     app.theme = THEME;
+    app.fs = 0;
 
     for (i=1; i < argc; i++)
         if (strcmp (argv[i], "-fs") == 0)
-            ecore_evas_fullscreen_set(app.ee, 1);
+            app.fs = 1;
         else if (strncmp (argv[i], "-theme=", sizeof("-theme=") - 1) == 0)
             app.theme = argv[i] + sizeof("-theme=") - 1;
         else if (strncmp (argv[i], "-dx=", sizeof("-dx=") - 1) == 0)
             app.dx = atoi(argv[i] + sizeof("-dx=") - 1);
         else if (strncmp (argv[i], "-dy=", sizeof("-dy=") - 1) == 0)
             app.dy = atoi(argv[i] + sizeof("-dy=") - 1);
+        else if (strncmp (argv[i], "-engine=", sizeof("-engine=") - 1) == 0)
+            engine = argv[i] + sizeof("-engine=") - 1;
+
+    app.ee = init_ecore_evas(engine);
+    if (!app.ee) {
+        fprintf(stderr, "Could not init engine '%s'.\n", engine);
+        return 1;
+    }
+    ecore_evas_data_set(app.ee, "app", &app);
+    ecore_evas_title_set(app.ee, TITLE);
+    ecore_evas_name_class_set(app.ee, WM_NAME, WM_CLASS);
+    ecore_evas_fullscreen_set(app.ee, app.fs);
 
     fprintf(stderr, "Move: %d, %d\n", app.dx, app.dy);
 

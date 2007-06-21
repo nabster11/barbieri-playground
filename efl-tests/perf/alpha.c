@@ -24,7 +24,30 @@ typedef struct app
     Ecore_Evas  *ee;
     Evas *evas;
     int steps;
+    int fs;
 } app_t;
+
+static Ecore_Evas *
+init_ecore_evas(const char *engine)
+{
+    Ecore_Evas *ee = NULL;
+
+    if (strcmp(engine, "x11-16") == 0)
+        if (ecore_evas_engine_type_supported_get
+            (ECORE_EVAS_ENGINE_SOFTWARE_X11_16)) {
+            ee = ecore_evas_software_x11_16_new(NULL, 0,  0, 0, WIDTH, HEIGHT);
+            fprintf(stderr, "Using X11 16bpp engine!\n");
+        } else {
+            ee = ecore_evas_software_x11_new(NULL, 0,  0, 0, WIDTH, HEIGHT);
+            fprintf(stderr, "Using X11 engine!\n");
+        }
+    else if (strcmp(engine, "x11") == 0) {
+        ee = ecore_evas_software_x11_new(NULL, 0,  0, 0, WIDTH, HEIGHT);
+        fprintf(stderr, "Using X11 engine!\n");
+    }
+
+    return ee;
+}
 
 int
 main(int argc, char *argv[])
@@ -32,6 +55,7 @@ main(int argc, char *argv[])
     struct timeval start, end, dif;
     app_t app;
     int i, c, d;
+    char *engine = "x11-16";
 
     ecore_init();
     ecore_app_args_set(argc, (const char **)argv);
@@ -40,21 +64,29 @@ main(int argc, char *argv[])
 
     memset(&app, 0, sizeof(app));
 
-    app.ee = ecore_evas_software_x11_new(NULL, 0,  0, 0, WIDTH, HEIGHT);
-    ecore_evas_data_set(app.ee, "app", &app);
-    ecore_evas_title_set(app.ee, TITLE);
-    ecore_evas_name_class_set(app.ee, WM_NAME, WM_CLASS);
-
     app.theme = THEME;
     app.steps = 500;
+    app.fs = 0;
 
     for (i=1; i < argc; i++)
         if (strcmp (argv[i], "-fs") == 0)
-            ecore_evas_fullscreen_set(app.ee, 1);
+            app.fs = 1;
         else if (strncmp (argv[i], "-theme=", sizeof("-theme=") - 1) == 0)
             app.theme = argv[i] + sizeof("-theme=") - 1;
         else if (strncmp (argv[i], "-steps=", sizeof("-steps=") - 1) == 0)
             app.steps = atoi(argv[i] + sizeof("-steps=") - 1);
+        else if (strncmp (argv[i], "-engine=", sizeof("-engine=") - 1) == 0)
+            engine = argv[i] + sizeof("-engine=") - 1;
+
+    app.ee = init_ecore_evas(engine);
+    if (!app.ee) {
+        fprintf(stderr, "Could not init engine '%s'.\n", engine);
+        return 1;
+    }
+    ecore_evas_data_set(app.ee, "app", &app);
+    ecore_evas_title_set(app.ee, TITLE);
+    ecore_evas_name_class_set(app.ee, WM_NAME, WM_CLASS);
+    ecore_evas_fullscreen_set(app.ee, app.fs);
 
     app.evas = ecore_evas_get(app.ee);
 

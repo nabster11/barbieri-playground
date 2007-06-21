@@ -446,7 +446,7 @@ main(int argc, char *argv[])
     ecore_evas_init();
     edje_init();
 
-    edje_frametime_set(1.0 / 30.0);
+    edje_frametime_set(1.0 / 55.0);
 
     memset(&app, 0, sizeof(app));
 
