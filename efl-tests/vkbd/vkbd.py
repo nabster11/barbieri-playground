@@ -6,6 +6,7 @@ FS = False
 TITLE = "Virtual Keyboard"
 WM_INFO = ("Virtual Keyboard", "vkbd")
 
+import sys
 import evas
 import edje
 import ecore
@@ -35,7 +36,11 @@ class VirtualKeyboard(edje.Edje):
     def __init__(self, canvas):
         edje.Edje.__init__(self, canvas)
         self.file_set("default.edj", "main")
-        self.obj_alpha = self.part_swallow_get("alpha")
+        self.obj = {
+            "alpha": self.part_swallow_get("alpha"),
+            "special-1": self.part_swallow_get("special-1"),
+            "special-2": self.part_swallow_get("special-2"),
+            }
         self.is_shift_down = False
         self.is_mouse_down = False
         self._setup_events()
@@ -43,15 +48,24 @@ class VirtualKeyboard(edje.Edje):
 
     def _setup_events(self):
         self.signal_callback_add("key_down", "*", self.on_edje_signal_key_down)
+        self.signal_callback_add("mouse_over_key", "*",
+                                 self.on_edje_signal_mouse_over_key)
+        self.signal_callback_add("mouse_out_key", "*",
+                                 self.on_edje_signal_mouse_out_key)
+        self.signal_callback_add("mouse,down,1", "*",
+                                 self.on_edje_signal_mouse_down_key)
+        self.signal_callback_add("mouse,up,1", "*",
+                                 self.on_edje_signal_mouse_up_key)
         self.on_mouse_down_add(self.on_mouse_down)
         self.on_mouse_up_add(self.on_mouse_up)
+        self.on_key_down_add(self.on_key_down)
 
     def press_shift(self):
-        self.obj_alpha.signal_emit("press_shift", "")
+        self.obj["alpha"].signal_emit("press_shift", "")
         self.is_shift_down = True
 
     def release_shift(self):
-        self.obj_alpha.signal_emit("release_shift", "")
+        self.obj["alpha"].signal_emit("release_shift", "")
         self.is_shift_down = False
 
     def toggle_shift(self):
@@ -63,7 +77,10 @@ class VirtualKeyboard(edje.Edje):
     @staticmethod
     def on_edje_signal_key_down(self, emission, source):
         t = self.part_text_get("field") or ""
-        key = source.split(":", 1)[1]
+        if ':' in source:
+            key = source.split(":", 1)[1]
+        else:
+            key = source
         if key == "enter":
             self.part_text_set("field", "")
             self.press_shift()
@@ -83,24 +100,75 @@ class VirtualKeyboard(edje.Edje):
 
     @staticmethod
     def on_edje_signal_mouse_over_key(self, emission, source):
-        print "mouse_over:", emission, source
+        if not self.is_mouse_down:
+            return
+        if ':' not in source:
+            return
+        part, subpart = source.split(':', 1)
+        o = self.obj[part]
+        o.signal_emit("press_key", subpart)
+
+    @staticmethod
+    def on_edje_signal_mouse_out_key(self, emission, source):
+        if not self.is_mouse_down:
+            return
+        if ':' not in source:
+            return
+        part, subpart = source.split(':', 1)
+        o = self.obj[part]
+        o.signal_emit("release_key", subpart)
+
+    @staticmethod
+    def on_edje_signal_mouse_down_key(self, emission, source):
+        if ':' not in source:
+            return
+        part, subpart = source.split(':', 1)
+        o = self.obj[part]
+        o.signal_emit("press_key", subpart)
+
+    @staticmethod
+    def on_edje_signal_mouse_up_key(self, emission, source):
+        if ':' not in source:
+            return
+        part, subpart = source.split(':', 1)
+        o = self.obj[part]
+        o.signal_emit("release_key", subpart)
+        o.signal_emit("activated_key", subpart)
 
     @staticmethod
     def on_mouse_down(self, event):
         if event.button != 1:
             return
         self.is_mouse_down = True
-        print "mouse_down:", event
 
     @staticmethod
     def on_mouse_up(self, event):
         if event.button != 1:
             return
         self.is_mouse_down = False
-        print "mouse_up:", event
+
+    @staticmethod
+    def on_key_down(self, event):
+        k = event.keyname.lower()
+        if k == "return":
+            k = "enter"
+        elif k == "backspace":
+            pass
+        elif k.startswith("shift"):
+            k = "shift"
+        elif k.startswith("alt_"):
+            return
+        elif k.startswith("control_"):
+            return
+        else:
+            k = event.string
+
+        if k:
+            o.signal_emit("key_down", k)
 
 
-if ecore.evas.engine_type_supported_get("software_x11_16"):
+if ecore.evas.engine_type_supported_get("software_x11_16") and \
+   '-x11' not in sys.argv:
     ee = ecore.evas.SoftwareX11_16(w=WIDTH, h=HEIGHT)
 else:
     ee = ecore.evas.SoftwareX11(w=WIDTH, h=HEIGHT)
@@ -112,10 +180,6 @@ o.focus = True
 o.show()
 o.on_key_down_add(on_key_down, ee)
 
-o.signal_callback_add("mouse_over_key", "*",
-                      VirtualKeyboard.on_edje_signal_mouse_over_key)
-#o.signal_callback_del("mouse_over_key", "*",
-#                      VirtualKeyboard.on_edje_signal_mouse_over_key)
 
 ee.data["main"] = o
 ee.callback_delete_request = on_delete_request

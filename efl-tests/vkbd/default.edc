@@ -284,7 +284,7 @@ collections {
          part {                                                        \
             name: "key-bg-"key_name;                                   \
             type: IMAGE;                                               \
-            repeat_events: 1;                                          \
+            no_mouse_grab: 1;                                          \
             description {                                              \
                state: "default" 0.0;                                   \
                min: 54 54;                                             \
@@ -335,7 +335,7 @@ collections {
          programs {                                                    \
             program {                                                  \
                name: "key-down-"key_name;                              \
-               signal: "mouse,clicked,1";                              \
+               signal: "activated_key";                                \
                source: "key-bg-"key_name;                              \
                action: SIGNAL_EMIT "key_down" key_text;                \
             }                                                          \
