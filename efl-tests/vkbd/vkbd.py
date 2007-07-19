@@ -12,10 +12,6 @@ import edje
 import ecore
 import ecore.evas
 
-edje.init()
-ecore.evas.init()
-ecore.init()
-
 def on_resize(ee):
     x, y, w, h = ee.evas.viewport
     ee.data["main"].size = w, h
@@ -35,12 +31,14 @@ def on_key_down(obj, event, ee):
 class VirtualKeyboard(edje.Edje):
     def __init__(self, canvas):
         edje.Edje.__init__(self, canvas)
+        self.text = []
         self.file_set("default.edj", "main")
         self.obj = {
             "alpha": self.part_swallow_get("alpha"),
             "special-1": self.part_swallow_get("special-1"),
             "special-2": self.part_swallow_get("special-2"),
             }
+        self.pressed_keys = {}
         self.is_shift_down = False
         self.is_mouse_down = False
         self._setup_events()
@@ -76,16 +74,17 @@ class VirtualKeyboard(edje.Edje):
 
     @staticmethod
     def on_edje_signal_key_down(self, emission, source):
-        t = self.part_text_get("field") or ""
         if ':' in source:
             key = source.split(":", 1)[1]
         else:
             key = source
         if key == "enter":
-            self.part_text_set("field", "")
+            self.text.append("<br>")
+            self.part_text_set("field", "".join(self.text))
             self.press_shift()
         elif key == "backspace":
-            self.part_text_set("field", t[:-1])
+            self.text = self.text[:-1]
+            self.part_text_set("field", "".join(self.text))
         elif key == "shift":
             self.toggle_shift()
         elif key in (".?123", "ABC", "#+=", ".?12"):
@@ -96,7 +95,8 @@ class VirtualKeyboard(edje.Edje):
                 key = key.upper()
             else:
                 key = key.lower()
-            self.part_text_set("field", t + key)
+            self.text += key
+            self.part_text_set("field", "".join(self.text))
 
     @staticmethod
     def on_edje_signal_mouse_over_key(self, emission, source):
@@ -106,6 +106,14 @@ class VirtualKeyboard(edje.Edje):
             return
         part, subpart = source.split(':', 1)
         o = self.obj[part]
+
+        if subpart in self.pressed_keys:
+            return
+
+        for k in self.pressed_keys.values():
+            o.signal_emit("release_key", k)
+        self.pressed_keys.clear()
+        self.pressed_keys[subpart] = subpart
         o.signal_emit("press_key", subpart)
 
     @staticmethod
@@ -116,7 +124,10 @@ class VirtualKeyboard(edje.Edje):
             return
         part, subpart = source.split(':', 1)
         o = self.obj[part]
-        o.signal_emit("release_key", subpart)
+
+        if subpart in self.pressed_keys:
+            del self.pressed_keys[subpart]
+            o.signal_emit("release_key", subpart)
 
     @staticmethod
     def on_edje_signal_mouse_down_key(self, emission, source):
@@ -124,6 +135,15 @@ class VirtualKeyboard(edje.Edje):
             return
         part, subpart = source.split(':', 1)
         o = self.obj[part]
+        self.is_mouse_down = True
+
+        if subpart in self.pressed_keys:
+            return
+
+        for k in self.pressed_keys.values():
+            o.signal_emit("release_key", k)
+        self.pressed_keys.clear()
+        self.pressed_keys[subpart] = subpart
         o.signal_emit("press_key", subpart)
 
     @staticmethod
@@ -132,8 +152,11 @@ class VirtualKeyboard(edje.Edje):
             return
         part, subpart = source.split(':', 1)
         o = self.obj[part]
-        o.signal_emit("release_key", subpart)
-        o.signal_emit("activated_key", subpart)
+        self.is_mouse_down = False
+        if subpart in self.pressed_keys:
+            del self.pressed_keys[subpart]
+            o.signal_emit("release_key", subpart)
+            o.signal_emit("activated_key", subpart)
 
     @staticmethod
     def on_mouse_down(self, event):
