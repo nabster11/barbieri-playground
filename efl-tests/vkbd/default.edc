@@ -8,8 +8,11 @@ images {
    image: "key-default.png" COMP;
    image: "key-default-selected.png" COMP;
    image: "key-special.png" COMP;
+   image: "key-special-selected.png" COMP;
    image: "backspace.png" COMP;
+   image: "backspace-selected.png" COMP;
    image: "shift.png" COMP;
+   image: "shift-selected.png" COMP;
 }
 
 styles {
@@ -316,7 +319,7 @@ collections {
 #define CLICK_AREA_H 58
 #define CLICK_AREA_DX 27
 #define CLICK_AREA_DY 27
-#define SKEY(key_text, key_name, x, y)                                 \
+#define SKEY_FULL(key_text, key_name, x, y, lbl_dx, lbl_dy)            \
          part {                                                        \
             name: "key-bg-"key_name;                                   \
             type: RECT;                                                \
@@ -373,7 +376,7 @@ collections {
               rel1 {                                                   \
                  to: "key-img-"key_name;                               \
                  relative: 0.0 0.0;                                    \
-                 offset: 8 4;                                          \
+                 offset: (8 + lbl_dx) (4 + lbl_dy);                    \
               }                                                        \
               rel2 {                                                   \
                  to: "key-img-"key_name;                               \
@@ -492,6 +495,8 @@ collections {
             }                                                          \
          }
 
+#define KEY_FULL(v, x, y, lbl_dx, lbl_dy) SKEY_FULL(v, v, x, y, lbl_dx, lbl_dy)
+#define SKEY(name, text, x, y) SKEY_FULL(name, text, x, y, 0, 0)
 #define KEY(v, x, y) SKEY(v, v, x, y)
 
         KEY("1",   0, 0)
@@ -527,16 +532,16 @@ collections {
 #undef CLICK_AREA_DY
 #define CLICK_AREA_H 70
 #define CLICK_AREA_DY 21
-         KEY("Q", KEY_HPOS(0), FIRST_ROW)
-         KEY("W", KEY_HPOS(1), FIRST_ROW)
-         KEY("E", KEY_HPOS(2), FIRST_ROW)
-         KEY("R", KEY_HPOS(3), FIRST_ROW)
-         KEY("T", KEY_HPOS(4), FIRST_ROW)
-         KEY("Y", KEY_HPOS(5), FIRST_ROW)
-         KEY("U", KEY_HPOS(6), FIRST_ROW)
-         KEY("I", KEY_HPOS(7), FIRST_ROW)
-         KEY("O", KEY_HPOS(8), FIRST_ROW)
-         KEY("P", KEY_HPOS(9), FIRST_ROW)
+         KEY_FULL("Q", KEY_HPOS(0), FIRST_ROW, -2, 0)
+         KEY_FULL("W", KEY_HPOS(1), FIRST_ROW, -3, 0)
+         KEY_FULL("E", KEY_HPOS(2), FIRST_ROW, 0, 0)
+         KEY_FULL("R", KEY_HPOS(3), FIRST_ROW, 0, 0)
+         KEY_FULL("T", KEY_HPOS(4), FIRST_ROW, -4, 0)
+         KEY_FULL("Y", KEY_HPOS(5), FIRST_ROW, -6, 0)
+         KEY_FULL("U", KEY_HPOS(6), FIRST_ROW, 0, 0)
+         KEY_FULL("I", KEY_HPOS(7), FIRST_ROW, 2, 0)
+         KEY_FULL("O", KEY_HPOS(8), FIRST_ROW, -2, 0)
+         KEY_FULL("P", KEY_HPOS(9), FIRST_ROW, 0, 0)
 
 #undef INIT_HSPACE
 #define INIT_HSPACE 35
@@ -546,26 +551,26 @@ collections {
 #undef CLICK_AREA_DY
 #define CLICK_AREA_H 58
 #define CLICK_AREA_DY 27
-         KEY("A", KEY_HPOS(0), SECOND_ROW)
-         KEY("S", KEY_HPOS(1), SECOND_ROW)
-         KEY("D", KEY_HPOS(2), SECOND_ROW)
-         KEY("F", KEY_HPOS(3), SECOND_ROW)
-         KEY("G", KEY_HPOS(4), SECOND_ROW)
-         KEY("H", KEY_HPOS(5), SECOND_ROW)
-         KEY("J", KEY_HPOS(6), SECOND_ROW)
-         KEY("K", KEY_HPOS(7), SECOND_ROW)
-         KEY("L", KEY_HPOS(8), SECOND_ROW)
+         KEY_FULL("A", KEY_HPOS(0), SECOND_ROW, -8, 0)
+         KEY_FULL("S", KEY_HPOS(1), SECOND_ROW, 0, 0)
+         KEY_FULL("D", KEY_HPOS(2), SECOND_ROW, 0, 0)
+         KEY_FULL("F", KEY_HPOS(3), SECOND_ROW, 0, 0)
+         KEY_FULL("G", KEY_HPOS(4), SECOND_ROW, 0, 2)
+         KEY_FULL("H", KEY_HPOS(5), SECOND_ROW, 2, 0)
+         KEY_FULL("J", KEY_HPOS(6), SECOND_ROW, -6, 0)
+         KEY_FULL("K", KEY_HPOS(7), SECOND_ROW, 0, 0)
+         KEY_FULL("L", KEY_HPOS(8), SECOND_ROW, 0, 0)
 
 #undef INIT_HSPACE
 #define INIT_HSPACE 105
 #define THIRD_ROW 120
-         KEY("Z", KEY_HPOS(0), THIRD_ROW)
-         KEY("X", KEY_HPOS(1), THIRD_ROW)
-         KEY("C", KEY_HPOS(2), THIRD_ROW)
-         KEY("V", KEY_HPOS(3), THIRD_ROW)
-         KEY("B", KEY_HPOS(4), THIRD_ROW)
-         KEY("N", KEY_HPOS(5), THIRD_ROW)
-         KEY("M", KEY_HPOS(6), THIRD_ROW)
+         KEY_FULL("Z", KEY_HPOS(0), THIRD_ROW, 0, 0)
+         KEY_FULL("X", KEY_HPOS(1), THIRD_ROW, -4, 0)
+         KEY_FULL("C", KEY_HPOS(2), THIRD_ROW, -4, 0)
+         KEY_FULL("V", KEY_HPOS(3), THIRD_ROW, -6, 0)
+         KEY_FULL("B", KEY_HPOS(4), THIRD_ROW, 2, 0)
+         KEY_FULL("N", KEY_HPOS(5), THIRD_ROW, 2, 0)
+         KEY_FULL("M", KEY_HPOS(6), THIRD_ROW, 0, 0)
 
 #define FORTH_ROW 190
 #define KEY_SPACE                                                       \
@@ -681,7 +686,27 @@ collections {
 #define KEY_SPECIAL(val, x, y, w)                                      \
          part {                                                        \
             name: "key-bg-"val;                                        \
+            type: RECT;                                                \
+            no_mouse_grab: 1;                                          \
+            description {                                              \
+               state: "default" 0.0;                                   \
+               min: w 54;                                              \
+               max: w 54;                                              \
+               rel1 {                                                  \
+                  relative: 0.0 0.0;                                   \
+                  offset: (x + w/2) (y + 27);                          \
+               }                                                       \
+               rel2 {                                                  \
+                  relative: 0.0 0.0;                                   \
+                  offset: (x + w/2) (y + 27);                          \
+               }                                                       \
+               color: 0 0 0 0;                                         \
+            }                                                          \
+         }                                                             \
+         part {                                                        \
+            name: "key-img-"val;                                       \
             type: IMAGE;                                               \
+            mouse_events: 0;                                           \
             description {                                              \
                state: "default" 0.0;                                   \
                min: w 54;                                              \
@@ -696,13 +721,16 @@ collections {
                }                                                       \
                image {                                                 \
                   normal: "key-special.png";                           \
-                  border: 5 5 5 5;                                     \
+                  border: 9 9 9 9;                                     \
                }                                                       \
             }                                                          \
             description {                                              \
                state: "down" 0.0;                                      \
                inherit: "default" 0.0;                                 \
-               color: 100 100 255 255;                                 \
+               image {                                                 \
+                  normal: "key-special-selected.png";                  \
+                  border: 9 9 9 9;                                     \
+               }                                                       \
             }                                                          \
          }                                                             \
          part {                                                        \
@@ -731,27 +759,49 @@ collections {
                  text: val;                                            \
               }                                                        \
            }                                                           \
+           description {                                               \
+              state: "down" 0.0;                                       \
+              inherit: "default" 0.0;                                  \
+              color: 200 200 200 255;                                  \
+              color2: 90 90 90 255;                                    \
+              color3: 90 90 90 255;                                    \
+           }                                                           \
          }                                                             \
          programs {                                                    \
             program {                                                  \
                name: "key-down-"val;                                   \
-               signal: "mouse,clicked,1";                              \
+               signal: "activated_key";                                \
                source: "key-bg-"val;                                   \
                action: SIGNAL_EMIT "key_down" val;                     \
-               after: "key-down-"val"-enter";                          \
             }                                                          \
             program {                                                  \
-               name: "key-down-"val"-enter";                           \
+               name: "key-mouse-in-"val;                               \
+               signal: "mouse,in";                                     \
+               source: "key-bg-"val;                                   \
+               action: SIGNAL_EMIT "mouse_over_key" "key-bg-"val;      \
+            }                                                          \
+            program {                                                  \
+               name: "key-mouse-out-"val;                              \
+               signal: "mouse,out";                                    \
+               source: "key-bg-"val;                                   \
+               action: SIGNAL_EMIT "mouse_out_key" "key-bg-"val;       \
+            }                                                          \
+            program {                                                  \
+               name: "key-press-"val;                                  \
+               signal: "press_key";                                    \
+               source: "key-bg-"val;                                   \
                action: STATE_SET "down" 0.0;                           \
-               transition: LINEAR 0.2;                                 \
-               target: "key-bg-"val;                                   \
-               after: "key-down-"val"-revert";                         \
+               target: "key-img-"val;                                  \
+               target: "key-lbl-"val;                                  \
             }                                                          \
             program {                                                  \
-               name: "key-down-"val"-revert";                          \
+               name: "key-release-"val;                                \
+               signal: "release_key";                                  \
+               source: "key-bg-"val;                                   \
                action: STATE_SET "default" 0.0;                        \
-               transition: LINEAR 0.8;                                 \
-               target: "key-bg-"val;                                   \
+               transition: LINEAR 0.2;                                 \
+               target: "key-img-"val;                                  \
+               target: "key-lbl-"val;                                  \
             }                                                          \
          }
 
@@ -764,7 +814,27 @@ collections {
 #define INIT_HSPACE 0
          part {
             name: "key-bg-shift";
+            type: RECT;
+            no_mouse_grab: 1;
+            description {
+               state: "default" 0.0;
+               min: 80 54;
+               max: 80 54;
+               rel1 {
+                  relative: 0.0 0.0;
+                  offset: (INIT_HSPACE + 40) (THIRD_ROW + 27);
+               }
+               rel2 {
+                  relative: 0.0 0.0;
+                  offset: (INIT_HSPACE + 40) (THIRD_ROW + 27);
+               }
+               color: 0 0 0 0;
+            }
+         }
+         part {
+            name: "key-img-shift";
             type: IMAGE;
+            mouse_events: 0;
             description {
                state: "default" 0.0;
                min: 80 54;
@@ -779,13 +849,16 @@ collections {
                }
                image {
                   normal: "key-special.png";
-                  border: 5 5 5 5;
+                  border: 9 9 9 9;
                }
             }
             description {
                state: "down" 0.0;
                inherit: "default" 0.0;
-               color: 100 100 255 255;
+               image {
+                  normal: "key-special-selected.png";
+                  border: 9 9 9 9;
+               }
             }
          }
          part {
@@ -805,7 +878,12 @@ collections {
                  relative: 0.5 0.5;
               }
               image.normal: "shift.png";
-           }
+            }
+            description {
+               state: "down" 0.0;
+               inherit: "default" 0.0;
+               image.normal: "shift-selected.png";
+            }
          }
          programs {
             program {
@@ -819,21 +897,43 @@ collections {
                signal: "press_shift";
                action: STATE_SET "down" 0.0;
                transition: LINEAR 0.1;
-               target: "key-bg-shift";
+               target: "key-img-shift";
+               target: "key-lbl-shift";
             }
             program {
                name: "key-down-shift-revert";
                signal: "release_shift";
                action: STATE_SET "default" 0.0;
                transition: LINEAR 0.1;
-               target: "key-bg-shift";
+               target: "key-img-shift";
+               target: "key-lbl-shift";
             }
          }
 
 #define KEY_BACKSPACE                                                   \
          part {                                                         \
             name: "key-bg-backspace";                                   \
+            type: RECT;                                                 \
+            no_mouse_grab: 1;                                           \
+            description {                                               \
+               state: "default" 0.0;                                    \
+               min: 80 54;                                              \
+               max: 80 54;                                              \
+               rel1 {                                                   \
+                  relative: 0.0 0.0;                                    \
+                  offset: (605 + 80/2) (THIRD_ROW + 27);                \
+               }                                                        \
+               rel2 {                                                   \
+                  relative: 0.0 0.0;                                    \
+                  offset: (605 + 80/2) (THIRD_ROW + 27);                \
+               }                                                        \
+               color: 0 0 0 0;                                          \
+            }                                                           \
+         }                                                              \
+         part {                                                         \
+            name: "key-img-backspace";                                  \
             type: IMAGE;                                                \
+            mouse_events: 0;                                            \
             description {                                               \
                state: "default" 0.0;                                    \
                min: 80 54;                                              \
@@ -848,13 +948,16 @@ collections {
                }                                                        \
                image {                                                  \
                   normal: "key-special.png";                            \
-                  border: 5 5 5 5;                                      \
+                  border: 9 9 9 9;                                      \
                }                                                        \
             }                                                           \
             description {                                               \
                state: "down" 0.0;                                       \
                inherit: "default" 0.0;                                  \
-               color: 100 100 255 255;                                  \
+               image {                                                  \
+                  normal: "key-special-selected.png";                   \
+                  border: 9 9 9 9;                                      \
+               }                                                        \
             }                                                           \
          }                                                              \
          part {                                                         \
@@ -874,7 +977,12 @@ collections {
                  relative: 0.5 0.5;                                     \
               }                                                         \
               image.normal: "backspace.png";                            \
-           }                                                            \
+            }                                                           \
+            description {                                               \
+               state: "down" 0.0;                                       \
+               inherit: "default" 0.0;                                  \
+               image.normal: "backspace-selected.png";                  \
+            }                                                           \
          }                                                              \
          programs {                                                     \
             program {                                                   \
@@ -888,14 +996,16 @@ collections {
                name: "key-down-backspace-enter";                        \
                action: STATE_SET "down" 0.0;                            \
                transition: LINEAR 0.2;                                  \
-               target: "key-bg-backspace";                              \
+               target: "key-img-backspace";                             \
+               target: "key-lbl-backspace";                             \
                after: "key-down-backspace-revert";                      \
             }                                                           \
             program {                                                   \
                name: "key-down-backspace-revert";                       \
                action: STATE_SET "default" 0.0;                         \
                transition: LINEAR 0.8;                                  \
-               target: "key-bg-backspace";                              \
+               target: "key-img-backspace";                             \
+               target: "key-lbl-backspace";                             \
             }                                                           \
          }
 

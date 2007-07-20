@@ -89,6 +89,15 @@ class VirtualKeyboard(edje.Edje):
             self.toggle_shift()
         elif key in (".?123", "ABC", "#+=", ".?12"):
             pass
+        elif key in "&":
+            self.text.append("&amp;")
+            self.part_text_set("field", "".join(self.text))
+        elif key in "<":
+            self.text.append("&gt;")
+            self.part_text_set("field", "".join(self.text))
+        elif key in ">":
+            self.text.append("&lt;")
+            self.part_text_set("field", "".join(self.text))
         else:
             if self.is_shift_down:
                 self.release_shift()
