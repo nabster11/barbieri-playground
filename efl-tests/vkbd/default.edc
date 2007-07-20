@@ -99,7 +99,7 @@ collections {
                state: "default" 0.0;
                rel1 {
                   relative: 0.0 1.0;
-                  offset: 0 -268;
+                  offset: 0 -280;
                }
                rel2 {
                   relative: 1.0 1.0;
@@ -987,23 +987,36 @@ collections {
          programs {                                                     \
             program {                                                   \
                name: "key-down-backspace";                              \
-               signal: "mouse,clicked,1";                               \
+               signal: "activated_key";                                 \
                source: "key-bg-backspace";                              \
                action: SIGNAL_EMIT "key_down" "backspace";              \
-               after: "key-down-backspace-enter";                       \
             }                                                           \
             program {                                                   \
-               name: "key-down-backspace-enter";                        \
+               name: "key-mouse-in-backspace";                          \
+               signal: "mouse,in";                                      \
+               source: "key-bg-backspace";                              \
+               action: SIGNAL_EMIT "mouse_over_key" "key-bg-backspace"; \
+            }                                                           \
+            program {                                                   \
+               name: "key-mouse-out-backspace";                         \
+               signal: "mouse,out";                                     \
+               source: "key-bg-backspace";                              \
+               action: SIGNAL_EMIT "mouse_out_key" "key-bg-backspace";  \
+            }                                                           \
+            program {                                                   \
+               name: "key-press-backspace";                             \
+               signal: "press_key";                                     \
+               source: "key-bg-backspace";                              \
                action: STATE_SET "down" 0.0;                            \
-               transition: LINEAR 0.2;                                  \
                target: "key-img-backspace";                             \
                target: "key-lbl-backspace";                             \
-               after: "key-down-backspace-revert";                      \
             }                                                           \
             program {                                                   \
-               name: "key-down-backspace-revert";                       \
+               name: "key-release-backspace";                           \
+               signal: "release_key";                                   \
+               source: "key-bg-backspace";                              \
                action: STATE_SET "default" 0.0;                         \
-               transition: LINEAR 0.8;                                  \
+               transition: LINEAR 0.1;                                  \
                target: "key-img-backspace";                             \
                target: "key-lbl-backspace";                             \
             }                                                           \
