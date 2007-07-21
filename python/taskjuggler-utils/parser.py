@@ -8,7 +8,7 @@ try:
     except ImportError, e:
         try:
             from xml.etree.ElementTree import ElementTree
-        except Import, e:
+        except ImportError, e:
             from elementtree.ElementTree import ElementTree
 except ImportError, e:
     raise SystemExit("Missing python module: pyx (http://pyx.sourceforge.net)")
@@ -222,6 +222,8 @@ class Project(object):
         self._known_tasks[task.id] = task
     # register_task()
 
+    def find_task(self, id):
+        return self._known_tasks[id]
 
     def __str__(self):
         lst_tasks = []
@@ -235,7 +237,17 @@ class Project(object):
     # __str__()
 # Project
 
+class Vacation(object):
+    def __init__(self, node):
+        self.name = node.get("name")
+        self.start = get_child_int(node, "start")
+        self.end = get_child_int(node, "end")
+    # __init__()
 
+    def __str__(self):
+        return "name=%s, start=%d, end=%d" % ( self.name, self.start, self.end)
+    # __str__()
+# Vacation
 
 class Document(object):
     def __init__(self, filename):
@@ -246,10 +258,12 @@ class Document(object):
         self.prjs = {}
         self.tasks = {}
         self.resources = {}
+        self.vacations = []
 
         self._process_projects()
         self._process_resources()
         self._process_tasks()
+        self._process_vacations()
     # __init__()
 
 
@@ -276,6 +290,11 @@ class Document(object):
                 Resource(self, node)
     # _process_resources()
 
+    def _process_vacations(self):
+        for vl in self.xml.findall("vacationList"):
+            for node in vl.findall("vacation"):
+                self.vacations.append(Vacation(node))
+    #_process_vacations()
 
     def __str__(self):
         lst = []
