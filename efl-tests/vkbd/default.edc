@@ -93,7 +93,7 @@ collections {
          part {
             name: "keyboard-background";
             mouse_events: 1;
-            no_mouse_grab: 1;
+            pointer_mode: NOGRAB;
             type: IMAGE;
             description {
                state: "default" 0.0;
@@ -323,7 +323,7 @@ collections {
          part {                                                        \
             name: "key-bg-"key_name;                                   \
             type: RECT;                                                \
-            no_mouse_grab: 1;                                          \
+            pointer_mode: NOGRAB;                                      \
             description {                                              \
                state: "default" 0.0;                                   \
                min: CLICK_AREA_W CLICK_AREA_H;                         \
@@ -533,7 +533,7 @@ collections {
 #define CLICK_AREA_H 70
 #define CLICK_AREA_DY 21
          KEY_FULL("Q", KEY_HPOS(0), FIRST_ROW, -2, 0)
-         KEY_FULL("W", KEY_HPOS(1), FIRST_ROW, -3, 0)
+         KEY_FULL("W", KEY_HPOS(1), FIRST_ROW, -5, 0)
          KEY_FULL("E", KEY_HPOS(2), FIRST_ROW, 0, 0)
          KEY_FULL("R", KEY_HPOS(3), FIRST_ROW, 0, 0)
          KEY_FULL("T", KEY_HPOS(4), FIRST_ROW, -4, 0)
@@ -555,7 +555,7 @@ collections {
          KEY_FULL("S", KEY_HPOS(1), SECOND_ROW, 0, 0)
          KEY_FULL("D", KEY_HPOS(2), SECOND_ROW, 0, 0)
          KEY_FULL("F", KEY_HPOS(3), SECOND_ROW, 0, 0)
-         KEY_FULL("G", KEY_HPOS(4), SECOND_ROW, 0, 2)
+         KEY_FULL("G", KEY_HPOS(4), SECOND_ROW, -2, 2)
          KEY_FULL("H", KEY_HPOS(5), SECOND_ROW, 2, 0)
          KEY_FULL("J", KEY_HPOS(6), SECOND_ROW, -6, 0)
          KEY_FULL("K", KEY_HPOS(7), SECOND_ROW, 0, 0)
@@ -577,7 +577,7 @@ collections {
          part {                                                         \
             name: "key-bg-space";                                       \
             type: RECT;                                                 \
-            no_mouse_grab: 1;                                           \
+            pointer_mode: NOGRAB;                                       \
             description {                                               \
                state: "default" 0.0;                                    \
                min: 355 68;                                             \
@@ -687,7 +687,7 @@ collections {
          part {                                                        \
             name: "key-bg-"val;                                        \
             type: RECT;                                                \
-            no_mouse_grab: 1;                                          \
+            pointer_mode: NOGRAB;                                      \
             description {                                              \
                state: "default" 0.0;                                   \
                min: w 54;                                              \
@@ -805,9 +805,9 @@ collections {
             }                                                          \
          }
 
-         KEY_SPECIAL(".?123", 0, FORTH_ROW, 160)
+         KEY_SPECIAL(".?123", 0, FORTH_ROW, 158)
          KEY_SPACE
-         KEY_SPECIAL("enter", 525, FORTH_ROW, 160)
+         KEY_SPECIAL("enter", 525, FORTH_ROW, 158)
 
 
 #undef INIT_HSPACE
@@ -815,18 +815,18 @@ collections {
          part {
             name: "key-bg-shift";
             type: RECT;
-            no_mouse_grab: 1;
+            pointer_mode: NOGRAB;
             description {
                state: "default" 0.0;
-               min: 80 54;
-               max: 80 54;
+               min: 87 54;
+               max: 87 54;
                rel1 {
                   relative: 0.0 0.0;
-                  offset: (INIT_HSPACE + 40) (THIRD_ROW + 27);
+                  offset: (INIT_HSPACE + 44) (THIRD_ROW + 27);
                }
                rel2 {
                   relative: 0.0 0.0;
-                  offset: (INIT_HSPACE + 40) (THIRD_ROW + 27);
+                  offset: (INIT_HSPACE + 44) (THIRD_ROW + 27);
                }
                color: 0 0 0 0;
             }
@@ -837,15 +837,15 @@ collections {
             mouse_events: 0;
             description {
                state: "default" 0.0;
-               min: 80 54;
-               max: 80 54;
+               min: 87 54;
+               max: 87 54;
                rel1 {
                   relative: 0.0 0.0;
-                  offset: (INIT_HSPACE + 40) (THIRD_ROW + 27);
+                  offset: (INIT_HSPACE + 44) (THIRD_ROW + 27);
                }
                rel2 {
                   relative: 0.0 0.0;
-                  offset: (INIT_HSPACE + 40) (THIRD_ROW + 27);
+                  offset: (INIT_HSPACE + 44) (THIRD_ROW + 27);
                }
                image {
                   normal: "key-special.png";
@@ -914,18 +914,18 @@ collections {
          part {                                                         \
             name: "key-bg-backspace";                                   \
             type: RECT;                                                 \
-            no_mouse_grab: 1;                                           \
+            pointer_mode: NOGRAB;                                       \
             description {                                               \
                state: "default" 0.0;                                    \
-               min: 80 54;                                              \
-               max: 80 54;                                              \
+               min: 87 54;                                              \
+               max: 87 54;                                              \
                rel1 {                                                   \
                   relative: 0.0 0.0;                                    \
-                  offset: (605 + 80/2) (THIRD_ROW + 27);                \
+                  offset: (596 + 87/2) (THIRD_ROW + 27);                \
                }                                                        \
                rel2 {                                                   \
                   relative: 0.0 0.0;                                    \
-                  offset: (605 + 80/2) (THIRD_ROW + 27);                \
+                  offset: (596 + 87/2) (THIRD_ROW + 27);                \
                }                                                        \
                color: 0 0 0 0;                                          \
             }                                                           \
@@ -936,15 +936,15 @@ collections {
             mouse_events: 0;                                            \
             description {                                               \
                state: "default" 0.0;                                    \
-               min: 80 54;                                              \
-               max: 80 54;                                              \
+               min: 87 54;                                              \
+               max: 87 54;                                              \
                rel1 {                                                   \
                   relative: 0.0 0.0;                                    \
-                  offset: (605 + 80/2) (THIRD_ROW + 27);                \
+                  offset: (596 + 87/2) (THIRD_ROW + 27);                \
                }                                                        \
                rel2 {                                                   \
                   relative: 0.0 0.0;                                    \
-                  offset: (605 + 80/2) (THIRD_ROW + 27);                \
+                  offset: (596 + 87/2) (THIRD_ROW + 27);                \
                }                                                        \
                image {                                                  \
                   normal: "key-special.png";                            \
@@ -966,8 +966,8 @@ collections {
            mouse_events: 0;                                             \
            description {                                                \
               state: "default" 0.0;                                     \
-              max: 32 32;                                               \
-              min: 32 32;                                               \
+              max: 40 32;                                               \
+              min: 40 32;                                               \
               rel1 {                                                    \
                  to: "key-bg-backspace";                                \
                  relative: 0.5 0.5;                                     \
@@ -1069,9 +1069,9 @@ collections {
          KEY_SPECIAL("#+=", 0, THIRD_ROW, 80)
          KEY_BACKSPACE
 
-         KEY_SPECIAL("ABC", 0, FORTH_ROW, 160)
+         KEY_SPECIAL("ABC", 0, FORTH_ROW, 158)
          KEY_SPACE
-         KEY_SPECIAL("enter", 525, FORTH_ROW, 160)
+         KEY_SPECIAL("enter", 525, FORTH_ROW, 158)
       }
    }
 
@@ -1101,9 +1101,9 @@ collections {
          KEY_SPECIAL(".?12", 0, THIRD_ROW, 80)
          KEY_BACKSPACE
 
-         KEY_SPECIAL("ABC", 0, FORTH_ROW, 160)
+         KEY_SPECIAL("ABC", 0, FORTH_ROW, 158)
          KEY_SPACE
-         KEY_SPECIAL("enter", 525, FORTH_ROW, 160)
+         KEY_SPECIAL("enter", 525, FORTH_ROW, 158)
       }
    }
 }
