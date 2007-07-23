@@ -67,6 +67,29 @@
 (global-set-key [(control prior)] 'previous-multiframe-window)
 (global-set-key [(control next)] 'next-multiframe-window)
 
+(c-add-style
+ "e17"
+ '("gnu"
+   (indent-tabs-mode . t)
+   (tab-width . 8)
+   (c-offsets-alist
+    .
+    ((defun-block-intro . 3)
+     (statement-block-intro . 3)
+     (case-label . 1)
+     (statement-case-intro . 3)
+     ))))
+
+(defun evas-c-mode-hooks ()
+  (let ((path (buffer-file-name)))
+    (cond
+     ((string-match "/evas/src/" path) (c-set-style "e17"))
+     ((string-match "/cvs/e17" path) (c-set-style "e17"))
+     )
+    )
+  )
+
+(add-hook 'c-mode-common-hook 'evas-c-mode-hooks)
 
 (defun c-mode-visit-complement-file ()
   "If in file.c, visit file.h.
@@ -378,3 +401,14 @@ It takes 2 parameters:
   (insert-include-config))
 
 (put 'downcase-region 'disabled nil)
+
+(setq load-path (cons "/home/gustavo/.emacs.d/site-packages" load-path))
+
+(add-to-list 'load-path "/home/gustavo/.emacs.d/site-packages/pyrex-mode.el")
+(add-to-list 'auto-mode-alist '("\\.pyx$\\|\\.pxi$\\|\\.pxd$" . pyrex-mode))
+(autoload 'pyrex-mode "pyrex-mode")
+
+(add-to-list 'load-path "/home/gustavo/.emacs.d/site-packages/edje-mode.el")
+(add-to-list 'auto-mode-alist '("\\.edc$" . edje-mode))
+(autoload 'edje-mode "edje-mode")
+
