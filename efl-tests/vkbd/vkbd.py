@@ -93,10 +93,10 @@ class VirtualKeyboard(edje.Edje):
             self.text.append("&amp;")
             self.part_text_set("field", "".join(self.text))
         elif key in "<":
-            self.text.append("&gt;")
+            self.text.append("&lt;")
             self.part_text_set("field", "".join(self.text))
         elif key in ">":
-            self.text.append("&lt;")
+            self.text.append("&gt;")
             self.part_text_set("field", "".join(self.text))
         else:
             if self.is_shift_down:
