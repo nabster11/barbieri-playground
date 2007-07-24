@@ -6,6 +6,7 @@ FS = False
 TITLE = "Virtual Keyboard"
 WM_INFO = ("Virtual Keyboard", "vkbd")
 
+import os
 import sys
 import evas
 import edje
@@ -32,7 +33,8 @@ class VirtualKeyboard(edje.Edje):
     def __init__(self, canvas):
         edje.Edje.__init__(self, canvas)
         self.text = []
-        self.file_set("default.edj", "main")
+        f = os.path.splitext(sys.argv[0])[0] + ".edj"
+        self.file_set(f, "main")
         self.obj = {
             "alpha": self.part_swallow_get("alpha"),
             "special-1": self.part_swallow_get("special-1"),
@@ -51,6 +53,8 @@ class VirtualKeyboard(edje.Edje):
         self.signal_callback_add("mouse_out_key", "*",
                                  self.on_edje_signal_mouse_out_key)
         self.signal_callback_add("mouse,down,1", "*",
+                                 self.on_edje_signal_mouse_down_key)
+        self.signal_callback_add("mouse,down,1,*", "*",
                                  self.on_edje_signal_mouse_down_key)
         self.signal_callback_add("mouse,up,1", "*",
                                  self.on_edje_signal_mouse_up_key)
