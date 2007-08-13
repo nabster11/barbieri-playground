@@ -29,9 +29,80 @@
 
 (defvar edje-mode-hook nil)
 
+(defun number-or-nil-to-string (v &optional default)
+  (if (not (eq 'nil v)) (number-to-string v) (number-to-string default)))
+
+(defun edje-new-desc-relative (x y &optional defx defy)
+  (interactive "sx: \nsy: ")
+  (insert
+   (concat
+    "                  relative: "
+    (number-or-nil-to-string x defx) " "
+    (number-or-nil-to-string y defy) ";\n"
+    )))
+
+(defun edje-new-desc-offset (x y &optional defx defy)
+  (interactive "sx: \nsy: ")
+  (insert
+   (concat
+    "                  offset: "
+    (number-or-nil-to-string x defx) " "
+    (number-or-nil-to-string y defy) ";\n"
+    )))
+
+(defun edje-new-desc (name val &optional
+                           r1_rx r1_ry
+                           r2_rx r2_ry
+                           r1_ox r1_oy
+                           r2_ox r2_oy)
+  (interactive "sName: \nsValue: ")
+  (insert
+   (concat
+    "            description {\n"
+    "               state: \"" name "\" " (number-to-string val) ";\n"
+    "               rel1 {\n"
+    ))
+  (edje-new-desc-relative r1_rx r1_ry 0.0 0.0)
+  (edje-new-desc-offset r1_ox r1_oy 0 0)
+  (insert
+   (concat
+    "               }\n"
+    "               rel2 {\n"
+    ))
+  (edje-new-desc-relative r2_rx r2_ry 1.0 1.0)
+  (edje-new-desc-offset r2_ox r2_oy -1 -1)
+  (insert
+   (concat
+    "               }\n"
+    "            }\n"
+    )))
+
+(defun edje-new-part (name type &optional
+                           r1_rx r1_ry
+                           r2_rx r2_ry
+                           r1_ox r1_oy
+                           r2_ox r2_oy)
+  (interactive "sName: \nsType: ")
+  (insert
+   (concat
+    "\n"
+    "         part {\n"
+    "            name: \"" name "\";\n"
+    "            type: " (upcase type) ";\n"
+    ))
+  (edje-new-desc "default" 0.0 r1_rx r1_ry r2_rx r2_ry r1_ox r1_oy r2_ox r2_oy)
+  (insert
+   (concat
+    "         }\n"
+    )))
+
 (defvar edje-mode-map
   (let ((edje-mode-map (make-sparse-keymap)))
     (define-key edje-mode-map "\C-j" 'newline-and-indent)
+    (define-key edje-mode-map "\C-cp" 'edje-new-part)
+    (define-key edje-mode-map "\C-cd" 'edje-new-desc)
+    (define-key edje-mode-map "\C-cr" 'edje-new-desc-relative)
+    (define-key edje-mode-map "\C-co" 'edje-new-desc-offset)
     edje-mode-map)
   "Keymap for Edje major mode")
 
@@ -47,6 +118,7 @@
                       "collections"
                       "data"
                       "description"
+                      "dragable"
                       "fill"
                       "fonts"
                       "group"
@@ -205,7 +277,7 @@
                          ; image fill (st_collections_group_parts_part_description_fill_type)
                          "SCALE"
                          "TILE"
-                                        ; program action (st_collections_group_programs_program_action)
+                         ; program action (st_collections_group_programs_program_action)
                          "STATE_SET"
                          "ACTION_STOP"
                          "SIGNAL_EMIT"
@@ -248,7 +320,7 @@
             (list
              (list "[ \t]*#undef[ \t]+\\([a-zA-Z_][a-zA-Z0-9_]*\\)"
                    '(1 font-lock-variable-name-face))
-             (list "[ \t]*#define[ \t]+\\([a-zA-Z_][a-zA-Z0-9_]*\\)[ \t]*("
+             (list "[ \t]*#define[ \t]+\\([a-zA-Z_][a-zA-Z0-9_]*\\)("
                    '(1 font-lock-function-name-face))
              (list "[ \t]*#define[ \t]+\\([a-zA-Z_][a-zA-Z0-9_]*\\)"
                    '(1 font-lock-variable-name-face))
@@ -262,8 +334,34 @@
   (let ((edje-mode-syntax-table (make-syntax-table)))
     ; This is added so entity names with underscores can be more easily parsed
     (modify-syntax-entry ?_ "w" edje-mode-syntax-table)
+    (modify-syntax-entry ?/ ". 124b" edje-mode-syntax-table)
+    (modify-syntax-entry ?* ". 23" edje-mode-syntax-table)
+    (modify-syntax-entry ?\n "> b" edje-mode-syntax-table)
+
     edje-mode-syntax-table)
   "Syntax table for edje-mode")
+
+(c-add-style
+ "edje"
+ '("gnu"
+   (indent-tabs-mode . nil)
+   (tab-width . 8)
+   (c-basic-offset . 3)
+   (c-backslash-column . 72)
+   (c-hanging-braces-alist  .
+                            ((block-open after)
+                             (brace-list-open after)
+                             (substatement-open after))
+                            )
+   (c-offsets-alist         .
+                            ((statement-block-intro . +)
+                             (defun-open            . 0)
+                             (substatement-open     . 0)
+                             (defun-block-intro     . +)
+                             (block-open            . 0)
+                             (label                 . +)
+                             ))))
+
 
 (define-derived-mode edje-mode c-mode "Edje"
   "Major mode for editing Edje files"
@@ -272,6 +370,7 @@
   (set-syntax-table edje-mode-syntax-table)
   (set (make-local-variable 'font-lock-defaults) '(edje-font-lock-keywords))
   (set (make-local-variable 'require-final-newline) t)
+  (c-set-style "edje")
   (run-hooks 'edje-mode-hook)
   )
 
