@@ -12,6 +12,56 @@ except ImportError, e:
 
 from parser import *
 
+class Timeline(object):
+    WEEKS, MONTHS, QUARTERS, YEARS = range(4)
+    mapping = {
+        "weeks": WEEKS,
+        "months": MONTHS,
+        "quarters": QUARTERS,
+        "years": YEARS,
+        }
+
+    def __init__(self, plotter, tl1, tl2):
+        self.pl = plotter
+        self.timeline = (self.from_str(tl1), self.from_str(tl2))
+    # __init__()
+
+    def from_str(self, text):
+        try:
+            return Timeline.mapping[text]
+        except KeyError, e:
+            raise SystemExit("unknow option: %s" % (text,))
+    # from_str()
+
+    def get_timeline(self, type):
+        if timeline[0] == type:
+            return 1
+        elif timeline[1] == type:
+            return 2
+        return 0
+    # get_timeline()
+
+    def has_timeline(self, type):
+        return type in self.timeline
+    # has_timeline()
+
+    def get_y(self, type):
+        if self.timeline[0] == type:
+            y = self.pl.page_height - self.pl.timeline_height
+            if self.pl.tl1_on_top:
+                return y - self.pl.timeline_height
+            else:
+                return y
+        elif self.timeline[1] == type:
+            if self.pl.tl1_on_top:
+                return self.pl.page_height - self.pl.timeline_height
+            else:
+                return 0
+        else:
+            return self.pl.page_height / 2 # To make bugs very visible
+    # get_y()
+# Timeline
+
 
 class Plotter(object):
     cm = color.cmyk
@@ -28,9 +78,12 @@ class Plotter(object):
     text_encoding = "latin1"
 
     label_pos = 0 # 0 is left, 1 is right, 2 is top
-    task_format = r"{" + textsize + " {%(text)s}}"
-    milestone_format = r"{" + textsize + " {%(text)s}}"
-    enclosure_format = r"{" + textsize + " {%(text)s}}"
+    task_format = r"{%(text)s}"
+    label_project_format = r"{\textbf{\large%(text)s}}"
+    label_top_format = r"{\textbf{%(text)s}}"
+    label_regular_format = r"{\small%(text)s}"
+    milestone_format = r"{" + textsize + "{%(text)s}}"
+    enclosure_format = r"{" + textsize + "{%(text)s}}"
     resource_format = r"{\tiny \itshape" \
                       r"\parbox{%(resource_maxwidth)fcm}" \
                       r"{\textcolor[rgb]{0.4,0.4,0.4}{" \
@@ -44,7 +97,8 @@ class Plotter(object):
     show_deps      = True
     show_days      = True
     align_to_day   = False
-    months_on_top  = False
+    tl1_on_top     = False
+    caption_width  = 0.0
     timeline_height = 0.5
 
     comp_style = (cm.Black,)
@@ -65,14 +119,35 @@ class Plotter(object):
     day = 24 * 60 * 60
     time_interval = 7 * day
 
+    caption_style = (style.linewidth.THIN,)
+
     week_color = color.gray(0.9)
     week_style = (style.linewidth.THIN, deco.filled([week_color]))
     week_format = "W%d"
+    shortweek_format = "%d"
+    min_week_width = 0.7
     week_line_style = (style.linewidth.THIN, color.gray(0.8),
                        style.linestyle.dashed)
+
     month_style = (style.linewidth.THIN, deco.filled([week_color]))
-    month_format = r"%B, %Y"
-    min_month_width = 3.0 # min width for displaying month and year
+    month_line_style = (style.linewidth.THIN, color.gray(0.7),
+                        style.linestyle.dashed)
+    monthyear_format = "%B, %Y"
+    month_format = "%B"
+    shortmonth_format = "%b"
+    min_monthyear_width = 3.0  # min width for displaying month and year
+    min_month_width = 2.0      # min width for displaying month
+    min_shortmonth_width = 0.5 # min width for displaying month in 3 letters
+
+    quarter_format = r"Q%d"
+    quarter_line_style = (style.linewidth.THIN, color.gray(0.6),
+                          style.linestyle.dashed)
+
+    year_style = (style.linewidth.THIN, deco.filled([week_color]))
+    year_line_style = (style.linewidth.THIN, color.gray(0.5),
+                       style.linestyle.dashed)
+    year_format = r"%Y"
+    min_year_width = 1.0
 
     dependency_style = (style.linewidth.normal, cm.Black, deco.earrow.normal)
     vacation_style = (style.linewidth.thin, color.gray(0.9),
@@ -87,12 +162,16 @@ class Plotter(object):
     milestone_style = (style.linewidth.THIN, deco.filled([cm.Black]),
                        style.linejoin.bevel, style.linecap.round)
 
+    task_separator_style = (style.linewidth.THIN, color.gray(0.5))
+
 
     def __init__(self, doc):
+        self.timelines = Timeline(self, "months", "years")
         self.time_start = 0.0
         self.time_end = 0.0
         self.second_size = 1.0
         self.page_height = 0.0
+        self.caption_width = 0
         self.lines = 0
         self.doc = doc
     # __init__()
@@ -132,7 +211,7 @@ class Plotter(object):
         elif self.label_pos == 2:
             self.bar_skip = bar_skip + self.text_height + self.text_skip
 
-        if self.months_on_top:
+        if self.tl1_on_top:
             self.header_height = 2 * self.timeline_height
             self.footer_height = 0
         else:
@@ -178,7 +257,8 @@ class Plotter(object):
 
 
     def seconds_to_x(self, seconds):
-        return self.second_size * (seconds - self.time_start)
+        x = self.second_size * (seconds - self.time_start)
+        return self.caption_width + x
     # seconds_to_x()
 
 
@@ -274,25 +354,41 @@ class Plotter(object):
     # level_to_y()
 
 
-    def place_label(self, x, y, w, h, label, style=()):
-        if self.label_pos == 0:
-            tx = x - self.text_skip
-            ty = y + h / 2
-            flags = (text.halign.boxright, text.vshift.mathaxis)
-        elif self.label_pos == 1:
-            tx = x + w + self.text_skip
+    def place_label(self, lvl, x, y, w, h, label, style=()):
+        if self.caption_width > 0.0:
+            tx = 0.2 + lvl
             ty = y + h / 2
             flags = (text.halign.boxleft, text.vshift.mathaxis)
-        elif self.label_pos == 2:
-            tx = x + w / 2
-            ty = y + h + self.text_skip
-            flags = (text.halign.boxcenter, text.vshift.bottomzero)
+        else:
+            if self.label_pos == 0:
+                tx = x - self.text_skip
+                ty = y + h / 2
+                flags = (text.halign.boxright, text.vshift.mathaxis)
+            elif self.label_pos == 1:
+                tx = x + w + self.text_skip
+                ty = y + h / 2
+                flags = (text.halign.boxleft, text.vshift.mathaxis)
+            elif self.label_pos == 2:
+                tx = x + w / 2
+                ty = y + h + self.text_skip
+                flags = (text.halign.boxcenter, text.vshift.bottomzero)
 
-        self.text(tx, ty, label, flags + style)
+        if lvl == 0:
+            fmt = self.label_project_format
+        elif lvl == 1:
+            fmt = self.label_top_format
+        else:
+            fmt = self.label_regular_format
+
+        t = fmt % {"text": label,
+                   "width": w,
+                   "height": h,
+                   }
+        self.text(tx, ty, t, flags + style)
     # place_label()
 
 
-    def output_task_milestone(self, prj, task, scenario):
+    def output_task_milestone(self, lvl, prj, task, scenario):
         sc = task.scenarios[scenario]
 
         x = self.seconds_to_x(sc.start)
@@ -310,7 +406,7 @@ class Plotter(object):
                  "width": w,
                  "height": h,
                  }
-        self.place_label(x - w2, y + h2, w, h, label)
+        self.place_label(lvl, x - w2, y + h2, w, h, label)
     # output_task_milestone()
 
     def _day_align(self, t):
@@ -323,7 +419,7 @@ class Plotter(object):
         else:
             return t
 
-    def output_task_enclosure(self, prj, task, scenario):
+    def output_task_enclosure(self, lvl, prj, task, scenario):
         sc = task.scenarios[scenario]
 
         start = self._day_align(sc.start)
@@ -357,11 +453,11 @@ class Plotter(object):
                  "width": w,
                  "height": h,
                  }
-        self.place_label(x, y + h2, w, h2, label)
+        self.place_label(lvl, x, y + h2, w, h2, label)
     # output_task_enclosure()
 
 
-    def output_task_regular(self, prj, task, scenario):
+    def output_task_regular(self, lvl, prj, task, scenario):
         sc = task.scenarios[scenario]
 
         start = self._day_align(sc.start)
@@ -387,7 +483,7 @@ class Plotter(object):
                  "width": w,
                  "height": h,
                  }
-        self.place_label(x, y, w, h, label)
+        self.place_label(lvl, x, y, w, h, label)
 
         if self.show_resources:
             if self.label_pos != 1:
@@ -457,16 +553,16 @@ class Plotter(object):
         return level
     # set_task_levels()
 
-    def output_task(self, prj, task, scenario):
+    def output_task(self, lvl, prj, task, scenario):
         if task.is_milestone:
-            self.output_task_milestone(prj, task, scenario)
+            self.output_task_milestone(lvl, prj, task, scenario)
         else:
             if task.tasks:
-                self.output_task_enclosure(prj, task, scenario)
+                self.output_task_enclosure(lvl, prj, task, scenario)
             else:
-                self.output_task_regular(prj, task, scenario)
+                self.output_task_regular(lvl, prj, task, scenario)
         for t in task.tasks:
-            self.output_task(prj, t, scenario)
+            self.output_task(lvl+1, prj, t, scenario)
     # output_task()
 
 
@@ -497,43 +593,88 @@ class Plotter(object):
                 self.output_day_line(x + i * self.day_size)
 
         self.rect(x, y, w, h, self.week_style)
-        self.text(x, y + h / 2, self.week_format % d,
-                  (text.parbox(w), text.valign.middle,
-                   text.halign.flushcenter))
+        if w > self.min_week_width:
+            self.text(x, y + h / 2, self.week_format % d,
+                      (text.parbox(w), text.valign.middle,
+                       text.halign.flushcenter))
+        else:
+            self.text(x, y + h / 2, self.shortweek_format % d,
+                      (text.parbox(w), text.valign.middle,
+                       text.halign.flushcenter))
     # output_week()
 
+    def output_month_line(self, x):
+        self.vline(x, self.footer_height, self.useful_height,
+                   self.month_line_style)
+    # output_month_line()
 
     def output_month(self, d, x, y, w, h):
         if w <= 0:
             return
 
+        self.output_month_line(x)
         self.rect(x, y, w, h, self.month_style)
-        if w >= self.min_month_width:
+        if w >= self.min_monthyear_width:
+            self.text(x, y + h/2, d.strftime(self.monthyear_format),
+                      (text.parbox(w), text.valign.middle,
+                       text.halign.flushcenter))
+        elif w >= self.min_month_width:
             self.text(x, y + h/2, d.strftime(self.month_format),
                       (text.parbox(w), text.valign.middle,
                        text.halign.flushcenter))
+        elif w >= self.min_shortmonth_width:
+            self.text(x, y + h/2, d.strftime(self.shortmonth_format),
+                      (text.parbox(w), text.valign.middle,
+                       text.halign.flushcenter))
+
     # output_month()
 
+    def output_year(self, d, x, y, w, h):
+        if w <= 0:
+            return
+
+        self.vline(x, self.footer_height, self.useful_height,
+                   self.year_line_style)
+        self.rect(x, y, w, h, self.year_style)
+        if w >= self.min_year_width:
+            self.text(x, y + h/2, d.strftime(self.year_format),
+                      (text.parbox(w), text.valign.middle,
+                       text.halign.flushcenter))
+    # output_year()
+
+    def output_quarter(self, d, x, y, w, h):
+        if w <= 0:
+            return
+
+        self.rect(x, y, w, h, self.year_style)
+        self.vline(x, self.footer_height, self.useful_height,
+                   self.quarter_line_style)
+        if w >= self.min_year_width:
+            quarter = (d.month - 1) / 3 + 1
+            self.text(x, y + h/2, self.quarter_format % (quarter,),
+                      (text.parbox(w), text.valign.middle,
+                       text.halign.flushcenter))
+    # output_quarter()
 
     def output_timeline(self):
         h = self.timeline_height
-        month_x = self.seconds_to_x(self.time_start)
-        if self.months_on_top:
-            month_y = self.page_height - h
-        else:
-            month_y = 0
-        week_x = self.seconds_to_x(self.time_start)
-        week_y = self.page_height - h
-        if self.months_on_top:
-            week_y -= h
+        start_x = self.seconds_to_x(self.time_start)
+        week_x = start_x
+        week_y = self.timelines.get_y(Timeline.WEEKS)
+        month_x = start_x
+        month_y = self.timelines.get_y(Timeline.MONTHS)
+        q_x = start_x
+        q_y = self.timelines.get_y(Timeline.QUARTERS)
+        year_x = start_x
+        year_y = self.timelines.get_y(Timeline.YEARS)
 
         ty = h / 2
-
-        self.output_week_line(self.page_width)
 
         start = datetime.date.fromtimestamp(self.time_start)
         last_week = start.isocalendar()[1]
         last_month = start
+        last_q = start
+        last_year = start
         time_end = self.time_range + self.time_start + self.day
         t = self.time_start
         wd = datetime.date.fromtimestamp(self.time_start).isocalendar()[2]
@@ -553,8 +694,8 @@ class Plotter(object):
                 wd = (wd % 7) + 1
                 continue
 
-            if wd == 1:
-                x1 = self.seconds_to_x(t)
+            x1 = self.seconds_to_x(t)
+            if wd == 1 and self.timelines.has_timeline(Timeline.WEEKS):
                 w = x1 - week_x
 
                 if w > 0:
@@ -563,20 +704,49 @@ class Plotter(object):
                     week_x = x1
                     last_week = iso[1]
 
-            if d.day == 1:
-                x1 = self.seconds_to_x(t)
+            if d.day == 1 and self.timelines.has_timeline(Timeline.MONTHS):
                 w = x1 - month_x
                 if w > 0:
                     self.output_month(last_month, month_x, month_y, w, h)
                 month_x = x1
                 last_month = d
+            if d.day == 1 and d.month in (1, 4, 7, 10) \
+                    and self.timelines.has_timeline(Timeline.QUARTERS):
+                w = x1 - q_x
+                if w > 0:
+                    self.output_quarter(last_q, q_x, q_y, w, h)
+                q_x = x1
+                last_q = d
+            if d.day == 1 and d.month == 1 \
+                    and self.timelines.has_timeline(Timeline.YEARS):
+                w = x1 - year_x
+                if w > 0:
+                    self.output_year(last_year, year_x, year_y, w, h)
+                year_x = x1
+                last_year = d
+
 
             t += self.day
             wd = (wd % 7) + 1
 
-        w = self.page_width - month_x
-        self.output_month(d, month_x, month_y, w, h)
-        self.hline(0, self.footer_height, self.page_width, self.month_style)
+        if self.timelines.has_timeline(Timeline.WEEKS):
+            w = self.caption_width + self.page_width - week_x
+            self.output_week(d, week_x, week_y, w, h)
+        if self.timelines.has_timeline(Timeline.MONTHS):
+            w = self.caption_width + self.page_width - month_x
+            self.output_month(d, month_x, month_y, w, h)
+        if self.timelines.has_timeline(Timeline.QUARTERS):
+            w = self.caption_width + self.page_width - q_x
+            self.output_quarter(d, q_x, q_y, w, h)
+        if self.timelines.has_timeline(Timeline.YEARS):
+            w = self.caption_width + self.page_width - year_x
+            self.output_year(d, year_x, year_y, w, h)
+        self.hline(self.caption_width, self.footer_height,
+                   self.page_width, self.month_style)
+        if self.caption_width != 0.0:
+            h = self.page_height - self.footer_height - self.header_height
+            self.rect(0, self.footer_height, self.caption_width, h,
+                      self.caption_style)
 
     # output_timeline()
 
@@ -637,10 +807,13 @@ class Plotter(object):
             for t in prj.tasks:
                 self.output_depends(prj, t, scenario)
         for t in prj.tasks:
-            level = self.output_task(prj, t, scenario)
+            self.output_task(0, prj, t, scenario)
+        for t in prj.tasks[1:]:
+            self.hline(0, self.level_to_y(t.level - 1) - self.bar_height/2,
+                       self.caption_width + self.page_width,
+                       self.task_separator_style)
 
         self.output_now_line(prj)
-        self.rect(0, 0, self.page_width, self.page_height)
     # output_project()
 
 
@@ -760,7 +933,10 @@ class Plotter(object):
 if __name__ == "__main__":
     usage = "usage: %prog [options] <input.tjx> [output]"
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-c", "--no-vacation", action="store_true",
+    timeline_choices = Timeline.mapping.keys()
+    timeline_txt_choices = ", ".join(timeline_choices)
+
+    parser.add_option("-v", "--no-vacation", action="store_true",
                       default=False,
                       help="don't plot vacation")
     parser.add_option("-y", "--no-day", action="store_true",
@@ -772,21 +948,33 @@ if __name__ == "__main__":
     parser.add_option("-d", "--no-deps", action="store_true",
                       default=False,
                       help="don't show dependencies")
-    parser.add_option("-m", "--months-on-top", action="store_true",
+    parser.add_option("-t", "--timeline-on-top", action="store_true",
                       default=False,
-                      help="place months at the top")
+                      help="place both timelines at the top")
     parser.add_option("-a", "--align-to-day", action="store_true",
                       default=False,
                       help="align tasks to day boundaries")
     parser.add_option("-W", "--chart-width", type="float",
                       default=40.0,
-                      help="chart width in centimeters")
+                      help="chart width in centimeters. Default: %default cm.")
     parser.add_option("-w", "--paper-width", type="float",
                       default=10.0,
-                      help="paper width in centimeters")
+                      help="paper width in centimeters. Default: %default cm.")
     parser.add_option("-p", "--poster", action="store_true",
                       default=False,
                       help="segment chart into multiple pages")
+    parser.add_option("-f", "--timeline1", type="choice",
+                      choices=timeline_choices, default="weeks",
+                      help=("first timeline, choices are: %s. "
+                            "Default: %%default.") % timeline_txt_choices)
+    parser.add_option("-s", "--timeline2", type="choice",
+                      choices=timeline_choices, default="months",
+                      help=("second timeline, choices are: %s. "
+                            "Default: %%default.") % timeline_txt_choices)
+    parser.add_option("-c", "--caption-width", type="float",
+                      default=0.0,
+                      help=("caption width at the start of graph, in "
+                            "centimeters. Default: %default cm."))
 
     options, args = parser.parse_args()
     try:
@@ -798,7 +986,8 @@ if __name__ == "__main__":
     try:
         outfile = args[1]
     except IndexError:
-        outfile = "test.eps"
+        import os
+        outfile = os.path.splitext(infile)[0] + ".pdf"
     print >> sys.stderr, "Writing chart to %s" % outfile
 
     doc = Document(infile)
@@ -809,9 +998,11 @@ if __name__ == "__main__":
     plot.show_days = not options.no_day
     plot.show_resources = not options.no_resources
     plot.show_deps = not options.no_deps
-    plot.months_on_top = options.months_on_top
+    plot.tl1_on_top = options.timeline_on_top
+    plot.timelines = Timeline(plot, options.timeline1, options.timeline2)
+    plot.caption_width = max(options.caption_width, 0.0)
     plot.align_to_day = options.align_to_day
-    plot.paper_width = options.chart_width
+    plot.page_width = options.chart_width
     plot.process("plan")
 
     if options.poster:
