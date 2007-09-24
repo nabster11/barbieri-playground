@@ -177,7 +177,7 @@ class Plotter(object):
     # __init__()
 
 
-    def process(self, scenario="plan"):
+    def process(self, scenario):
         self.canvas = canvas.canvas()
         self._setup_text()
         self._setup_page_height()
@@ -780,7 +780,7 @@ class Plotter(object):
             self.output_depends(prj, t, scenario)
     # output_depends()
 
-    def output_project(self, prj, scenario="plan"):
+    def output_project(self, prj, scenario):
         level = 0
 
         def task_cmp(a, b):
@@ -817,7 +817,7 @@ class Plotter(object):
     # output_project()
 
 
-    def output_document(self, scenario="plan"):
+    def output_document(self, scenario):
         if self.show_vacation:
             self.output_vacations()
         self.output_timeline()
@@ -975,6 +975,8 @@ if __name__ == "__main__":
                       default=0.0,
                       help=("caption width at the start of graph, in "
                             "centimeters. Default: %default cm."))
+    parser.add_option("-n", "--scenario", default="plan",
+                      help=("scenario to use. Default: %default."))
 
     options, args = parser.parse_args()
     try:
@@ -1003,7 +1005,7 @@ if __name__ == "__main__":
     plot.caption_width = max(options.caption_width, 0.0)
     plot.align_to_day = options.align_to_day
     plot.page_width = options.chart_width
-    plot.process("plan")
+    plot.process(options.scenario)
 
     if options.poster:
         if outfile.endswith(".eps"):
