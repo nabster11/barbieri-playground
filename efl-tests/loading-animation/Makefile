@@ -7,8 +7,7 @@ all: app
 
 app: app.c
 	gcc \
-	`edje-config --cflags --libs` \
-	`ecore-config --cflags --libs` \
+	`pkg-config --cflags --libs edje ecore` \
 	$< -o $@
 
 clean:

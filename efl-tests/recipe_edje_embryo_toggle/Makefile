@@ -1,5 +1,5 @@
-CFLAGS = `edje-config --cflags`
-LDFLAGS = `edje-config --libs`
+CFLAGS = `pkg-config --cflags edje`
+LDFLAGS = `pkg-config --libs edje`
 
 BUILT = edje_exec edje_template $(patsubst %.edc, %.edj, $(wildcard *.edc))
 

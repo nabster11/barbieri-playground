@@ -8,11 +8,9 @@ BINS=
 
 BUILT=$(THEMES) $(BINS)
 CFLAGS=-g -Wall -std=c99 -D_XOPEN_SOURCE=600 \
-	`edje-config --cflags` \
-	`ecore-config --cflags`
+	`pkg-config --cflags edje ecore`
 
-LDFLAGS= `edje-config --libs` \
-	`ecore-config --libs`
+LDFLAGS= `pkg-config --libs edje ecore`
 
 all: $(BUILT)
 

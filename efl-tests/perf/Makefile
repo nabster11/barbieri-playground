@@ -14,8 +14,7 @@ ARCH:=$(shell arch)
 CFLAGS+= -Wall -Werror -Wextra \
 	 -Wno-unused-parameter -Wformat-security \
 	 -std=c99 -D_XOPEN_SOURCE=600 \
-	`edje-config --cflags --libs` \
-	`ecore-config --cflags --libs`
+	`pkg-config --cflags --libs edje ecore`
 
 
 ifeq ($(DEBUG),1)
