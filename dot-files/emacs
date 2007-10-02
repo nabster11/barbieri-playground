@@ -41,6 +41,7 @@
   (interactive)
   (find-file buffer-file-truename))
 
+(global-set-key [(M delete)] 'delete-region)
 (global-set-key "\M-g" 'goto-line)
 (global-set-key [f1] 'manual-entry)
 (global-set-key [f2] 'save-buffer)
