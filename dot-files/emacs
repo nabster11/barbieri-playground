@@ -19,9 +19,14 @@
  '(scroll-bar-mode nil)
  '(semanticdb-default-system-save-directory "/home/gustavo/.semantic.db" t)
  '(show-paren-mode t nil (paren))
+ '(inhibit-startup-message t)
  '(show-trailing-whitespace t)
+ '(indicate-empty-lines t)
+ '(require-final-newline t)
+ '(tab-width 8)
  '(tool-bar-mode nil nil (tool-bar))
  '(transient-mark-mode t)
+ '(iswitchb-mode t)
  '(uniquify-buffer-name-style (quote forward) nil (uniquify)))
 (custom-set-faces
   ;; custom-set-faces was added by Custom -- don't edit or cut/paste it!
@@ -413,3 +418,4 @@ It takes 2 parameters:
 (add-to-list 'auto-mode-alist '("\\.edc$" . edje-mode))
 (autoload 'edje-mode "edje-mode")
 
+(put 'upcase-region 'disabled nil)
