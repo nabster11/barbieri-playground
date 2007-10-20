@@ -1,3 +1,4 @@
+set modeline
 set ff=unix
 set enc=utf-8
 set tabstop=4
