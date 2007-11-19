@@ -1,8 +1,10 @@
 ; -*- mode: lisp -*-
 
 (custom-set-variables
-  ;; custom-set-variables was added by Custom -- don't edit or cut/paste it!
+  ;; custom-set-variables was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
  '(auto-compression-mode t nil (jka-compr))
  '(c-default-style (quote ((c-mode . "cc-mode") (java-mode . "java") (other . "gnu"))))
  '(case-fold-search t)
@@ -12,25 +14,27 @@
  '(default-input-method "rfc1345")
  '(global-font-lock-mode t nil (font-lock))
  '(indent-tabs-mode nil)
+ '(indicate-empty-lines t)
+ '(inhibit-splash-screen t)
  '(ispell-program-name "aspell")
+ '(iswitchb-mode t)
  '(menu-bar-mode nil)
  '(mouse-wheel-mode t nil (mwheel))
+ '(require-final-newline t)
  '(save-place t nil (saveplace))
  '(scroll-bar-mode nil)
  '(semanticdb-default-system-save-directory "/home/gustavo/.semantic.db" t)
  '(show-paren-mode t nil (paren))
- '(inhibit-startup-message t)
  '(show-trailing-whitespace t)
- '(indicate-empty-lines t)
- '(require-final-newline t)
  '(tab-width 8)
  '(tool-bar-mode nil nil (tool-bar))
  '(transient-mark-mode t)
- '(iswitchb-mode t)
  '(uniquify-buffer-name-style (quote forward) nil (uniquify)))
 (custom-set-faces
-  ;; custom-set-faces was added by Custom -- don't edit or cut/paste it!
+  ;; custom-set-faces was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
  '(default ((t (:stipple nil :background "#000000" :foreground "#d9d9d9" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 80 :width normal :family "terminus"))))
  '(diff-added-face ((t (:inherit diff-changed-face :foreground "#00ff00"))))
  '(diff-changed-face ((t (:foreground "#ffff00"))))
@@ -39,17 +43,27 @@
  '(diff-header-face ((((class color) (background dark)) (:background "grey20" :foreground "grey75"))))
  '(diff-hunk-header-face ((t (:inherit diff-header-face :foreground "#ff00ff"))))
  '(diff-removed-face ((t (:inherit diff-changed-face :foreground "#ff0000"))))
- '(modeline ((t (:background "grey34" :foreground "wheat" :box (:line-width -1 :style released-button)))))
+ '(mode-line ((t (:background "grey34" :foreground "wheat" :box (:line-width -1 :style released-button)))))
+ '(mode-line-inactive ((default (:inherit mode-line)) (((class color) (min-colors 88) (background dark)) (:background "grey10" :foreground "grey40" :box (:line-width -1 :color "grey30") :weight light))))
  '(semantic-highlight-edits-face ((((class color) (background dark)) (:background "#222200")))))
 
 (defun re-read-current-file ()
   (interactive)
   (find-file buffer-file-truename))
 
+(defun search-word-under-cursor ()
+  "Performs a nonincremental-search-forward. The word at or near point
+   is the word to search for."
+  (interactive)
+  (let ((word (current-word)))
+    (nonincremental-search-forward word)))
+
+
 (global-set-key [(M delete)] 'delete-region)
 (global-set-key "\M-g" 'goto-line)
 (global-set-key [f1] 'manual-entry)
 (global-set-key [f2] 'save-buffer)
+(global-set-key [f3] 'search-word-under-cursor)
 (global-set-key [f4] 'find-file)
 (global-set-key [f5] 'compile)
 (global-set-key [f6] 'c-mode-visit-complement-file)
