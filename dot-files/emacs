@@ -98,6 +98,7 @@
      (statement-block-intro . 3)
      (case-label . 1)
      (statement-case-intro . 3)
+     (inclass . 3)
      ))))
 
 (defun evas-c-mode-hooks ()
@@ -105,6 +106,7 @@
     (cond
      ((string-match "/evas/src/" path) (c-set-style "e17"))
      ((string-match "/cvs/e17" path) (c-set-style "e17"))
+     ((string-match "/e_module" path) (c-set-style "e17"))
      )
     )
   )
