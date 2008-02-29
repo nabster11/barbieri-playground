@@ -4,6 +4,16 @@
 #include <stdio.h>
 
 /**
+ * @warning These functions just work on machines with the same pointer
+ *          size and byte sex (endianess). They're mean to communicate
+ *          between process on the same machine, but can be used on
+ *          remote machines given these constraints. If you want to
+ *          make it general purpose, then convert integers to network
+ *          (Motorola, big endian) endianess and make the integers and
+ *          pointers the largest possible (64bits?).
+ */
+
+/**
  * Serialize the string array.
  *
  * String is serialized using provided buffer, which might be reallocated
