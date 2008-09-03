@@ -813,7 +813,8 @@ class Plotter(object):
                        self.caption_width + self.page_width,
                        self.task_separator_style)
 
-        self.output_now_line(prj)
+        if self.show_now:
+            self.output_now_line(prj)
     # output_project()
 
 
@@ -948,6 +949,9 @@ if __name__ == "__main__":
     parser.add_option("-d", "--no-deps", action="store_true",
                       default=False,
                       help="don't show dependencies")
+    parser.add_option("-N", "--no-now", action="store_true",
+                      default=False,
+                      help="don't show 'now' line")
     parser.add_option("-t", "--timeline-on-top", action="store_true",
                       default=False,
                       help="place both timelines at the top")
@@ -1000,6 +1004,7 @@ if __name__ == "__main__":
     plot.show_days = not options.no_day
     plot.show_resources = not options.no_resources
     plot.show_deps = not options.no_deps
+    plot.show_now = not options.no_now
     plot.tl1_on_top = options.timeline_on_top
     plot.timelines = Timeline(plot, options.timeline1, options.timeline2)
     plot.caption_width = max(options.caption_width, 0.0)
