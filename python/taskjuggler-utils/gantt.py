@@ -276,6 +276,32 @@ class Plotter(object):
         self.canvas.stroke(shape, style)
     # diamond()
 
+    to_escape = {
+        '\\': '$\\backslash$',
+        '{': '\\symbol{%d}' % ord('{'),
+        '}': '\\symbol{%d}' % ord('}'),
+        '#': '\\symbol{%d}' % ord('#'),
+        '$': '\\symbol{%d}' % ord('$'),
+        '%': '\\symbol{%d}' % ord('%'),
+        '&': '\\symbol{%d}' % ord('&'),
+        '~': '\\symbol{%d}' % ord('~'),
+        '_': '\\symbol{%d}' % ord('_'),
+        '^': '\\symbol{%d}' % ord('^')
+        }
+    def latex_escape(self, text):
+        if not text:
+            return text
+
+        if isinstance(text, unicode):
+            text = text.encode(self.text_encoding)
+
+        escaped = []
+        escaped_append = escaped.append
+        to_escape_get = self.to_escape.get
+        for c in text:
+            escaped_append(to_escape_get(c, c))
+
+        return ''.join(escaped)
 
     def text(self, x, y, text, style=()):
         if isinstance(text, unicode):
@@ -402,7 +428,7 @@ class Plotter(object):
         self.diamond(x, y + h2, w, h, self.milestone_style)
 
         label = self.milestone_format % \
-                {"text": task.name,
+                {"text": self.latex_escape(task.name),
                  "width": w,
                  "height": h,
                  }
@@ -449,7 +475,7 @@ class Plotter(object):
         self.stroke(r, self.enclosure_style + (deco.filled(fillstyle),))
 
         label = self.enclosure_format % \
-                {"text": task.name,
+                {"text": self.latex_escape(task.name),
                  "width": w,
                  "height": h,
                  }
@@ -479,7 +505,7 @@ class Plotter(object):
                       linecolor=None)
 
         label = self.task_format % \
-                {"text": task.name,
+                {"text": self.latex_escape(task.name),
                  "width": w,
                  "height": h,
                  }
@@ -498,7 +524,7 @@ class Plotter(object):
             res = u", ".join(r.name for r in task.resources)
             label = self.resource_format % \
                     {"resource_maxwidth": self.resource_maxwidth,
-                     "text": res}
+                     "text": self.latex_escape(res)}
             self.text(tx, ty, label, flags)
     # output_task_regular()
 
