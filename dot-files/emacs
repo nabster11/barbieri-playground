@@ -15,12 +15,13 @@
  '(global-font-lock-mode t nil (font-lock))
  '(indent-tabs-mode nil)
  '(indicate-empty-lines t)
- '(inhibit-splash-screen t)
+ '(inhibit-startup-screen t)
  '(ispell-program-name "aspell")
  '(iswitchb-mode t)
  '(menu-bar-mode nil)
  '(mouse-wheel-mode t nil (mwheel))
  '(require-final-newline t)
+ '(safe-local-variable-values (quote ((todo-categories "Personal" "Evasive" "Guarana" "Personal" "Tecsys-STB" "Evasive" "Guarana") (todo-categories "Personal" "Tecsys-STB" "Evasive" "Guarana"))))
  '(save-place t nil (saveplace))
  '(scroll-bar-mode nil)
  '(semanticdb-default-system-save-directory "/home/gustavo/.semantic.db" t)
@@ -36,16 +37,24 @@
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(default ((t (:stipple nil :background "#000000" :foreground "#d9d9d9" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 80 :width normal :family "terminus"))))
- '(diff-added-face ((t (:inherit diff-changed-face :foreground "#00ff00"))))
- '(diff-changed-face ((t (:foreground "#ffff00"))))
- '(diff-file-header-face ((t (:background "grey20" :foreground "wheat" :weight bold))))
- '(diff-function-face ((t (:inherit diff-context-face :foreground "#00ffff"))))
- '(diff-header-face ((((class color) (background dark)) (:background "grey20" :foreground "grey75"))))
- '(diff-hunk-header-face ((t (:inherit diff-header-face :foreground "#ff00ff"))))
- '(diff-removed-face ((t (:inherit diff-changed-face :foreground "#ff0000"))))
+ '(diff-added ((t (:inherit diff-changed-face :foreground "#00ff00"))))
+ '(diff-added-face ((t (:inherit diff-changed-face :foreground "#00ff00"))) t)
+ '(diff-changed ((t (:foreground "#ffff00"))))
+ '(diff-changed-face ((t (:foreground "#ffff00"))) t)
+ '(diff-file-header ((t (:background "grey20" :foreground "wheat" :weight bold))))
+ '(diff-file-header-face ((t (:background "grey20" :foreground "wheat" :weight bold))) t)
+ '(diff-function ((t (:inherit diff-context-face :foreground "#00ffff"))))
+ '(diff-function-face ((t (:inherit diff-context-face :foreground "#00ffff"))) t)
+ '(diff-header ((((class color) (background dark)) (:background "grey20" :foreground "grey75"))))
+ '(diff-header-face ((((class color) (background dark)) (:background "grey20" :foreground "grey75"))) t)
+ '(diff-hunk-header ((t (:inherit diff-header-face :foreground "#ff00ff"))))
+ '(diff-hunk-header-face ((t (:inherit diff-header-face :foreground "#ff00ff"))) t)
+ '(diff-removed ((t (:inherit diff-changed-face :foreground "#ff0000"))))
+ '(diff-removed-face ((t (:inherit diff-changed-face :foreground "#ff0000"))) t)
  '(mode-line ((t (:background "grey34" :foreground "wheat" :box (:line-width -1 :style released-button)))))
  '(mode-line-inactive ((default (:inherit mode-line)) (((class color) (min-colors 88) (background dark)) (:background "grey10" :foreground "grey40" :box (:line-width -1 :color "grey30") :weight light))))
- '(semantic-highlight-edits-face ((((class color) (background dark)) (:background "#222200")))))
+ '(semantic-highlight-edits-face ((((class color) (background dark)) (:background "#222200"))))
+ '(which-func ((((class color) (min-colors 88) (background dark)) (:foreground "#00ffff")))))
 
 (defun re-read-current-file ()
   (interactive)
@@ -66,7 +75,7 @@
 (global-set-key [f3] 'search-word-under-cursor)
 (global-set-key [f4] 'find-file)
 (global-set-key [f5] 'compile)
-(global-set-key [f6] 'c-mode-visit-complement-file)
+(global-set-key [f6] 'ff-find-other-file)
 (global-set-key [f7] 're-read-current-file)
 (global-set-key [f8] 'gobject-class-generate)
 (global-set-key [(shift f1)] 'cscope-find-this-symbol)
@@ -87,6 +96,11 @@
 (global-set-key [(control prior)] 'previous-multiframe-window)
 (global-set-key [(control next)] 'next-multiframe-window)
 
+(global-set-key "\C-cl" 'org-store-link)
+(global-set-key "\C-ca" 'org-agenda)
+(global-set-key "\C-cb" 'org-iswitchb)
+(global-set-key [f11] 'git-status)
+
 (c-add-style
  "e17"
  '("gnu"
@@ -101,40 +115,34 @@
      (inclass . 3)
      ))))
 
+(c-add-style
+ "linux4"
+ '("linux"
+   (indent-tabs-mode . nil)
+   (tab-width . 8)
+   (c-basic-offset . 4)))
+
+
 (defun evas-c-mode-hooks ()
   (let ((path (buffer-file-name)))
     (cond
      ((string-match "/evas/src/" path) (c-set-style "e17"))
-     ((string-match "/cvs/e17" path) (c-set-style "e17"))
-     ((string-match "/e_module" path) (c-set-style "e17"))
+     ((string-match "/svn/e" path) (c-set-style "e17"))
      )
     )
   )
-
 (add-hook 'c-mode-common-hook 'evas-c-mode-hooks)
 
-(defun c-mode-visit-complement-file ()
-  "If in file.c, visit file.h.
-If in file.h, visit file.c"
-  (interactive)
-  (defun c-mode-visit-complement-file-get-name (filename)
-    (if (string-match "[.]c$" filename)
-	(let ((name filename))
-	  (string-match "[.]c$" name)
-	  (replace-match ".h" nil t name))
-
-      (if (string-match "[.]h$" filename)
-	(let ((name filename))
-	  (string-match "[.]h$" name)
-	  (replace-match ".c" nil t name)))
-      )
-    )
-
-  (if buffer-file-truename
-      (let ((name (c-mode-visit-complement-file-get-name buffer-file-truename)))
-	(if name (find-file name)))
+(defun profusion-c-mode-hooks ()
+  (let ((path (buffer-file-name)))
+    (cond
+     ((string-match "guarana" path) (c-set-style "linux4"))
+     ((string-match "tecsys-stb" path) (c-set-style "linux4"))
+     ((string-match "evasive" path) (c-set-style "linux4"))
+     )
     )
   )
+(add-hook 'c-mode-common-hook 'profusion-c-mode-hooks)
 
 (defun string-join (list separator)
   "Takes a list of string and joins them using delimiter."
@@ -388,8 +396,8 @@ It takes 2 parameters:
   (insert
 "/*
  * Canola library
- * Copyright (C) 2007 INdT
- * @author Gustavo Sverzut Barbieri <gustavo.barbieri@indt.org.br>
+ * Copyright (C) 2008 ProFUSION embedded systems
+ * @author Gustavo Sverzut Barbieri <barbieri@profusion.mobi>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -435,3 +443,10 @@ It takes 2 parameters:
 (autoload 'edje-mode "edje-mode")
 
 (put 'upcase-region 'disabled nil)
+
+(require 'xcscope)
+(require 'taskjuggler-mode)
+
+(add-to-list 'auto-mode-alist '("\\.org\\'" . org-mode))
+
+(server-start)
