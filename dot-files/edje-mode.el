@@ -1,12 +1,13 @@
 ;;; edje-mode-el -- Major mode for editing Edje files
 
 ;; Author: Gustavo Sverzut Barbieri <barbieri@gmail.com>
+;; Edited: 2008-12-05
 ;; Created: 2007-07-23
 ;; Keywords: Edje major-mode
 ;; Url: http://barbieri-playground.googlecode.com/svn/dot-files/edje-mode.el
 ;;      (if you find this file have problems, check that Url and request update)
 
-;; Copyright (C) 2007 Gustavo Sverzut Barbieri <barbieri@gmail.com>
+;; Copyright (C) 2007-2008 Gustavo Sverzut Barbieri <barbieri@gmail.com>
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -265,6 +266,7 @@
                       "style"
                       "styles"
                       "text"
+                      "size"
                       ) t) "\\>\\([ \t]*{\\|\\.\\)")
            '(1 font-lock-function-name-face))
 
@@ -276,7 +278,7 @@
     (append edje-font-lock-keywords-1
             (list
              (list
-              (concat "^\\([ \t]*\\|[ \t]*[a-z]+\\.\\|\\)\\<"
+              (concat "^\\([ \t]*\\|[ \t]*[a-z0-9]+\\.\\|.*{[ \t]*\\)\\<"
                       (regexp-opt
                        '("action"
                          "after"
@@ -300,6 +302,7 @@
                          "dragable"
                          "effect"
                          "elipsis"
+                         "entry_mode"
                          "events"
                          "fill"
                          "fit"
@@ -308,6 +311,7 @@
                          "fonts"
                          "gradient"
                          "group"
+                         "ignore_flags"
                          "image"
                          "images"
                          "in"
@@ -317,6 +321,7 @@
                          "middle"
                          "min"
                          "mouse_events"
+                         "multiline"
                          "name"
                          "normal"
                          "offset"
@@ -331,10 +336,16 @@
                          "rel2"
                          "relative"
                          "repeat_events"
+                         "scale"
                          "signal"
                          "size"
                          "smooth"
                          "source"
+                         "source2"
+                         "source3"
+                         "source4"
+                         "source5"
+                         "source6"
                          "spectra"
                          "spectrum"
                          "spread"
@@ -403,6 +414,11 @@
                          "FAR_SHADOW"
                          "FAR_SOFT_SHADOW"
                          "GLOW"
+                         ; entry mode (st_collections_group_parts_part_entry_mode)
+                         "NONE"
+                         "PLAIN"
+                         "EDITABLE"
+                         "PASSOWRD"
                          ; image fill (st_collections_group_parts_part_description_fill_type)
                          "SCALE"
                          "TILE"
@@ -414,11 +430,15 @@
                          "DRAG_VAL_STEP"
                          "DRAG_VAL_PAGE"
                          "SCRIPT"
+                         "FOCUS_SET"
                          ; program transition (st_collections_group_programs_program_transition)
                          "LINEAR"
                          "SINUSOIDAL"
                          "ACCELERATE"
                          "DECELERATE"
+                         ; ignore flags (st_collections_group_parts_part_ignore_flags)
+                         "NONE"
+                         "ON_HOLD"
                          ) t) "\\>")
               '(1 font-lock-builtin-face))
              )))
