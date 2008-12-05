@@ -1,7 +1,14 @@
+!Xft.dpi: 76
+!Xft.hintstyle: hintmedium
+!Xft.hinting: true
+Xft.dpi: 96
+Xft.hintstyle: hintmedium
+Xft.hinting: true
+
 Emacs.toolBar: off
 Emacs.menuBar: off
 Emacs.verticalScrollBars: off
-Emacs*geometry: 80x70-1+0
+Emacs*geometry: 80x60-1+0
 Emacs*font: -*-terminus-medium-*-*-*-14-*-*-*-*-*-*-*
 Emacs*background: rgb:00/00/00
 Emacs*foreground: rgb:d9/d9/d9
