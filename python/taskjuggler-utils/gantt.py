@@ -229,15 +229,15 @@ class Plotter(object):
         end = -sys.maxint - 1
         for prj in self.doc.prjs.itervalues():
             start = min(start, prj.start)
-            end = min(end, prj.end)
+            end = max(end, prj.end)
 
-        start = datetime.date.fromtimestamp(prj.start)
+        start = datetime.date.fromtimestamp(start)
         start -= datetime.timedelta(14)
         weekday = start.isoweekday()
         if weekday != 1:
             start -= datetime.timedelta(weekday - 1)
 
-        end = datetime.date.fromtimestamp(prj.end)
+        end = datetime.date.fromtimestamp(end)
         weekday = end.isoweekday()
         if weekday != 1:
             end += datetime.timedelta(8 - weekday)
