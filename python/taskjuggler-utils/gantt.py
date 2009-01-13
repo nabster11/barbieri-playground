@@ -118,6 +118,8 @@ class Plotter(object):
     level = 0
     day = 24 * 60 * 60
     time_interval = 7 * day
+    initial_offset = 14
+    ending_offset = 7
 
     caption_style = (style.linewidth.THIN,)
 
@@ -232,12 +234,13 @@ class Plotter(object):
             end = max(end, prj.end)
 
         start = datetime.date.fromtimestamp(start)
-        start -= datetime.timedelta(14)
+        start -= datetime.timedelta(self.initial_offset)
         weekday = start.isoweekday()
         if weekday != 1:
             start -= datetime.timedelta(weekday - 1)
 
         end = datetime.date.fromtimestamp(end)
+        end += datetime.timedelta(self.ending_offset)
         weekday = end.isoweekday()
         if weekday != 1:
             end += datetime.timedelta(8 - weekday)
@@ -245,7 +248,7 @@ class Plotter(object):
         self.time_start = int(time.mktime(start.timetuple()))
         self.time_end = int(time.mktime(end.timetuple()))
         time_range = self.time_end - self.time_start
-        self.time_range = time_range + self.time_interval
+        self.time_range = time_range
         self.second_size = self.page_width / float(self.time_range)
         self.day_size = self.seconds_to_coords(self.day)
     # _setup_time_range()
@@ -963,6 +966,14 @@ if __name__ == "__main__":
     timeline_choices = Timeline.mapping.keys()
     timeline_txt_choices = ", ".join(timeline_choices)
 
+    parser.add_option("-i", "--initial-offset", action="store",
+                      type="int", default=Plotter.initial_offset,
+                      help=("initial offset from start time, in days. "
+                            "[default=%default]"))
+    parser.add_option("-e", "--ending-offset", action="store",
+                      type="int", default=Plotter.ending_offset,
+                      help=("ending offset after end time, in days. "
+                            "[default=%default]"))
     parser.add_option("-v", "--no-vacation", action="store_true",
                       default=False,
                       help="don't plot vacation")
@@ -1026,6 +1037,8 @@ if __name__ == "__main__":
     plot = Plotter(doc)
     plot.bar_height = 0.4
     plot.bar_vskip = 0.2
+    plot.initial_offset = options.initial_offset
+    plot.ending_offset = options.ending_offset
     plot.show_vacation = not options.no_vacation
     plot.show_days = not options.no_day
     plot.show_resources = not options.no_resources
