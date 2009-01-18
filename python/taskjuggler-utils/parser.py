@@ -28,6 +28,20 @@ def get_child_int(node, name, default=0):
 # get_child_int()
 
 
+class Booking(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+        self.diff = end - start
+    # __init__()
+
+    def __str__(self):
+        return "Booking(start=%d, end=%d, diff=%d (%0.2fh))" % \
+               (self.start, self.end, self.diff, self.diff / 3600.0)
+    __repr__ = __str__
+# Booking
+
+
 class Resource(object):
     def __init__(self, doc, node, parent=None):
         self.node = node
@@ -38,10 +52,10 @@ class Resource(object):
         self.name = self.node.get("name")
         self.doc.resources[self.id] = self
         self.resources = []
+        self.booking = {}
 
         self._process_resources()
     # __init__()
-
 
     def _process_resources(self):
         my_doc = self.doc
@@ -49,6 +63,18 @@ class Resource(object):
             r = Resource(my_doc, node, self)
             self.resources.append(r)
     # _process_resources()
+
+    def __str__(self):
+        if self.parent:
+            pid = self.parent.id
+        else:
+            pid = None
+
+        children = ", ".join(repr(c.id) for c in self.resources)
+        return "Resource(id=%r, name=%r, parent=%r, children=[%s])" % \
+               (self.id, self.name, pid, children)
+    # __str__
+    __repr__ = __str__
 # Resource
 
 
@@ -200,6 +226,19 @@ class Task(object):
 # Task
 
 
+class CurrencyFormat(object):
+    def __init__(self, doc, project, node):
+        self.doc = doc
+        self.project = project
+        self.node = node
+        self.frac_digits = get_attr_int(node, "fracDigits")
+        self.frac_sep = node.get("fractionSep", ".")
+        self.group_sep = node.get("thousandSep", ",")
+        self.sign_prefix = node.get("signPrefix", "-")
+        self.sign_suffix = node.get("signSuffix", "")
+# CurrencyFormat
+
+
 class Project(object):
     def __init__(self, doc, node):
         self.doc = doc
@@ -207,6 +246,10 @@ class Project(object):
         self.timingResolution = int(self.node.get("timingResolution"))
         self.name = self.node.get("name")
         self.id = self.node.get("id")
+        self.currency = self.node.get("currency")
+        self.currency_format = CurrencyFormat(
+            doc, self, node.find("currencyFormat"))
+        self.daily_working_hours = get_attr_int(node, "dailyWorkingHours")
 
         self.start = get_child_int(self.node, "start")
         self.end = get_child_int(self.node,"end")
@@ -263,6 +306,7 @@ class Document(object):
         self._process_projects()
         self._process_resources()
         self._process_tasks()
+        self._process_bookings()
         self._process_vacations()
     # __init__()
 
@@ -289,6 +333,20 @@ class Document(object):
             for node in rl.findall("resource"):
                 Resource(self, node)
     # _process_resources()
+
+
+    def _process_bookings(self):
+        for bl in self.xml.findall("bookingList"):
+            for rb in bl.findall("resourceBooking"):
+                resource = self.resources[rb.get("resourceId")]
+                scenario = resource.booking.setdefault(rb.get("scenarioId"), {})
+                for node in rb.findall("booking"):
+                    task = scenario.setdefault(node.get("taskId"), [])
+                    start = get_child_int(node, "start")
+                    end = get_child_int(node, "end")
+                    task.append(Booking(start, end))
+    # _process_bookings()
+
 
     def _process_vacations(self):
         for vl in self.xml.findall("vacationList"):
