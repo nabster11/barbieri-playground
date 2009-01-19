@@ -10,7 +10,7 @@ try:
 except ImportError, e:
     raise SystemExit("Missing python module: pyx (http://pyx.sourceforge.net)")
 
-from parser import *
+from taskjuggler_utils.parser import *
 
 class Timeline(object):
     WEEKS, MONTHS, QUARTERS, YEARS = range(4)

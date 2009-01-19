@@ -4,7 +4,7 @@
 from decimal import Decimal, ROUND_DOWN
 import optparse
 
-from parser import *
+from taskjuggler_utils.parser import *
 
 
 def decimal2tuple(dec):
