@@ -92,7 +92,7 @@ def number2words_english(n):
     twenties = ("","","twenty ","thirty ","forty ",
                 "fifty ","sixty ","seventy ","eighty ","ninety ")
     hundreds = (None,) * 10
-    return number2words(n, "and ", group, ones, tens, twenties, hundreds)
+    return number2words(n, "", group, ones, tens, twenties, hundreds)
 
 
 def number2words_portuguese(n):
