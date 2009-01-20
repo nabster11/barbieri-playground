@@ -157,7 +157,7 @@ def table_row(output, row, fmt="%s", escape=True):
     output.write(" \\\\\n")
 
 def table_hline(output):
-    output.write("    \\hline\\noalign{\\smallskip} \\\\\n")
+    output.write("    \\hline\\noalign{\\smallskip}\n")
 
 def table_gen(output, body, header=None, footer=None,
               caption="", label="", align=None, escape=True):
@@ -168,10 +168,10 @@ def table_gen(output, body, header=None, footer=None,
             align = "l" * len(body[0])
 
     output.write("""\
-\\begin{table}[%s]
+\\begin{table}[htb]
 {\\small
 \\begin{center}
-  \\begin{tabular}{lrl}
+  \\begin{tabular}{%s}
     \\hline\\noalign{\\smallskip}
 """ % align)
     if header:
@@ -480,7 +480,7 @@ class PaymentsReport(ResourcePriceReport):
         if len(self.split) < 2:
             footer = None
         table_gen(output, body, header, footer, caption, "payments",
-                  "lr", escape=False)
+                  "lrr", escape=False)
 
 
 class AbstractTaskReport(object):
