@@ -424,6 +424,9 @@ class ProjectPriceReport(ResourcePriceReport):
             elif self.currency == "BRL":
                 int_cur = "Brazil reais"
                 cent_cur = "cents"
+            elif self.currency == "EUR":
+                int_cur = "Euros"
+                cent_cur = "cents"
             else:
                 raise ValueError("currency %s not supported" % self.currency)
 
@@ -434,6 +437,9 @@ class ProjectPriceReport(ResourcePriceReport):
                 cent_cur = "centavos"
             elif self.currency == "BRL":
                 int_cur = "reais"
+                cent_cur = "centavos"
+            elif self.currency == "EUR":
+                int_cur = "Euros"
                 cent_cur = "centavos"
             else:
                 raise ValueError("currency %s not supported" % self.currency)
