@@ -535,7 +535,7 @@ class AbstractTaskReport(object):
         self.tasks.append((name, task))
         for c in task.tasks:
             if filter is None or not filter(c):
-                self._append_task_and_children(lst, c, level + 1, filter)
+                self._append_task_and_children(c, level + 1, filter)
 
     def _calc_toplevels(self):
         self.toplevel = []
