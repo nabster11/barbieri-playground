@@ -598,23 +598,58 @@ class AbstractTaskReport(object):
     def _output(self, output, language, total, body):
         raise NotImplementedError("_output not implemented")
 
+    def _task_visible(self, task):
+        for name, t in self.tasks:
+            if task is t:
+                return True
+        return False
+
+    def _task_children_visible(self, task):
+        for child in task.tasks:
+            if self._task_or_children_visible(child):
+                return True
+        return False
+
+    def _task_or_children_visible(self, task):
+        return self._task_visible(task) or self._task_children_visible(task)
+
+    def _total_bookings(self, bookings):
+        return sum(bookings.itervalues())
+
+    def _accumulate_bookings(self, bookings, child):
+        for k, v in child.iteritems():
+            bookings[k] = bookings.get(k, 0) + v
+        return bookings
+
+    def _task_bookings(self, task):
+        bookings = {}
+        for r in task.resources:
+            rname = self._resource_display(r)
+            if not rname:
+                continue
+            b = self._task_resource_bookings(task, r)
+            v = self._value(task, r, b)
+            tb = bookings.get(rname, 0) + v
+            bookings[rname] = tb
+
+        if bookings:
+            return bookings
+
+        for t in task.tasks:
+            if not self._task_or_children_visible(t):
+                continue
+            self._accumulate_bookings(bookings, self._task_bookings(t))
+        return bookings
+
     def report(self, output, language):
         total = 0
         body = []
         for name, t in self.tasks:
-            bookings = {}
-            for r in t.resources:
-                rname = self._resource_display(r)
-                if not rname:
-                    continue
-                b = self._task_resource_bookings(t, r)
-                v = self._value(t, r, b)
-                tb = bookings.get(rname, 0) + v
-                bookings[rname] = tb
-                total += v
-
+            bookings = self._task_bookings(t)
             if not bookings:
                 continue
+            if not self._task_children_visible(t):
+                total += self._total_bookings(bookings)
             bookings = list(bookings.iteritems())
             bookings.sort(cmp=lambda a, b: cmp(a[0], b[0]))
             r, v = bookings[0]
