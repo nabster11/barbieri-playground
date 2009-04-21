@@ -496,7 +496,7 @@ class AbstractTaskReport(object):
                  selected_tasks=None, just_toplevel_tasks=False,
                  just_no_leafs_tasks=False, show_milestones=False,
                  selected_resources=None, just_toplevel_resources=False,
-                 just_no_leafs_resources=False):
+                 just_no_leafs_resources=False, no_resources=False):
         self.doc = doc
         self.scenario = scenario
         self.selected_tasks = selected_tasks
@@ -506,6 +506,7 @@ class AbstractTaskReport(object):
         self.selected_resources = selected_resources
         self.just_toplevel_resources = just_toplevel_resources
         self.just_no_leafs_resources = just_no_leafs_resources
+        self.no_resources = no_resources
         self._calc_toplevels()
         self._calc_tasks()
 
@@ -644,20 +645,27 @@ class AbstractTaskReport(object):
         return bookings
 
     def report(self, output, language):
-        total = 0
+        total = Decimal("0")
         body = []
         for name, t in self.tasks:
             bookings = self._task_bookings(t)
             if not bookings:
                 continue
             if not self._task_children_visible(t):
-                total += self._total_bookings(bookings)
-            bookings = list(bookings.iteritems())
-            bookings.sort(cmp=lambda a, b: cmp(a[0], b[0]))
-            r, v = bookings[0]
-            body.append((name, self._value2str(v), latex_escape(r)))
-            for r, v in bookings[1:]:
-                body.append(("", self._value2str(v), latex_escape(r)))
+                partial = self._total_bookings(bookings)
+                total += partial
+            else:
+                partial = bookings[0][1]
+
+            if not self.no_resources:
+                bookings = list(bookings.iteritems())
+                bookings.sort(cmp=lambda a, b: cmp(a[0], b[0]))
+                r, v = bookings[0]
+                body.append((name, self._value2str(v), latex_escape(r)))
+                for r, v in bookings[1:]:
+                    body.append(("", self._value2str(v), latex_escape(r)))
+            else:
+                body.append((name, self._value2str(partial)))
 
         self._output(output, language, total, body)
 
@@ -680,7 +688,15 @@ class TaskLoadReport(AbstractTaskReport):
             caption = "Distribuição de carga por tarefas."
         else:
             raise ValueError("language %s not supported" % language)
-        table_gen(output, body, header, footer, caption, "taskload", "lrl",
+
+        if self.no_resources:
+            header = header[:-1]
+            footer = footer[:-1]
+            cols = "lr"
+        else:
+            cols = "lrl"
+
+        table_gen(output, body, header, footer, caption, "taskload", cols,
                   escape=False)
 
 
@@ -689,12 +705,12 @@ class TaskPriceReport(AbstractTaskReport):
                  selected_tasks=None, just_toplevel_tasks=False,
                  just_no_leafs_tasks=False, show_milestones=False,
                  selected_resources=None, just_toplevel_resources=False,
-                 just_no_leafs_resources=False):
+                 just_no_leafs_resources=False, no_resources=False):
         AbstractTaskReport.__init__(
             self, doc, scenario, selected_tasks, just_toplevel_tasks,
             just_no_leafs_tasks, show_milestones,
             selected_resources, just_toplevel_resources,
-            just_no_leafs_resources)
+            just_no_leafs_resources, no_resources)
         for p in doc.prjs.itervalues():
             if p.currency:
                 self.currency = p.currency
@@ -847,7 +863,7 @@ def task_price_report(output, doc, options):
         doc, options.scenario,
         options.task, options.task_toplevel, options.task_no_leafs,
         options.milestone, options.resource, options.resource_toplevel,
-        options.resource_no_leafs)
+        options.resource_no_leafs, options.no_resources)
     report.report(output, options.language)
 
 
@@ -957,7 +973,9 @@ if __name__ == "__main__":
                            "provided, this will force just non leafs entries "
                            "to be displayed and use alphabetical-tree order."))
     group.add_option("-m", "--milestone", default=False, action="store_true",
-                      help=("show milestone in task report."))
+                     help=("show milestone in task report."))
+    group.add_option("--no-resources", default=False, action="store_true",
+                     help=("if given, no resources will be detailed for tasks"))
 
     group = optparse.OptionGroup(parser, "Payment Options",
                         ("These options guide payments report."))
