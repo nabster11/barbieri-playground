@@ -750,7 +750,15 @@ class TaskPriceReport(AbstractTaskReport):
             caption = "Distribuição de preços por tarefas."
         else:
             raise ValueError("language %s not supported" % language)
-        table_gen(output, body, header, footer, caption, "taskprice", "lrl",
+
+        if self.no_resources:
+            header = header[:-1]
+            footer = footer[:-1]
+            cols = "lr"
+        else:
+            cols = "lrl"
+
+        table_gen(output, body, header, footer, caption, "taskprice", cols,
                   escape=False)
 
 
