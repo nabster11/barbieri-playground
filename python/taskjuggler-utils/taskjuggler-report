@@ -4,6 +4,8 @@
 from decimal import Decimal, ROUND_DOWN
 import optparse
 
+text_encoding = "utf-8"
+
 from taskjuggler_utils.parser import *
 
 
@@ -318,7 +320,7 @@ class AbstractResourceReport(object):
         raise NotImplementedError("_output not implemented")
 
     def report(self, output, language):
-        total = 0
+        total = Decimal("0")
         body = []
         for name, r in self.resources:
             b, desc = self._resource_bookings(r)
@@ -379,7 +381,7 @@ class ResourcePriceReport(AbstractResourceReport):
             try:
                 wage = r.wage
             except AttributeError:
-                r = resource.parent
+                r = r.parent
 
         if wage is not None:
             return wage * int(booking / 3600)
@@ -583,7 +585,7 @@ class AbstractTaskReport(object):
                 r = r.parent
             return r.name
         elif self.just_no_leafs_resources:
-            if not r.resources:
+            if not r.resources and r.parent:
                 r = r.parent
             return r.name
         else:
@@ -712,7 +714,7 @@ class TaskPriceReport(AbstractTaskReport):
             try:
                 wage = r.wage
             except AttributeError:
-                r = resource.parent
+                r = r.parent
 
         if wage is None:
             raise SystemExit("no wage for resource %s" % resource.id)
@@ -797,7 +799,7 @@ def parse_prices(doc, options):
     rate_pos = 0
     resource_pos = 0
     resource_id = None
-    while c and i < 1000:
+    while c and i < 100000:
         if c == "#":
             i += skip_line(f)
         elif c in quotes:
@@ -884,9 +886,6 @@ def payments_report(output, doc, options):
 
 
 if __name__ == "__main__":
-    usage = "usage: %prog [options] <report-type> <input.tjx> <outfile>"
-    parser = optparse.OptionParser(usage=usage)
-
     known_reports = {
         "resource-load": resource_load_report,
         "resource-price": resource_price_report,
@@ -895,6 +894,11 @@ if __name__ == "__main__":
         "project-price": project_price_report,
         "payments": payments_report,
         }
+
+    usage = "usage: %prog [options] <report-type> <input.tjx> <outfile>"
+    desc = "Known reports: %s" % ", ".join(known_reports.iterkeys())
+    parser = optparse.OptionParser(usage=usage, description=desc)
+
 
     language_choices = ("english", "portuguese")
     parser.add_option("-L", "--language", type="choice",
