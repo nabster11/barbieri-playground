@@ -774,7 +774,7 @@ def task_load_report(output, doc, options):
         doc, options.scenario,
         options.task, options.task_toplevel, options.task_no_leafs,
         options.milestone, options.resource, options.resource_toplevel,
-        options.resource_no_leafs)
+        options.resource_no_leafs, options.no_resources)
     report.report(output, options.language)
 
 
