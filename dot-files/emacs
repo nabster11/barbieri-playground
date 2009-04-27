@@ -6,6 +6,7 @@
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(auto-compression-mode t nil (jka-compr))
+ '(blink-cursor-mode nil)
  '(c-default-style (quote ((c-mode . "cc-mode") (java-mode . "java") (other . "gnu"))))
  '(case-fold-search t)
  '(column-number-mode t)
@@ -16,7 +17,7 @@
  '(indent-tabs-mode nil)
  '(indicate-empty-lines t)
  '(inhibit-startup-screen t)
- '(ispell-program-name "aspell")
+ '(ispell-program-name "aspell" t)
  '(iswitchb-mode t)
  '(menu-bar-mode nil)
  '(mouse-wheel-mode t nil (mwheel))
@@ -27,16 +28,19 @@
  '(semanticdb-default-system-save-directory "/home/gustavo/.semantic.db" t)
  '(show-paren-mode t nil (paren))
  '(show-trailing-whitespace t)
+ '(speedbar-frame-parameters (quote ((minibuffer) (width . 20) (border-width . 0) (menu-bar-lines . 0) (tool-bar-lines . 0) (unsplittable . t) (set-background-color "black"))))
  '(tab-width 8)
  '(tool-bar-mode nil nil (tool-bar))
  '(transient-mark-mode t)
- '(uniquify-buffer-name-style (quote forward) nil (uniquify)))
+ '(uniquify-buffer-name-style (quote forward) nil (uniquify))
+ '(version-control nil))
 (custom-set-faces
   ;; custom-set-faces was added by Custom.
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(default ((t (:stipple nil :background "#000000" :foreground "#d9d9d9" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 80 :width normal :family "terminus"))))
+ '(background "blue")
  '(diff-added ((t (:inherit diff-changed-face :foreground "#00ff00"))))
  '(diff-added-face ((t (:inherit diff-changed-face :foreground "#00ff00"))) t)
  '(diff-changed ((t (:foreground "#ffff00"))))
@@ -51,10 +55,22 @@
  '(diff-hunk-header-face ((t (:inherit diff-header-face :foreground "#ff00ff"))) t)
  '(diff-removed ((t (:inherit diff-changed-face :foreground "#ff0000"))))
  '(diff-removed-face ((t (:inherit diff-changed-face :foreground "#ff0000"))) t)
- '(mode-line ((t (:background "grey34" :foreground "wheat" :box (:line-width -1 :style released-button)))))
+ '(highlight ((t (:background "CornflowerBlue"))))
+ '(list-mode-item-selected ((t (:background "gold"))))
+ '(makefile-space-face ((t (:background "wheat"))) t)
+ '(mode-line ((t (:background "#333333" :foreground "wheat"))))
  '(mode-line-inactive ((default (:inherit mode-line)) (((class color) (min-colors 88) (background dark)) (:background "grey10" :foreground "grey40" :box (:line-width -1 :color "grey30") :weight light))))
+ '(paren-match ((t (:background "cyan"))))
+ '(region ((t (:background "#005577"))))
  '(semantic-highlight-edits-face ((((class color) (background dark)) (:background "#222200"))))
- '(which-func ((((class color) (min-colors 88) (background dark)) (:foreground "#00ffff")))))
+ '(show-paren-match ((t (:foreground "black" :background "cyan"))))
+ '(show-paren-mismatch ((((class color)) (:foreground "white" :background "red"))))
+ '(speedbar-button-face ((((class color) (background dark)) (:foreground "green4"))))
+ '(speedbar-directory-face ((((class color) (background dark)) (:foreground "khaki"))))
+ '(speedbar-file-face ((((class color) (background dark)) (:foreground "cyan"))))
+ '(speedbar-tag-face ((((class color) (background dark)) (:foreground "Springgreen"))))
+ '(which-func ((((class color) (min-colors 88) (background dark)) (:foreground "#00ffff"))))
+ '(widget-field ((((class grayscale color) (background light)) (:background "DarkBlue")))))
 
 (defun re-read-current-file ()
   (interactive)
@@ -122,12 +138,20 @@
    (tab-width . 8)
    (c-basic-offset . 4)))
 
+(c-add-style
+ "linux2"
+ '("linux"
+   (indent-tabs-mode . nil)
+   (tab-width . 8)
+   (c-basic-offset . 2)))
+
 
 (defun evas-c-mode-hooks ()
   (let ((path (buffer-file-name)))
     (cond
      ((string-match "/evas/src/" path) (c-set-style "e17"))
      ((string-match "/svn/e" path) (c-set-style "e17"))
+     ((string-match "/e17/" path) (c-set-style "e17"))
      )
     )
   )
@@ -143,6 +167,20 @@
     )
   )
 (add-hook 'c-mode-common-hook 'profusion-c-mode-hooks)
+
+(defun poor-mans-csharp-mode ()
+  (java-mode)
+  (setq mode-name "C#")
+  (set-variable 'tab-width 8)
+  (set-variable 'indent-tabs-mode t)
+  (set-variable 'c-basic-offset 8)
+  (c-set-offset 'inline-open 0)
+  (c-set-offset 'case-label 0)
+)
+
+(setq auto-mode-alist (append '(("\\.cs\\'" . poor-mans-csharp-mode))
+                              auto-mode-alist))
+
 
 (defun string-join (list separator)
   "Takes a list of string and joins them using delimiter."
@@ -448,5 +486,8 @@ It takes 2 parameters:
 (require 'taskjuggler-mode)
 
 (add-to-list 'auto-mode-alist '("\\.org\\'" . org-mode))
+
+(require 'session)
+(add-hook 'after-init-hook 'session-initialize)
 
 (server-start)
