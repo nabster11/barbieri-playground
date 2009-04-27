@@ -267,6 +267,8 @@
                       "styles"
                       "text"
                       "size"
+                      "box"
+                      "table"
                       ) t) "\\>\\([ \t]*{\\|\\.\\)")
            '(1 font-lock-function-name-face))
 
@@ -368,6 +370,10 @@
                          "visible"
                          "x"
                          "y"
+                         "box"
+                         "table"
+                         "padding"
+                         "layout"
                          ) t) "\\>[ \t]*[:,]")
               '(2 font-lock-keyword-face))
              )))
@@ -394,6 +400,8 @@
                          "TEXTBLOCK"
                          "GRADIENT"
                          "GROUP"
+                         "BOX"
+                         "TABLE"
                          ; pointer mode (st_collections_group_parts_part_pointer_mode)
                          "AUTOGRAB"
                          "NOGRAB"
