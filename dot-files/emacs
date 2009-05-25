@@ -490,4 +490,6 @@ It takes 2 parameters:
 (require 'session)
 (add-hook 'after-init-hook 'session-initialize)
 
+(require 'pastebin)
+
 (server-start)
