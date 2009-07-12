@@ -46,6 +46,6 @@ well in future.
              "taskjuggler-timeshift",
              "taskjuggler-report",
              ],
-    install_requires=["pyx >= 0.10"],
+    install_requires=["pyx >= 0.9"],
     zip_safe=True,
     )
