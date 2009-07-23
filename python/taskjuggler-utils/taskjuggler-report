@@ -80,6 +80,9 @@ def decimal2money(dec, integer_currency, cents_currency, and_str, number2words):
     if integer and cents:
         s += and_str
     if cents:
+        if len(cents) > 2:
+            print "warning: cents is not rounded to the second decimal:", dec
+            cents = cents[:2]
         s += "%s%s" % (number2words(cents), cents_currency)
     return s
 
