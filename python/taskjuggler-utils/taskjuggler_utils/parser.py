@@ -18,6 +18,9 @@ def get_attr_int(node, name, default=0):
     return int(node.get(name, default))
 # get_attr_int()
 
+def get_attr_float(node, name, default=0):
+    return float(node.get(name, default))
+# get_attr_float()
 
 def get_child_int(node, name, default=0):
     child = node.find(name)
@@ -93,7 +96,7 @@ class TaskScenario(object):
 
         self.id = self.node.get("scenarioId")
         self.status = get_attr_int(self.node, "status")
-        self.complete = float(get_attr_int(self.node, "complete", -1)) / 100.0
+        self.complete = float(get_attr_float(self.node, "complete", -1)) / 100.0
 
         self.start = get_child_int(self.node, "start", None)
         self.end = get_child_int(self.node, "end", None)
