@@ -20,9 +20,10 @@
  '(ispell-program-name "aspell" t)
  '(iswitchb-mode t)
  '(menu-bar-mode nil)
+ '(mmm-global-mode (quote maybe) nil (mmm-mode))
  '(mouse-wheel-mode t nil (mwheel))
  '(require-final-newline t)
- '(safe-local-variable-values (quote ((todo-categories "Personal" "Evasive" "Guarana" "Personal" "Tecsys-STB" "Evasive" "Guarana") (todo-categories "Personal" "Tecsys-STB" "Evasive" "Guarana"))))
+ '(safe-local-variable-values (quote ((mmm-classes . edje-lua) (todo-categories "Personal" "Evasive" "Guarana" "Personal" "Tecsys-STB" "Evasive" "Guarana") (todo-categories "Personal" "Tecsys-STB" "Evasive" "Guarana"))))
  '(save-place t nil (saveplace))
  '(scroll-bar-mode nil)
  '(semanticdb-default-system-save-directory "/home/gustavo/.semantic.db" t)
@@ -58,6 +59,7 @@
  '(highlight ((t (:background "CornflowerBlue"))))
  '(list-mode-item-selected ((t (:background "gold"))))
  '(makefile-space-face ((t (:background "wheat"))) t)
+ '(mmm-default-submode-face ((t (:background "gray15"))))
  '(mode-line ((t (:background "#333333" :foreground "wheat"))))
  '(mode-line-inactive ((default (:inherit mode-line)) (((class color) (min-colors 88) (background dark)) (:background "grey10" :foreground "grey40" :box (:line-width -1 :color "grey30") :weight light))))
  '(paren-match ((t (:background "cyan"))))
@@ -145,6 +147,18 @@
    (tab-width . 8)
    (c-basic-offset . 2)))
 
+(c-add-style
+ "webkit"
+ '((c-tab-always-indent . f)
+   (indent-tabs-mode . nil)
+   (tab-width . 8)
+   (c-basic-offset . 4)
+   (c-offsets-alist
+    .
+    ((innamespace . 0)
+     (inline-open . 0)
+     (label . 0)
+     (statement-cont . +)))))
 
 (defun evas-c-mode-hooks ()
   (let ((path (buffer-file-name)))
@@ -168,6 +182,15 @@
   )
 (add-hook 'c-mode-common-hook 'profusion-c-mode-hooks)
 
+(defun webkit-c-mode-hooks ()
+  (let ((path (buffer-file-name)))
+    (cond
+     ((string-match "/webkit/" path) (c-set-style "webkit"))
+     )
+    )
+  )
+(add-hook 'c-mode-common-hook 'webkit-c-mode-hooks)
+
 (defun poor-mans-csharp-mode ()
   (java-mode)
   (setq mode-name "C#")
@@ -180,6 +203,18 @@
 
 (setq auto-mode-alist (append '(("\\.cs\\'" . poor-mans-csharp-mode))
                               auto-mode-alist))
+
+
+;; webkit has no tab in changelog
+;; (defun my-change-log-mode-common-hook ()
+;;   ;; highlight tabs
+;;   (font-lock-add-keywords nil my-extra-keywords)
+;;   ;; other customizations
+;;   (setq tab-width 8
+;;         ;; this will make sure spaces are used instead of tabs
+;;         indent-tabs-mode nil)
+;;   )
+;; (add-hook 'change-log-mode-hook 'my-change-log-mode-common-hook)
 
 
 (defun string-join (list separator)
@@ -479,6 +514,9 @@ It takes 2 parameters:
 (add-to-list 'load-path "/home/gustavo/.emacs.d/site-packages/edje-mode.el")
 (add-to-list 'auto-mode-alist '("\\.edc$" . edje-mode))
 (autoload 'edje-mode "edje-mode")
+
+(add-to-list 'load-path "/home/gustavo/.emacs.d/site-packages/edje-lua-mode.el")
+(require 'edje-lua-mode)
 
 (put 'upcase-region 'disabled nil)
 
