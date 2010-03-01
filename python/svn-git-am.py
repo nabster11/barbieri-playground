@@ -166,7 +166,7 @@ for p in patches:
 
     answer = raw_input("Commit [Y/n]? ").strip().lower()
     if answer in ("n", "no"):
-        raise SystemExit("stopped at patch %r (message at %f)" % (p, tmpfile))
+        raise SystemExit("stopped at patch %r (message at %r)" % (p, tmpfile))
     else:
         system("svn commit -F %r", tmpfile)
         os.unlink(tmpfile)
