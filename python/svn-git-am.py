@@ -42,6 +42,7 @@ rx_authorship = re.compile(r"^[ \t]*(author|by|signed-off)[ \t]*:", re.I)
 rx_addfile = re.compile(r"^-{3}\s+/dev/null\s*$")
 rx_delfile = re.compile(r"^[+]{3}\s+/dev/null\s*$")
 rx_getfile = re.compile(r"^[+-]{3}\s+(\S+)\s*$")
+rx_chfile = re.compile(r"^[+]{3}\s+(\S+)\s*$")
 rx_endmsg = re.compile(r"^---\s*$")
 
 def header2utf8(header):
@@ -79,7 +80,7 @@ for p in patches:
     print "      ", subject
     print
 
-    files = {"add": [], "del": []}
+    files = {"add": [], "del": [], "ch": []}
     msg = []
     msg_ended = False
     has_author = False
@@ -105,6 +106,11 @@ for p in patches:
                 if m:
                     f = m.group(1)[2:]
                     files["del"].append(f)
+            elif rx_chfile.search(line):
+                m = rx_getfile.search(line)
+                if m:
+                    f = m.group(1)[2:]
+                    files["ch"].append(f)
         elif next_op == "add":
             m = rx_getfile.search(line)
             if m:
@@ -127,10 +133,16 @@ for p in patches:
         print "       files to del:"
         for f in files["del"]:
             print "\t- %r" % f
+    if files["ch"]:
+        print "       files changed:"
+        for f in files["ch"]:
+            print "\t- %r" % f
 
     print "\n"
 
     system("patch -p1 < %r", p)
+
+    to_commit = []
 
     if files["add"]:
         for f in files["add"]:
@@ -140,12 +152,18 @@ for p in patches:
                 dname = os.path.join(dname, pname)
                 if not os.path.isdir(dname + "/.svn"):
                     system("svn add %r", dname)
+                    to_commit.append(dname)
                     break
             else:
                 system("svn add %r", f)
+                to_commit.append(f)
     if files["del"]:
         for f in files["del"]:
             system("svn rm %r", f)
+            to_commit.append(f)
+    if files["ch"]:
+        for f in files["ch"]:
+            to_commit.append(f)
 
     tmpfile = "svn-commit.tmp"
     idx = 1
@@ -168,5 +186,6 @@ for p in patches:
     if answer in ("n", "no"):
         raise SystemExit("stopped at patch %r (message at %r)" % (p, tmpfile))
     else:
-        system("svn commit -F %r", tmpfile)
+        to_commit_str = " ".join(repr(x) for x in to_commit)
+        system("svn commit -F %r %s", tmpfile, to_commit_str)
         os.unlink(tmpfile)
