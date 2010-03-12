@@ -1,15 +1,24 @@
-!Xft.dpi: 76
+!Xft.dpi: 96
 !Xft.hintstyle: hintmedium
 !Xft.hinting: true
-Xft.dpi: 96
-Xft.hintstyle: hintmedium
-Xft.hinting: true
+
+!! NOTE: programming and terminal fonts (why their name seems changed?! ;-P)
+!!
+!!  * terminus is excellent size for reading longer texts but still compact
+!!    to fit 60 columns in 800px screens with enough room (better than
+!!    proggyclean for instance):
+!!      -xos4-terminus-medium-r-normal--12-120-72-72-c-60-iso8859-15
+!!
+!!  * proggytinysz is very small, but can be tiring for longer text so just
+!!    used for terminals
+!!      -windows-proggytinysz-medium-r-normal--10-80-96-96-c-60-iso8859-1
+
 
 Emacs.toolBar: off
 Emacs.menuBar: off
 Emacs.verticalScrollBars: off
 Emacs*geometry: 80x60-1+0
-Emacs*font: -*-terminus-medium-*-*-*-14-*-*-*-*-*-*-*
+Emacs*font: -xos4-terminus-medium-r-normal--12-120-72-72-c-60-iso8859-15
 Emacs*background: rgb:00/00/00
 Emacs*foreground: rgb:d9/d9/d9
 Emacs*cursorColor: rgb:ff/00/ff
@@ -17,8 +26,44 @@ Emacs*pointerColor: rgb:ff/ff/ff
 
 xterm*popOnBell: on
 xterm*VT100.geometry: 80x40
+xterm*geometry: 80x40
 xterm*background: rgb:00/00/00
 xterm*foreground: rgb:d9/d9/d9
-xterm*font: -*-terminus-medium-*-*-*-14-*-*-*-*-*-*-*
+xterm*font: -windows-proggytinysz-medium-r-normal--10-80-96-96-c-60-iso8859-1
+xterm*color4: rgb:66/66/ff
+xterm*color12: rgb:aa/aa/ff
 
-
+!! transparent background:
+URxvt.depth: 32
+URxvt.background: rgba:0000/0000/0000/dddd
+!! solid version:
+! URxvt.depth: 24
+! URxvt.background: rgb:00/00/00
+URxvt.foreground: rgb:d9/d9/d9
+URxvt.color3: rgb:aa/77/11
+URxvt.color4: rgb:55/66/ff
+URxvt.color12: rgb:77/88/ff
+URxvt.colorURL: rgb:d9/ff/ff
+URxvt.cursorColor: rgb:ff/00/ff
+URxvt.pointerColor: rgb:00/ff/ff
+URxvt.fading: 20
+URxvt.scrollBar: off
+!! I *hate* bold fonts in terminal, use intensity colors instead. Disable them
+URxvt.boldFont:
+URxvt.italicFont:
+URxvt.boldItalicFont:
+URxvt.intensityStyles: on
+URxvt.font: -windows-proggytinysz-medium-r-normal--10-80-96-96-c-60-iso8859-1
+URxvt.saveLines: 5000
+! URxvt.perl-ext: default,tabbed,matcher
+URxvt.perl-ext: default,matcher
+URxvt.urgentOnBell: true
+URxvt.visualBell: true
+URxvt.pointerBlank: true
+URxvt.perl-lib: /home/gustavo/.urxvt/perl
+URxvt.tabbed.tabbar-bg: 4
+URxvt.tabbed.tabbar-fg: 0
+URxvt.tabbed.tab-bg: 3
+URxvt.tabbed.tab-fg: 15
+URxvt.matcher.button: 1
+URxvt.urlLauncher: chromium
