@@ -73,8 +73,11 @@ for p in patches:
     subject = header2utf8(mail["Subject"])
     sender = header2utf8(mail["From"])
 
-    if subject.startswith("[PATCH] "):
-        subject = subject[len("[PATCH] "):]
+    if subject.startswith("[PATCH"):
+        try:
+            subject = subject[subject.index("]") + 1:].strip()
+        except ValueError:
+            pass
 
     print "      ", sender
     print "      ", subject
