@@ -33,12 +33,12 @@ xterm*font: -windows-proggytinysz-medium-r-normal--10-80-96-96-c-60-iso8859-1
 xterm*color4: rgb:66/66/ff
 xterm*color12: rgb:aa/aa/ff
 
-!! transparent background:
-URxvt.depth: 32
-URxvt.background: rgba:0000/0000/0000/dddd
+!! transparent background: (+cpu/mem, and not so nice w/ my current wallpaper)
+! URxvt.depth: 32
+! URxvt.background: rgba:0000/0000/0000/dddd
 !! solid version:
-! URxvt.depth: 24
-! URxvt.background: rgb:00/00/00
+URxvt.depth: 24
+URxvt.background: rgb:00/00/00
 URxvt.foreground: rgb:d9/d9/d9
 URxvt.color3: rgb:aa/77/11
 URxvt.color4: rgb:55/66/ff
@@ -55,6 +55,8 @@ URxvt.boldItalicFont:
 URxvt.intensityStyles: on
 URxvt.font: -windows-proggytinysz-medium-r-normal--10-80-96-96-c-60-iso8859-1
 URxvt.saveLines: 5000
+!! add ":" to cutchars, as grep/gcc and others output filename:message
+URxvt.cutchars: '`"&()*,;<=>?@[]^{|}:~'
 ! URxvt.perl-ext: default,tabbed,matcher
 URxvt.perl-ext: default,matcher
 URxvt.urgentOnBell: true
@@ -66,4 +68,4 @@ URxvt.tabbed.tabbar-fg: 0
 URxvt.tabbed.tab-bg: 3
 URxvt.tabbed.tab-fg: 15
 URxvt.matcher.button: 1
-URxvt.urlLauncher: chromium
+URxvt.urlLauncher: chromium-bin
