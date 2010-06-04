@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 
 """
+Copyright (C) 2009-2010 Gustavo Barbieri <barbieri@profusion.mobi>
+Copyright (C) 2010 ProFUSION Embedded Systems
+Copyright (C) 2010 Lucas De Marchi <lucas.demarchi@profusion.mobi>
+
+"""
+
+"""
 Apply a patch received formatted as by git-format-patch, applying to
 the current SVN.
 
@@ -20,23 +27,29 @@ It will:
 import sys, re, os, os.path, email
 from email import message_from_file
 from email.header import decode_header
+from optparse import OptionParser
 
-if len(sys.argv) < 2 or "-h" in sys.argv or "--help" in sys.argv:
-    print """
-Usage:
-
-   %s <patches>
-
-and must be run from a svn project (.svn must be present).
-""" % (sys.argv[0],)
-    raise SystemExit()
-
+usage = "%prog [options] <patches>\n" \
+	"Must be run from an svn project (.svn must be present)"
+parser = OptionParser(usage=usage)
+parser.add_option("-a", "--parse-author", action="store_true", default=False,
+                  help="Parse author in email to include in commit message. " \
+		       "Useful when you receive a patch from someone and would " \
+		       "like to give him the credits")
+parser.add_option("-e", "--edit-message", action="store_true", default=False,
+		  help="Open $EDITOR to edit each commit message")
+parser.add_option("-k", "--keep-subject", action="store_true", default=False,
+		  help="Do not strip the string between [ and ] from the " \
+		       "beginning of the subject")
+(options, args) = parser.parse_args()
 
 if not os.path.isdir(".svn"):
     raise SystemError("no .svn")
 
-patches = sys.argv[1:]
+patches = args
 patches.sort()
+
+has_author = False
 
 rx_authorship = re.compile(r"^[ \t]*(author|by|signed-off)[ \t]*:", re.I)
 rx_addfile = re.compile(r"^-{3}\s+/dev/null\s*$")
@@ -44,6 +57,7 @@ rx_delfile = re.compile(r"^[+]{3}\s+/dev/null\s*$")
 rx_getfile = re.compile(r"^[+-]{3}\s+(\S+)\s*$")
 rx_chfile = re.compile(r"^[+]{3}\s+(\S+)\s*$")
 rx_endmsg = re.compile(r"^---\s*$")
+rx_subject_prefix = re.compile("\[[^\]]*\]\s*")
 
 def header2utf8(header):
     result = []
@@ -71,13 +85,15 @@ for p in patches:
         raise SystemError("could not parse email %s" % (p,))
 
     subject = header2utf8(mail["Subject"])
-    sender = header2utf8(mail["From"])
+    if options.parse_author:
+        sender = header2utf8(mail["From"])
+        has_author = True
+    else:
+        sender = ""
+        has_author = False
 
-    if subject.startswith("[PATCH"):
-        try:
-            subject = subject[subject.index("]") + 1:].strip()
-        except ValueError:
-            pass
+    if not options.keep_subject:
+        subject = rx_subject_prefix.sub("", subject, 1)
 
     print "      ", sender
     print "      ", subject
@@ -86,7 +102,6 @@ for p in patches:
     files = {"add": [], "del": [], "ch": []}
     msg = []
     msg_ended = False
-    has_author = False
     next_op = None
     last_line = ""
 
@@ -127,7 +142,7 @@ for p in patches:
     for line in msg:
         print "       %s" % (line,)
 
-
+    print "\n"
     if files["add"]:
         print "       files to add:"
         for f in files["add"]:
@@ -180,11 +195,13 @@ for p in patches:
     for line in msg:
         f.write(line)
         f.write("\n")
-    if not has_author:
+    if not has_author and sender != "":
         f.write("\nBy: %s\n" % (sender,))
     f.write("\n--This line, and those below, will be ignored--\n")
     f.close()
 
+    if options.edit_message:
+        system("%s %s" % (os.environ.get("EDITOR"), tmpfile))
     answer = raw_input("Commit [Y/n]? ").strip().lower()
     if answer in ("n", "no"):
         raise SystemExit("stopped at patch %r (message at %r)" % (p, tmpfile))
