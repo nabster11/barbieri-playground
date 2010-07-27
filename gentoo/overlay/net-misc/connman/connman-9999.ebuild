@@ -26,6 +26,7 @@ RDEPEND=">=dev-libs/glib-2.16
 	ofono? ( net-misc/ofono )
 	policykit? ( >=sys-auth/policykit-0.7 )
 	resolvconf? ( net-dns/openresolv )
+	tools? ( net-firewall/iptables )
 	udev? ( >=sys-fs/udev-141 )
 	wifi? ( >=net-wireless/wpa_supplicant-0.7[dbus] )"
 
@@ -37,7 +38,6 @@ src_configure() {
 	econf \
 		--localstatedir=/var \
 		--enable-client \
-		--enable-fake \
 		--enable-datafiles \
 		--enable-loopback=builtin \
 		$(use_enable caps capng) \
@@ -59,6 +59,7 @@ src_configure() {
 		$(use_enable threads) \
 		$(use_enable tools) \
 		$(use_enable udev) \
+		--disable-fake \
 		--disable-udhcp \
 		--disable-iwmx \
 		--disable-iospm \
