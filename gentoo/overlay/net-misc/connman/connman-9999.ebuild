@@ -14,7 +14,7 @@ EGIT_REPO_URI="git://git.kernel.org/pub/scm/network/connman/connman.git"
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~arm ~amd64 ~x86"
-IUSE="bluetooth +caps debug +dhclient dnsproxy doc +ethernet hh2serial-gps google meego ntpd ofono policykit resolvconf threads tools +udev +wifi +portal"
+IUSE="bluetooth +caps debug +dhclient dnsproxy doc +ethernet hh2serial-gps google meego ntpd ofono policykit threads tools +udev +wifi +portal"
 # ospm openconnect wimax
 
 RDEPEND=">=dev-libs/glib-2.16
@@ -25,7 +25,6 @@ RDEPEND=">=dev-libs/glib-2.16
 	ntpd? ( net-misc/ntp )
 	ofono? ( net-misc/ofono )
 	policykit? ( >=sys-auth/policykit-0.7 )
-	resolvconf? ( net-dns/openresolv )
 	tools? ( net-firewall/iptables )
 	udev? ( >=sys-fs/udev-141 )
 	wifi? ( >=net-wireless/wpa_supplicant-0.7[dbus] )"
@@ -46,7 +45,6 @@ src_configure() {
 		$(use_enable bluetooth bluetooth builtin) \
 		$(use_enable ofono ofono builtin) \
 		$(use_enable dhclient dhclient builtin) \
-		$(use_enable resolvconf resolvconf builtin) \
 		$(use_enable dnsproxy dnsproxy builtin) \
 		$(use_enable google google builtin) \
 		$(use_enable meego meego builtin) \
@@ -60,7 +58,6 @@ src_configure() {
 		$(use_enable tools) \
 		$(use_enable udev) \
 		--disable-fake \
-		--disable-udhcp \
 		--disable-iwmx \
 		--disable-iospm \
 		--disable-openconnect
