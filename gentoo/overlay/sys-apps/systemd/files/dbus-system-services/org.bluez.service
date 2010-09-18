@@ -1,0 +1,6 @@
+# Required by systemd
+[D-BUS Service]
+Name=org.bluez
+Exec=/bin/false
+User=root
+SystemdService=bluetooth.service

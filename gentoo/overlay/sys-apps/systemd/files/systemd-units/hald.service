@@ -1,0 +1,12 @@
+[Unit]
+Description=Hardware Abstraction Layer
+Wants=syslog.target dbus.target console-kit-daemon.service
+After=acpid.service
+
+[Service]
+ExecStartPre=-/bin/chgrp haldaemon /proc/acpi/event; -/bin/chmod 440 /proc/acpi/event
+ExecStart=/usr/sbin/hald --use-syslog --daemon=no
+Restart=restart-always
+
+[Install]
+WantedBy=multi-user.target
