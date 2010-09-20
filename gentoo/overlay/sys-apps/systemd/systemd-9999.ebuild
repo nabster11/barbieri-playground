@@ -43,7 +43,7 @@ src_prepare() {
 }
 
 src_configure() {
-	myconf="--with-distro=gentoo --with-rootdir=/
+	myconf="--with-distro=gentoo --with-rootdir=/ --localstatedir=/var
 				$(use_enable audit)
 				$(use_enable gtk)
 				$(use_enable pam)
