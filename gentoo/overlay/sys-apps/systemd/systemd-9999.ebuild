@@ -35,6 +35,7 @@ CONFIG_CHECK="AUTOFS4_FS CGROUPS DEVTMPFS"
 
 pkg_setup() {
 	linux-info_pkg_setup
+	enewgroup lock # used by var-lock.mount
 }
 
 src_prepare() {
