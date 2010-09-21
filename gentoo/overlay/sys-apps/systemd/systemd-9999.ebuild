@@ -19,6 +19,7 @@ IUSE="audit gtk pam +tcpwrap -nosysv selinux"
 RDEPEND=">=sys-apps/dbus-1.3.2[systemd]
 		 sys-libs/libcap
 		 >=sys-fs/udev-162[systemd]
+		 app-admin/tmpwatch
 		 audit? ( sys-process/audit )
 		 gtk? ( >=x11-libs/gtk+-2.20 )
 		 tcpwrap? ( sys-apps/tcp-wrappers )
