@@ -16,11 +16,11 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE="audit gtk pam +tcpwrap -nosysv selinux"
 
-RDEPEND=">=sys-apps/dbus-1.3.2[systemd]
+RDEPEND=">=sys-apps/dbus-1.4.0
 		 sys-libs/libcap
 		 >=sys-fs/udev-162[systemd]
 		 app-admin/tmpwatch
-		 audit? ( sys-process/audit )
+		 audit? ( >=sys-process/audit-1.7.9 )
 		 gtk? ( >=x11-libs/gtk+-2.20 )
 		 tcpwrap? ( sys-apps/tcp-wrappers )
 		 pam? ( virtual/pam )

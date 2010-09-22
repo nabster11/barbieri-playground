@@ -27,9 +27,7 @@ My specific files (systemd units and dbus services) are kept under files/
 
 = Packages =
 
-The following packages are recommended for best performance. Note that
-you do require dbus-1.3.2 in order to integrate well with systemd, the
-1.3.1 just partially do the work.
+The following packages are recommended for best performance.
 
 == Upstream ==
  * emerge >=sys-auth/consolekit-0.4.2 after systemd is installed (need to report bug of auto-discovery, --with-systemdsystemunitdir= should be explicitly set/unset)
@@ -37,7 +35,6 @@ you do require dbus-1.3.2 in order to integrate well with systemd, the
 == Upstream in Portage Overlay ==
  * emerge =sys-apps/systemd (needs my patches to disable sysv!)
  * emerge >=sys-fs/udev-162[systemd]
- * emerge >=sys-apps/dbus-1.3.2[systemd]
 
 == Upstream But Not in Portage ==
  * BlueZ:
