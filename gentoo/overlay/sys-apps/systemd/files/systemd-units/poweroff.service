@@ -14,6 +14,6 @@ After=shutdown.target umount.target killall.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-Environment=RC_DOWN_HARDDISK=yes
-ExecStart=/sbin/halt -dhif
+Environment=RUNLEVEL=0 INIT_VERSION=systemd
+ExecStart=/sbin/halt -dhp
 StandardOutput=tty

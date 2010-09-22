@@ -7,13 +7,13 @@
 
 [Unit]
 Description=SLIM Display Manager
-Wants=syslog.target dbus.target hald.service
+Wants=dbus.target
+Before=bluetooth.target network.target getty.target vixie-cron.service
 After=acpid.service
 
 [Service]
 ExecStart=/usr/bin/slim -nodaemon
 Restart=restart-always
-RestartSec=1
 
 [Install]
 Alias=display-manager.service

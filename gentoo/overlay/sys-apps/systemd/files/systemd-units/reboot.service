@@ -14,5 +14,6 @@ After=shutdown.target umount.target killall.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/sbin/reboot -dhif
+Environment=RUNLEVEL=6 INIT_VERSION=systemd
+ExecStart=/sbin/reboot -dpk
 StandardOutput=tty
