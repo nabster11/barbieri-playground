@@ -25,7 +25,7 @@ Usage:
 
 Environment Variables:
 
-    OVERWRITE=1           force overriding files
+    OVERWRITE=1|0         force overriding files
     BITRATE=128k          choose ffmpeg's -ab parameter value.
     LOGLEVEL=quiet        choose ffmpeg's -loglevel parameter value.
 

@@ -5,7 +5,6 @@ LOGFILE=`mktemp`
 OVERWRITE=${OVERWRITE:-0}
 ABITRATE=${ABITRATE:-128k}
 VBITRATE=${VBITRATE:-512k}
-BUFSIZE=${BUFSIZE:-4096k}
 ACODEC=${ACODEC:-libfaac}
 TARGET_WIDTH=${TARGET_WIDTH:-480}
 TARGET_HEIGHT=${TARGET_HEIGHT:-320}
@@ -35,10 +34,9 @@ Usage:
 
 Environment Variables:
 
-    OVERWRITE=1           force overriding files
+    OVERWRITE=1|0         force overriding files
     ABITRATE=128k         choose ffmpeg's -ab parameter value.
     VBITRATE=512k         choose ffmpeg's -b parameter value.
-    BUFSIZE=4096k         choose ffmpeg's -bufsize parameter value.
     ACODEC=libfaac        choose ffmpeg's -acodec parameter value.
     TARGET_WIDTH=480      output target width
     TARGET_HEIGHT=320     output target height
@@ -93,7 +91,7 @@ for inf in "$@"; do
     fi
 
     unset ORIG_WIDTH ORIG_HEIGHT
-    eval `ffmpeg -i "$inf" 2>&1 | grep 'Video: .* [0-9]\+x[0-9]\+' | head -n1 | sed 's/^.* \([0-9]\+\)x\([0-9]\+\) .*$/ORIG_WIDTH=\1;ORIG_HEIGHT=\2/g'`
+    eval `ffmpeg -i "$inf" 2>&1 | grep 'Video: .* [0-9]\+x[0-9]\+' | head -n1 | sed 's/^.* \([0-9]\+\)x\([0-9]\+\),\? .*$/ORIG_WIDTH=\1;ORIG_HEIGHT=\2/g'`
 
     ORIG_ASPECT=$((ORIG_WIDTH * 1000 / ORIG_HEIGHT))
     if [ $ORIG_ASPECT -gt $TARGET_ASPECT ]; then
@@ -127,7 +125,7 @@ for inf in "$@"; do
 
     echo "    Pass2"
     echo ffmpeg $FFMPEG_OPTS -i "$inf" -acodec $ACODEC -ab $ABITRATE -pass 2 $ENCODE_OPTS $OUTPUT_OPTS "$outf" >>"$LOGFILE"
-    ffmpeg $FFMPEG_OPTS -i "$inf" -acodec $ACODEC -ab $ABITRATE -pass 2 $ENCODE_OPTS $OUTPUT_OPTS "$outf" >>"$LOGFILE" 2>&1
+    ffmpeg $FFMPEG_OPTS -y -i "$inf" -acodec $ACODEC -ab $ABITRATE -pass 2 $ENCODE_OPTS $OUTPUT_OPTS "$outf" >>"$LOGFILE" 2>&1
     if [ $? -ne 0 ]; then
         echo "Problems converting (pass2) '$inf' to '$outf', see '$LOGFILE'" | \
             tee -a "$LOGFILE"
