@@ -1,6 +1,6 @@
-!Xft.dpi: 96
 !Xft.hintstyle: hintmedium
 !Xft.hinting: true
+Xft.dpi: 75
 
 !! NOTE: programming and terminal fonts (why their name seems changed?! ;-P)
 !!
