@@ -23,12 +23,13 @@
  '(mmm-global-mode (quote maybe) nil (mmm-mode))
  '(mouse-wheel-mode t nil (mwheel))
  '(require-final-newline t)
- '(safe-local-variable-values (quote ((mmm-classes . edje-lua) (todo-categories "Personal") (todo-categories "Personal"))))
+ '(safe-local-variable-values (quote ((encoding . utf-8) (mmm-classes . edje-lua) (todo-categories "Personal") (todo-categories "Personal"))))
  '(save-place t nil (saveplace))
  '(scroll-bar-mode nil)
  '(semanticdb-default-system-save-directory "/home/gustavo/.semantic.db" t)
  '(show-paren-mode t nil (paren))
  '(show-trailing-whitespace t)
+ '(sort-fold-case t)
  '(speedbar-frame-parameters (quote ((minibuffer) (width . 20) (border-width . 0) (menu-bar-lines . 0) (tool-bar-lines . 0) (unsplittable . t) (set-background-color "black"))))
  '(tab-width 8)
  '(tool-bar-mode nil nil (tool-bar))
@@ -129,7 +130,7 @@
 (c-add-style
  "e17"
  '("gnu"
-   (indent-tabs-mode . t)
+   (indent-tabs-mode . nil)
    (tab-width . 8)
    (c-offsets-alist
     .
