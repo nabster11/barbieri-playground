@@ -111,6 +111,7 @@ for f in sys.stdin.readlines():
     except KeyError:
         try:
             track = db.new_Track(filename=f)
+            _ipod_tracks[f] = track
         except gpod.TrackException, e:
             sys.stderr.write("ERROR: Could not add track %r: %s\n" % (f, e))
             continue
