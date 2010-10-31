@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+# Based on libgpod examples.
+
+import gpod
+from optparse import OptionParser
+
+parser = OptionParser(description="List all music and playlists in your ipod.")
+parser.add_option("-m", "--mountpoint", dest="mountpoint",
+                  default="/mnt/ipod",
+                  help="use iPod at MOUNTPOINT", metavar="MOUNTPOINT")
+parser.add_option("-l", "--playlist", dest="playlist",
+                  help="list only PLAYLIST",
+                  metavar="PLAYLIST")
+(options, args) = parser.parse_args()
+
+chosen_playlist = None
+if options.playlist:
+    try:
+        chosen_playlist = int(options.playlist)
+    except ValueError:
+        chosen_playlist = options.playlist
+
+db = gpod.Database(options.mountpoint)
+for playlist in db.Playlists:
+    if chosen_playlist and \
+           (playlist.id != chosen_playlist) and \
+           (playlist.name != chosen_playlist):
+        continue
+
+    if playlist.master:
+        t = "MASTER"
+    elif playlist.podcast:
+        t = "PODCAST"
+    elif playlist.smart:
+        t = "SMART"
+    else:
+        t = "REGULAR"
+    print "P: %d: %s %r" % (playlist.id, t, playlist.name)
+
+    for track in playlist:
+        if track["mediatype"] != gpod.ITDB_MEDIATYPE_AUDIO:
+            continue
+        print (" T: "
+               "%r %r %r "
+               "%d %d %r %r") % (
+            track["artist"], track["album"], track["genre"],
+            track["tracklen"], track["track_nr"], track["title"],
+            bool(track.get_coverart()))
+
+# no sync should be done.
+# db.close()
