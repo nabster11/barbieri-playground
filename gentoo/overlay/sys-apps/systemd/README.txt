@@ -33,7 +33,6 @@ The following packages are recommended for best performance.
  * emerge >=sys-auth/consolekit-0.4.2 after systemd is installed (need to report bug of auto-discovery, --with-systemdsystemunitdir= should be explicitly set/unset)
 
 == Upstream in Portage Overlay ==
- * emerge =sys-apps/systemd (needs my patches to disable sysv!)
  * emerge >=sys-fs/udev-162[systemd]
 
 == Upstream But Not in Portage ==
@@ -49,8 +48,6 @@ The following packages are recommended for best performance.
    * add /lib/systemd/system/acpid.service (with extra -f option!)
 
 == Not upstream ==
- * patches to disable sysv compatibility mode (sent, under review);
- * patches to not hard-depend on ipv6 durin runtime (sent, under review);
  * ssh http://0pointer.de/public/systemd-units/
  * metalog
  * slim

@@ -10,7 +10,6 @@ HOMEPAGE="http://www.freedesktop.org/wiki/Software/systemd"
 SRC_URI=""
 EGIT_REPO_URI="git://anongit.freedesktop.org/systemd"
 
-
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
