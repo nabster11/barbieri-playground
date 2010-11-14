@@ -2,4 +2,3 @@
 Name=fi.epitest.hostap.WPASupplicant
 Exec=/usr/sbin/wpa_supplicant -u
 User=root
-SystemdService=wpa_supplicant.service

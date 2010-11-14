@@ -17,9 +17,9 @@ IUSE="audit gtk pam +tcpwrap -nosysv selinux"
 
 RDEPEND=">=sys-apps/dbus-1.4.0
 		 sys-libs/libcap
-		 >=sys-fs/udev-163
+		 >=sys-fs/udev-164
 		 audit? ( >=sys-process/audit-1.7.9 )
-		 gtk? ( >=x11-libs/gtk+-2.20 )
+		 gtk? ( >=x11-libs/gtk+-2.20 x11-libs/libnotify dev-libs/dbus-glib )
 		 tcpwrap? ( sys-apps/tcp-wrappers )
 		 pam? ( virtual/pam )
 		 selinux? ( sys-libs/libselinux )

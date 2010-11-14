@@ -4,4 +4,4 @@ Names=syslog-ng.service
 
 [Service]
 ExecStart=/usr/sbin/metalog
-Restart=restart-always
+Restart=always

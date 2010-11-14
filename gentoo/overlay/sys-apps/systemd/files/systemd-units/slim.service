@@ -13,7 +13,7 @@ After=acpid.service
 
 [Service]
 ExecStart=/usr/bin/slim -nodaemon
-Restart=restart-always
+Restart=always
 
 [Install]
 Alias=display-manager.service
