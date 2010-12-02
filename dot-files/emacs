@@ -93,6 +93,11 @@
   (interactive)
   (whitespace-toggle-options '(spaces newlines space-mark newline-mark)))
 
+ (defun kill-other-buffers ()
+   "Kill all other buffers."
+   (interactive)
+   (mapc 'kill-buffer (delq (current-buffer) (buffer-list))))
+
 (global-set-key [(M delete)] 'delete-region)
 (global-set-key "\M-g" 'goto-line)
 (global-set-key [f1] 'manual-entry)

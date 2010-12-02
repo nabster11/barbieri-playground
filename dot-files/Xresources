@@ -45,7 +45,7 @@ URxvt.color4: rgb:55/66/ff
 URxvt.color12: rgb:77/88/ff
 URxvt.colorURL: rgb:d9/ff/ff
 URxvt.cursorColor: rgb:ff/00/ff
-URxvt.pointerColor: rgb:00/ff/ff
+URxvt.pointerColor: rgb:ff/ff/ff
 URxvt.fading: 20
 URxvt.scrollBar: off
 !! I *hate* bold fonts in terminal, use intensity colors instead. Disable them
@@ -54,6 +54,19 @@ URxvt.italicFont:
 URxvt.boldItalicFont:
 URxvt.intensityStyles: on
 URxvt.font: -windows-proggytinysz-medium-r-normal--10-80-96-96-c-60-iso8859-1
+!! C-M-[0-7] to change font sizes (useful for presentations)
+URxvt.keysym.C-M-0: command:\033]50;-windows-proggytinysz-medium-r-normal--10-80-96-96-c-60-iso8859-1\007
+URxvt.keysym.C-M-1: command:\033]50;-xos4-terminus-medium-r-normal--12-120-72-72-c-60-*-u\007
+URxvt.keysym.C-M-2: command:\033]50;-xos4-terminus-medium-r-normal--16-160-72-72-c-*-*-u\007
+URxvt.keysym.C-M-3: command:\033]50;-xos4-terminus-medium-r-normal--20-200-72-72-c-*-*-u\007
+URxvt.keysym.C-M-4: command:\033]50;-xos4-terminus-medium-r-normal--22-220-72-72-c-*-*-u\007
+URxvt.keysym.C-M-5: command:\033]50;-xos4-terminus-medium-r-normal--24-240-72-72-c-*-*-u\007
+URxvt.keysym.C-M-6: command:\033]50;-xos4-terminus-medium-r-normal--28-280-72-72-c-*-*-u\007
+URxvt.keysym.C-M-7: command:\033]50;-xos4-terminus-medium-r-normal--32-320-72-72-c-*-*-u\007
+!! C-M-[8-9] to change terminal size
+URxvt.keysym.C-M-8: command:\033[8;40;80t\007
+URxvt.keysym.C-M-9: command:\033[8;80;120t\007
+
 URxvt.saveLines: 5000
 !! add ":" to cutchars, as grep/gcc and others output filename:message
 URxvt.cutchars: '`"&()*,;<=>?@[]^{|}:~'
