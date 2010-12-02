@@ -106,6 +106,8 @@ for f in sys.stdin.readlines():
     if f[-1] == '\n':
         f = f[:-1]
 
+    f = os.path.realpath(f)
+
     try:
         track = _ipod_tracks[f]
     except KeyError:
