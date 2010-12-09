@@ -195,7 +195,7 @@ for p in patches:
     for line in msg:
         f.write(line)
         f.write("\n")
-    if not has_author and sender != "":
+    if has_author and sender != "":
         f.write("\nBy: %s\n" % (sender,))
     f.write("\n--This line, and those below, will be ignored--\n")
     f.close()
