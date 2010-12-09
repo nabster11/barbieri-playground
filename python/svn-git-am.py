@@ -56,6 +56,7 @@ rx_addfile = re.compile(r"^-{3}\s+/dev/null\s*$")
 rx_delfile = re.compile(r"^[+]{3}\s+/dev/null\s*$")
 rx_getfile = re.compile(r"^[+-]{3}\s+(\S+)\s*$")
 rx_chfile = re.compile(r"^[+]{3}\s+(\S+)\s*$")
+rx_newmode = re.compile(r"^new( file)? mode (\d+)$")
 rx_endmsg = re.compile(r"^---\s*$")
 rx_subject_prefix = re.compile("\[[^\]]*\]\s*")
 
@@ -104,6 +105,7 @@ for p in patches:
     msg_ended = False
     next_op = None
     last_line = ""
+    new_mode = None
 
     payload = mail.get_payload()
     for line in payload.split('\n'):
@@ -117,7 +119,10 @@ for p in patches:
                 if not has_author and rx_authorship.search(line):
                     has_author = True
         elif next_op is None:
-            if rx_addfile.search(line):
+            m = rx_newmode.search(line)
+            if m:
+                new_mode = int(m.group(2), 8)
+            elif rx_addfile.search(line):
                 next_op = "add"
             elif rx_delfile.search(line):
                 m = rx_getfile.search(last_line)
@@ -128,13 +133,15 @@ for p in patches:
                 m = rx_getfile.search(line)
                 if m:
                     f = m.group(1)[2:]
-                    files["ch"].append(f)
+                    files["ch"].append((new_mode, f))
+                    new_mode = None
         elif next_op == "add":
             m = rx_getfile.search(line)
             if m:
                 f = m.group(1)[2:]
-                files[next_op].append(f)
+                files[next_op].append((new_mode, f))
                 next_op = None
+                new_mode = None
 
 
         last_line = line
@@ -145,16 +152,22 @@ for p in patches:
     print "\n"
     if files["add"]:
         print "       files to add:"
-        for f in files["add"]:
-            print "\t+ %r" % f
+        for m, f in files["add"]:
+            if m:
+                print "\t+ %r [mode=%o]" % (f, m)
+            else:
+                print "\t+ %r" % f
     if files["del"]:
         print "       files to del:"
         for f in files["del"]:
             print "\t- %r" % f
     if files["ch"]:
         print "       files changed:"
-        for f in files["ch"]:
-            print "\t- %r" % f
+        for m, f in files["ch"]:
+            if m:
+                print "\t* %r [mode=%o]" % (f, m)
+            else:
+                print "\t* %r" % f
 
     print "\n"
 
@@ -163,12 +176,14 @@ for p in patches:
     to_commit = []
 
     if files["add"]:
-        for f in files["add"]:
+        for m, f in files["add"]:
             pieces = os.path.dirname(f).split(os.path.sep)
             dname = "."
             for pname in pieces:
                 dname = os.path.join(dname, pname)
                 if not os.path.isdir(dname + "/.svn"):
+                    if m:
+                        os.chmod(dname, m)
                     system("svn add %r", dname)
                     to_commit.append(dname)
                     break
@@ -180,7 +195,9 @@ for p in patches:
             system("svn rm %r", f)
             to_commit.append(f)
     if files["ch"]:
-        for f in files["ch"]:
+        for m, f in files["ch"]:
+            if m:
+                os.chmod(f, m)
             to_commit.append(f)
 
     tmpfile = "svn-commit.tmp"
