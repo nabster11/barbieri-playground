@@ -197,6 +197,8 @@ for p in patches:
     if files["ch"]:
         for m, f in files["ch"]:
             if m:
+                # XXX TODO: is svn smart enough to detect this? Or do we need
+                # XXX TODO: to check old mode and set svn:executable?
                 os.chmod(f, m)
             to_commit.append(f)
 
