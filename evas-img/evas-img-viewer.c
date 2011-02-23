@@ -171,8 +171,17 @@ int main(int argc, char *argv[])
             w = ceil(iw * scale);
             h = ceil(ih * scale);
         } else if (w < 1 && h < 1) {
-            w = iw;
-            h = ih;
+
+            if (iw > 1920) {
+                w = 1920;
+                h = ceil(ih * (double)1920 / (double)iw);
+            } else if (ih > 1920) {
+                h = 1920;
+                w = ceil(iw * (double)1920 / (double)ih);
+            } else {
+                w = iw;
+                h = ih;
+            }
         } else {
             if (w < 1)
                 w = ceil(iw * (double)h / (double)ih);
