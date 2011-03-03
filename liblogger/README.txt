@@ -79,10 +79,16 @@ provided formatters and checkers):
             functions by their names.
             Default: <empty>
 
-        overrides = filename
-            if provided, this file will be included before actual log
-            wrapper calls so pieces of this code can be referred by the
-            generated code. See function overrides below.
+        overrides = filename1,filename2,...
+            if provided, these files will be included before actual
+            log wrapper calls so pieces of this code can be referred
+            by the generated code. See function overrides below.
+            Default: <empty>
+
+        headers = filename1,filename2,...
+            if provided, these files will be included before actual
+            log wrapper calls or overrides. Likely you'll add files
+            your parsed header depends on.
             Default: <empty>
 
         assume-safe-formatters = boolean

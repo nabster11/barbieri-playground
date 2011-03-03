@@ -1178,11 +1178,20 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
     cfg = ctxt["cfg"]
     if cfg:
         try:
+            headers = cfg.get("global", "headers")
+        except Exception, e:
+            headers = None
+        if headers:
+            for h in headers.split(","):
+                f.write("#include <%s>\n" % h)
+
+        try:
             overrides = cfg.get("global", "overrides")
         except Exception, e:
             overrides = None
         if overrides:
-            f.write("#include \"%s\"\n" % overrides)
+            for o in overrides.split(","):
+                f.write("#include \"%s\"\n" % o)
 
 
 provided_formatters = {
