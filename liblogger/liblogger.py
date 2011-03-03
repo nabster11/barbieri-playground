@@ -1595,6 +1595,8 @@ if __name__ == "__main__":
     if not prefix:
         prefix = prefix_from_libname(libname)
 
+    prefix = re.sub("[^a-zA-z0-9_]", "_", prefix)
+
     ctxt = {
         "header": header,
         "header_contents": header_contents,
