@@ -142,6 +142,7 @@ provided formatters and checkers):
                 %(prefix)s_log_fmt_hex_long_long
                 %(prefix)s_log_fmt_bool
                 %(prefix)s_log_fmt_string
+                %(prefix)s_log_fmt_double
                 %(prefix)s_log_fmt_pointer
 
 
