@@ -245,7 +245,7 @@ class Node(object):
         self.parts = parts
         self.children = children or []
         self.enclosure = None
-        self.pending = True
+        self.pending = False
 
     def __str__(self):
         return "<%s>" % ",".join(str(x) for x in self.parts)
@@ -256,6 +256,8 @@ class Node(object):
             s += ", parent=[%s]" % ",".join(str(x) for x in self.parent.parts)
         if self.children:
             s += ", children=[%s]" % ",".join(str(x) for x in self.children)
+        if self.pending:
+            s += ", pending=True"
         return s + ")"
 
 
