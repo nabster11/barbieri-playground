@@ -1209,6 +1209,23 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
                 f.write("#include \"%s\"\n" % o)
 
 
+def type_is_pointer(type, ctxt):
+    if "*" in type:
+        return True
+    if type == "va_list":
+        return True
+
+    typedefs = ctxt["header_contents"]["typedef"]
+    try:
+        alias = typedefs[type]
+        if alias.func is not None:
+            return True
+        elif type_is_pointer(alias.reference, ctxt):
+            return True
+    except KeyError, e:
+        return False
+
+
 provided_formatters = {
     "int": "%(prefix)s_log_fmt_int",
     "signed-int": "%(prefix)s_log_fmt_int",
@@ -1263,7 +1280,7 @@ def get_type_formatter(func, name, type, ctxt):
     type = type.replace(" ", "-")
 
     formatter = "%(prefix)s_log_fmt_long_long"
-    if "*" in type or type == "va_list":
+    if type_is_pointer(type, ctxt):
         formatter = "%(prefix)s_log_fmt_pointer"
     elif type in provided_formatters:
         formatter = provided_formatters[type]
@@ -1315,7 +1332,7 @@ def get_type_formatter(func, name, type, ctxt):
     if safe:
         if custom_formatter:
             return custom_formatter
-        elif "*" in type and type in provided_formatters:
+        elif type_is_pointer(type, ctxt):
             formatter = provided_formatters[type] % ctxt
     elif custom_formatter:
         print "Ignoring formatter '%s': %s not safe" % (custom_formatter, type)
@@ -1372,7 +1389,7 @@ def generate_func(f, func, ctxt):
         print "Ignored: %s() cannot handle variable arguments" % (func.name,)
         return
 
-    if "*" in func.ret_type:
+    if type_is_pointer(func.ret_type, ctxt):
         ret_default = "NULL"
     else:
         ret_default = "0"
