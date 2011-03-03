@@ -625,7 +625,21 @@ def generate_preamble(f, ctxt):
     f.write("""
 /* this file was auto-generated from %(header)s by %(progname)s. */
 
-#include <%(header)s>
+""")
+
+    cfg = ctxt["cfg"]
+    if cfg:
+        try:
+            headers = cfg.get("global", "headers")
+        except Exception, e:
+            headers = None
+        if headers:
+            for h in headers.split(","):
+                f.write("#include <%s>\n" % h)
+    else:
+        f.write("#include <%(header)s>\n" % ctxt)
+
+    f.write("""
 #include <stdio.h>
 #include <dlfcn.h>
 #include <string.h>
@@ -1185,16 +1199,7 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
        "libname": ctxt["libname"],
        "progname": os.path.basename(sys.argv[0]),
        })
-    cfg = ctxt["cfg"]
     if cfg:
-        try:
-            headers = cfg.get("global", "headers")
-        except Exception, e:
-            headers = None
-        if headers:
-            for h in headers.split(","):
-                f.write("#include <%s>\n" % h)
-
         try:
             overrides = cfg.get("global", "overrides")
         except Exception, e:

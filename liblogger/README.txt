@@ -88,7 +88,10 @@ provided formatters and checkers):
         headers = filename1,filename2,...
             if provided, these files will be included before actual
             log wrapper calls or overrides. Likely you'll add files
-            your parsed header depends on.
+            your parsed header depends on. If defined the source
+            header will not be included automatically and you must do
+            it explicitly (done to cope with libs such as dbus that
+            prohibits including internal headers directly)
             Default: <empty>
 
         assume-safe-formatters = boolean
