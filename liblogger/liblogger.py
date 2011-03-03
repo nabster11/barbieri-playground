@@ -8,11 +8,6 @@ from ConfigParser import SafeConfigParser as ConfigParser
 
 re_doublespaces = re.compile('\s\s+')
 
-"""
-TODO:
-
-"""
-
 def header_tokenize(header_file, cfg):
     ignore_tokens = config_get_regexp(cfg, "global", "ignore-tokens-regexp")
     f = open(header_file)
@@ -660,12 +655,14 @@ static unsigned char %(prefix)s_th_initted = 0;
 #define %(prefix)s_THREAD_ID ((unsigned long)pthread_self())
 #define %(prefix)s_LOCK pthread_mutex_lock(&%(prefix)s_th_mutex)
 #define %(prefix)s_UNLOCK pthread_mutex_unlock(&%(prefix)s_th_mutex)
+#define %(prefix)s_THREAD_LOCAL __thread
 #else
 #define %(prefix)s_THREADS_INIT do{}while(0)
 #define %(prefix)s_IS_MAIN_THREAD (1)
 #define %(prefix)s_THREAD_ID (0UL)
 #define %(prefix)s_LOCK do{}while(0)
 #define %(prefix)s_UNLOCK do{}while(0)
+#define %(prefix)s_THREAD_LOCAL
 #endif
 
 #ifdef %(prefix)s_LOGFILE
@@ -798,12 +795,24 @@ static inline void %(prefix)s_log_params_end(void)
     putc(')', %(prefix)s_log_fp);
 }
 
+#ifdef %(prefix)s_LOG_INDENT
+static %(prefix)s_THREAD_LOCAL int %(prefix)s_log_indentation = 0;
+#endif
+
 static inline void %(prefix)s_log_enter_start(const char *name)
 {
     %(prefix)s_LOG_PREPARE;
     %(prefix)s_LOCK;
 
     %(prefix)s_LOG_TIMESTAMP_SHOW;
+
+#ifdef %(prefix)s_LOG_INDENT
+    int i;
+
+    for (i = 0; i < %(prefix)s_log_indentation; i++)
+        fputs(%(prefix)s_LOG_INDENT, %(prefix)s_log_fp);
+    %(prefix)s_log_indentation++;
+#endif
 
     if (!%(prefix)s_IS_MAIN_THREAD)
         fprintf(%(prefix)s_log_fp, \"[T:%%lu]\", %(prefix)s_THREAD_ID);
@@ -825,6 +834,14 @@ static inline void %(prefix)s_log_exit_start(const char *name)
     %(prefix)s_LOCK;
 
     %(prefix)s_LOG_TIMESTAMP_SHOW;
+
+#ifdef %(prefix)s_LOG_INDENT
+    int i;
+
+    %(prefix)s_log_indentation--;
+    for (i = 0; i < %(prefix)s_log_indentation; i++)
+        fputs(%(prefix)s_LOG_INDENT, %(prefix)s_log_fp);
+#endif
 
     if (!%(prefix)s_IS_MAIN_THREAD)
         fprintf(%(prefix)s_log_fp, \"[T:%%lu]\", %(prefix)s_THREAD_ID);
@@ -1453,7 +1470,11 @@ BINS = \\
     %(sourcename)s-color.so \\
     %(sourcename)s-color-timestamp.so \\
     %(sourcename)s-color-threads.so \\
-    %(sourcename)s-color-threads-timestamp.so
+    %(sourcename)s-color-threads-timestamp.so \\
+    %(sourcename)s-color-indent.so \\
+    %(sourcename)s-color-indent-timestamp.so \\
+    %(sourcename)s-color-indent-threads.so \\
+    %(sourcename)s-color-indent-threads-timestamp.so
 
 .PHONY: all clean
 all: $(BINS)
@@ -1474,6 +1495,18 @@ clean:
 
 %(sourcename)s-color-threads-timestamp.so: %(sourcefile)s %(makefile)s
 \t$(CC) -shared -D%(prefix)s_USE_COLORS=1 -D%(prefix)s_HAVE_THREADS=1 -D%(prefix)s_LOG_TIMESTAMP=1 $(CFLAGS) $(LDFLAGS) -lpthread $< -o $@
+
+%(sourcename)s-color-indent.so: %(sourcefile)s %(makefile)s
+\t$(CC) -shared -D%(prefix)s_USE_COLORS=1 -D%(prefix)s_LOG_INDENT='\"  \"' $(CFLAGS) $(LDFLAGS) $< -o $@
+
+%(sourcename)s-color-indent-timestamp.so: %(sourcefile)s %(makefile)s
+\t$(CC) -shared -D%(prefix)s_USE_COLORS=1 -D%(prefix)s_LOG_INDENT='\"  \"' -D%(prefix)s_LOG_TIMESTAMP=1 $(CFLAGS) $(LDFLAGS) $< -o $@
+
+%(sourcename)s-color-indent-threads.so: %(sourcefile)s %(makefile)s
+\t$(CC) -shared -D%(prefix)s_USE_COLORS=1 -D%(prefix)s_LOG_INDENT='\"  \"' -D%(prefix)s_HAVE_THREADS=1 $(CFLAGS) $(LDFLAGS) -lpthread $< -o $@
+
+%(sourcename)s-color-indent-threads-timestamp.so: %(sourcefile)s %(makefile)s
+\t$(CC) -shared -D%(prefix)s_USE_COLORS=1 -D%(prefix)s_LOG_INDENT='\"  \"' -D%(prefix)s_HAVE_THREADS=1 -D%(prefix)s_LOG_TIMESTAMP=1 $(CFLAGS) $(LDFLAGS) -lpthread $< -o $@
 
 """ % repl)
     f.close()
