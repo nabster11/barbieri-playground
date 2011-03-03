@@ -115,7 +115,8 @@ provided formatters and checkers):
             in order to be safe, formatters will not access pointer
             contents by default unless funct parameters or return are
             marked appropriately or "assume-safe-formatters = true" in
-            "global" section. See function sections below.
+            "global" section. See safe-formatters and function
+            sections below.
 
             formatter function is a C function provided by liblogger
             or by yourself with the overrides file included with the
@@ -153,6 +154,16 @@ provided formatters and checkers):
                 %(prefix)s_log_fmt_string
                 %(prefix)s_log_fmt_double
                 %(prefix)s_log_fmt_pointer
+
+
+    [safe-formatters]
+
+        Allows user to define a single type formatter globally safe or
+        unsafe.
+
+        <type> = boolean
+            if true, the type formatter is safe, otherwise it's not.
+            Default: false or global/assume-safe-formatters
 
 
     [return-checkers]

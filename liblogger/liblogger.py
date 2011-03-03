@@ -1303,11 +1303,22 @@ def get_type_formatter(func, name, type, ctxt):
 
     if param_formatter:
         return param_formatter
+
+    if not safe:
+        try:
+            safe = cfg.getboolean("safe-formatters", type)
+        except Exception, e:
+            safe_pointer_formatter = "%(prefix)s_log_fmt_pointer" % ctxt
+            if not safe and custom_formatter == safe_pointer_formatter:
+                safe = True
+
     if safe:
         if custom_formatter:
             return custom_formatter
         elif "*" in type and type in provided_formatters:
             formatter = provided_formatters[type] % ctxt
+    elif custom_formatter:
+        print "Ignoring formatter '%s': %s not safe" % (custom_formatter, type)
     return formatter
 
 
