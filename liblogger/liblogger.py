@@ -311,7 +311,17 @@ def convert_func_params(node):
 def process(data, node, last_node=None):
     #print "\033[1;35mNODE:", repr(node), "\033[0m"
     if node.parts[0] == "enum":
-        name = node.parts[1]
+        if len(node.parts) > 1:
+            name = node.parts[1]
+        else:
+            tmp = node
+            name = ""
+            while tmp and len(tmp.parts) == 1:
+                name += "<anonymous-inside>"
+                tmp = tmp.parent
+            if tmp:
+                name += tmp.parts[-1]
+
         p = Enum(name)
         if not node.children:
             return data["enum"].setdefault(name, p)
