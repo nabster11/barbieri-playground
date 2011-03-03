@@ -11,12 +11,10 @@ re_doublespaces = re.compile('\s\s+')
 """
 TODO:
 
- * handle variable arguments (...)
- * ignore static functions
- * work with __attribute__((something))
 """
 
-def header_tokenize(header_file):
+def header_tokenize(header_file, cfg):
+    ignore_tokens = config_get_regexp(cfg, "global", "ignore-tokens-regexp")
     f = open(header_file)
     in_comment = False
     in_macro = False
@@ -66,20 +64,34 @@ def header_tokenize(header_file):
 
     buf = " ".join(buf)
     tokens = []
+    attribute_regexp = re.compile("""\
+__attribute__\s*[(]{2}(\
+(\s+|[a-zA-Z0-9_ ]+|[a-zA-Z0-9_ ]+[(][^)]*[)]\s*){0,1}|\
+(([a-zA-Z0-9_ ]+|[a-zA-Z0-9_ ]+[(][^)]*[)]\s*),\
+([a-zA-Z0-9_ ]+|[a-zA-Z0-9_ ]+[(][^)]*[)]\s*))+\
+)[)]{2}""")
     for line in buf.split(";"):
         line = line.strip()
         if not line:
             continue
         last_i = 0
+        line = re_doublespaces.sub(' ', line)
+        if ignore_tokens:
+            line = ignore_tokens.sub("", line).strip()
+            if not line:
+                continue
+        if line.startswith("static "):
+            continue
+        line = attribute_regexp.sub("", line).strip()
         for i, c in enumerate(line):
             if c in (",", "{", "}", "(", ")"):
-                x = re_doublespaces.sub(' ', line[last_i:i].strip())
+                x = line[last_i:i].strip()
                 if x:
                     tokens.append(x)
                 tokens.append(c)
                 last_i = i + 1
 
-        x = re_doublespaces.sub(' ', line[last_i:].strip())
+        x = line[last_i:].strip()
         if x:
             tokens.append(x)
 
@@ -120,7 +132,7 @@ class Struct(object):
         self.members = []
 
     def add_member(self, type, name, func=None):
-        if func:
+        if func is not None:
             self.members.append((type, name, func))
         else:
             self.members.append((type, name))
@@ -144,15 +156,20 @@ class Struct(object):
 
 
 class Typedef(object):
-    def __init__(self, name, reference):
+    def __init__(self, name, reference, func=None):
         self.name = name
         self.reference = reference
+        self.func = func
 
     def decl_name(self):
         return self.name
 
     def __str__(self):
-        return "typedef %s %s;" % (self.reference, self.name)
+        if self.func is not None:
+            params = ", ".join(self.func)
+            return "typedef %s (*%s)(%s);" % (self.reference, self.name, params)
+        else:
+            return "typedef %s %s;" % (self.reference, self.name)
 
     def __repr__(self):
         return "Typedef(%s)" % (self.name,)
@@ -218,12 +235,22 @@ class Function(object):
         return "Function(%s)" % (self.name,)
 
 
+class Variable(object):
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+
+    def __str__(self):
+        return "%s %s;" % (self.type, self.name)
+
+
 class Node(object):
     def __init__(self, parent, parts, children=None):
         self.parent = parent
         self.parts = parts
         self.children = children or []
         self.enclosure = None
+        self.pending = True
 
     def __str__(self):
         return "<%s>" % ",".join(str(x) for x in self.parts)
@@ -289,10 +316,11 @@ def convert_func_params(node):
 def process(data, node, last_node=None):
     #print "\033[1;35mNODE:", repr(node), "\033[0m"
     if node.parts[0] == "enum":
+        name = node.parts[1]
+        p = Enum(name)
         if not node.children:
-            print "Ignoring enum forward declaration:", repr(node)
+            return data["enum"].setdefault(name, p)
         else:
-            p = Enum(node.parts[1])
             for v in node.children:
                 if isinstance(v, Node):
                     name = v.parts[0]
@@ -309,21 +337,21 @@ def process(data, node, last_node=None):
             return p
 
     elif node.parts[0] == "struct":
-        if not node.children:
-            print "Ignoring struct forward declaration:", repr(node)
+        if len(node.parts) > 1:
+            name = node.parts[1]
         else:
-            if len(node.parts) > 1:
-                name = node.parts[1]
-            else:
-                tmp = node
-                name = ""
-                while tmp and len(tmp.parts) == 1:
-                    name += "<anonymous-inside>"
-                    tmp = tmp.parent
-                if tmp:
-                    name += tmp.parts[-1]
+            tmp = node
+            name = ""
+            while tmp and len(tmp.parts) == 1:
+                name += "<anonymous-inside>"
+                tmp = tmp.parent
+            if tmp:
+                name += tmp.parts[-1]
 
-            p = Struct(name)
+        p = Struct(name)
+        if not node.children:
+            return data["struct"].setdefault(name, p)
+        else:
             last_member = None
             for v in node.children:
                 if isinstance(v, Node):
@@ -408,8 +436,8 @@ def process(data, node, last_node=None):
             return p
 
     elif node.parts[0] == "typedef":
-        if len(node.parts) < 3:
-            print "Ignoring typedef forward declaration:", repr(node)
+        if len(node.parts) < 3 and not node.children:
+            print "Ignoring typedef forward declaration:"
         else:
             if not node.children:
                 name = node.parts[-1]
@@ -418,11 +446,30 @@ def process(data, node, last_node=None):
                 p = Typedef(name, reference)
                 data["typedef"][p.name] = p
                 return p
+            elif last_node and not isinstance(node.children[0], Node) and \
+                     node.children[0][0] == "*":
+                node.pending = False
+                # function pointer?
+                type = " ".join(node.parts[1:])
+                name = "".join(node.children[0][1:])
+                func = []
+                for a in node.children[1:]:
+                    if isinstance(a, Node):
+                        func.append(convert_func_params(a))
+                    else:
+                        func.append(" ".join(a))
+                p = Typedef(name, type, func)
+                data["typedef"][p.name] = p
+                return p
             else:
+                node.pending = True
                 #print "typedef with declaration inside, process next time."
-                pass
     else:
-        if last_node and last_node.parts[0] == "typedef":
+        if last_node and last_node.pending \
+               and last_node.parts[0] == "typedef" \
+               and not (node.children and not isinstance(node.children[0], Node)
+                        and node.children[0][0] == "*"):
+            last_node.pending = False
             sub = Node(last_node, last_node.parts[1:], last_node.children)
             name = node.parts[-1]
             leading = node.parts[:-1]
@@ -441,6 +488,9 @@ def process(data, node, last_node=None):
             if node.parts and node.children:
                 # likely a function?
                 if "=" in node.parts: # inside enums, etc
+                    return
+                if node.parts[0] == "extern" and node.parts[1].startswith('"'):
+                    # extern "C" and like
                     return
                 tmp = node
                 while tmp:
@@ -487,21 +537,26 @@ def process(data, node, last_node=None):
                                 p.add_parameter(type)
                 data["function"][p.name] = p
                 return p
+            elif node.parts[0] == "extern":
+                name = node.parts[-1]
+                type = node.parts[1:-1]
+                type, name = pointer_fix(type, name)
+                p = Variable(name, " ".join(type))
+                data["global"][p.name] = p
+                return p
             print "Don't know what to do with node:", repr(node)
 
 
 def header_tree(header_file, cfg=None):
-    ignore_tokens = config_get_regexp(cfg, "global", "ignore-tokens-regexp")
-    tokens = header_tokenize(header_file)
-    data = {"enum": {}, "struct": {}, "function": {}, "typedef": {}}
+    tokens = header_tokenize(header_file, cfg)
+    data = {"enum": {}, "struct": {}, "function": {}, "typedef": {},
+            "global": {}}
     pending = []
     root = None
     current = None
     last_p = None
     last_node = None
     for t in tokens:
-        if ignore_tokens and ignore_tokens.match(t):
-            continue
         p = t.split(" ")
         if p[0] == ";":
             #print "\033[1;31mFINISH\033[0m", current, pending
@@ -1090,8 +1145,6 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
     (void)value;
 }
 
-/* todo: create macros and all */
-
 """ % {"header": ctxt["header"],
        "prefix": ctxt["prefix"],
        "libname": ctxt["libname"],
@@ -1252,6 +1305,10 @@ def generate_log_params(f, func, ctxt):
 
 
 def generate_func(f, func, ctxt):
+    if func.parameters and func.parameters[-1][0] == "...":
+        print "Ignored: %s() cannot handle variable arguments" % (func.name,)
+        return
+
     if "*" in func.ret_type:
         ret_default = "NULL"
     else:

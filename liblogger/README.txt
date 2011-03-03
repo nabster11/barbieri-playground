@@ -67,8 +67,11 @@ provided formatters and checkers):
     [global]
 
         ignore-tokens-regexp = string with regular expression
-            if provided, this regular expression will filter out undesired
-            tokens such as macros you want to remove.
+            if provided, this regular expression will filter out
+            undesired tokens such as macros you want to remove
+            (matches will be replaced with ""). Lines starting with
+            "static " and compiler attributes declared with
+            __attribute__(()) are always removed.
             Default: <empty>
 
         ignore-functions-regexp = string with regular expression
