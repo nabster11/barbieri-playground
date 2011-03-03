@@ -177,7 +177,7 @@ class Function(object):
         self.parameters = parameters or []
 
     def add_parameter(self, type, name=None, func=None):
-        if func:
+        if func is not None:
             self.parameters.append((type, name, func))
         elif name:
             self.parameters.append((type, name))
@@ -198,7 +198,7 @@ class Function(object):
     def parameters_names_str(self):
         if not self.parameters:
             return ""
-        if self.parameters[0][0] == "void":
+        if self.parameters[0][0] == "void" and len(self.parameters[0]) == 1:
             return ""
 
         params = []
@@ -1368,13 +1368,16 @@ def get_return_checker(func, type, ctxt):
 
 
 def generate_log_params(f, func, ctxt):
-    if not func.parameters or func.parameters[0][0] == "void":
+    if not func.parameters or \
+       (func.parameters[0][0] == "void" and len(func.parameters[0]) == 1):
         return
     prefix = ctxt["prefix"]
     f.write("    %s_log_params_begin();\n" % (prefix,))
     for i, p in enumerate(func.parameters):
         type = p[0]
         name = p[1]
+        if len(p) > 2:
+            type += "(*)(%s)" % ", ".join(p[2])
         formatter = get_type_formatter(func.name, name, type, ctxt)
         f.write("    errno = %s_bkp_errno;\n" % prefix)
         f.write("    %s(%s_log_fp, \"%s\", \"%s\", %s);\n" %
