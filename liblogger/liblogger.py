@@ -11,15 +11,9 @@ re_doublespaces = re.compile('\s\s+')
 """
 TODO:
 
-URGENT: merge tokens, so:
-
-    int
-    a
-
-is translated back to:
-
-    int a
-
+ * handle variable arguments (...)
+ * ignore static functions
+ * work with __attribute__((something))
 """
 
 def header_tokenize(header_file):
@@ -595,9 +589,18 @@ def generate_preamble(f, ctxt):
 
 #ifdef %(prefix)s_HAVE_THREADS
 #include <pthread.h>
-pthread_mutex_t %(prefix)s_th_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_t %(prefix)s_th_main = 0;
-#define %(prefix)s_THREADS_INIT do{%(prefix)s_th_main = pthread_self()}while(0)
+static pthread_mutex_t %(prefix)s_th_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t %(prefix)s_th_main = 0;
+static unsigned char %(prefix)s_th_initted = 0;
+#define %(prefix)s_THREADS_INIT \\
+    do { \\
+        pthread_mutex_lock(&%(prefix)s_th_mutex); \\
+        if (!%(prefix)s_th_initted) { \\
+            %(prefix)s_th_initted = 1; \\
+            %(prefix)s_th_main = pthread_self(); \\
+        } \\
+        pthread_mutex_unlock(&%(prefix)s_th_mutex); \\
+    } while(0)
 #define %(prefix)s_IS_MAIN_THREAD (%(prefix)s_th_main == pthread_self())
 #define %(prefix)s_THREAD_ID ((unsigned long)pthread_self())
 #define %(prefix)s_LOCK pthread_mutex_lock(&%(prefix)s_th_mutex)
@@ -638,11 +641,47 @@ static FILE *%(prefix)s_log_fp = NULL;
     do{ if (!%(prefix)s_log_fp) %(prefix)s_log_fp = stderr; }while(0)
 #endif
 
+#ifdef %(prefix)s_LOG_TIMESTAMP
+#ifdef %(prefix)s_LOG_TIMESTAMP_CLOCK_GETTIME
+#include <time.h>
+
+#ifndef %(prefix)s_LOG_TIMESTAMP_CLOCK_SOURCE
+#define %(prefix)s_LOG_TIMESTAMP_CLOCK_SOURCE CLOCK_MONOTONIC
+#endif
+
+#define %(prefix)s_LOG_TIMESTAMP_SHOW \\
+    do { \\
+        struct timespec spec = {0, 0}; \\
+        clock_gettime(%(prefix)s_LOG_TIMESTAMP_CLOCK_SOURCE, &spec); \\
+        fprintf(%(prefix)s_log_fp, \"[%%5lu.%%06lu] \", \\
+                (unsigned long)tv.tv_sec, \\
+                (unsigned long)tv.tv_usec / 1000); \\
+    } while (0)
+
+#else /* fallback to gettimeofday() */
+
+#include <sys/time.h>
+#define %(prefix)s_LOG_TIMESTAMP_SHOW \\
+    do { \\
+        struct timeval tv = {0, 0}; \\
+        gettimeofday(&tv, NULL); \\
+        fprintf(%(prefix)s_log_fp, \"[%%5lu.%%06lu] \", \\
+                (unsigned long)tv.tv_sec, \\
+                (unsigned long)tv.tv_usec); \\
+    } while (0)
+
+#endif
+#else
+#define %(prefix)s_LOG_TIMESTAMP_SHOW do{}while(0)
+#endif
+
 static void *%(prefix)s_dl_handle = NULL;
 
 static unsigned char %(prefix)s_dl_prepare(void)
 {
     unsigned char ok;
+
+    %(prefix)s_THREADS_INIT;
 
     %(prefix)s_LOCK;
     ok = !!%(prefix)s_dl_handle;
@@ -654,7 +693,7 @@ static unsigned char %(prefix)s_dl_prepare(void)
             %(prefix)s_dl_handle = NULL;
             fprintf(stderr,
                     %(prefix)s_COLOR_ERROR
-                    \"ERROR: could not dlopen(%(libname)s): %%s\"
+                    \"ERROR: could not dlopen(%(libname)s): %%s\\n\"
                     %(prefix)s_COLOR_CLEAR, errmsg);
         }
         ok = !!%(prefix)s_dl_handle;
@@ -678,7 +717,7 @@ static unsigned char %(prefix)s_dl_prepare(void)
             if (%(prefix)s_dl_err) { \\
                 fprintf(stderr, \\
                         %(prefix)s_COLOR_ERROR \\
-                        \"ERROR: could not dlsym(%%s): %%s\" \\
+                        \"ERROR: could not dlsym(%%s): %%s\\n\" \\
                         %(prefix)s_COLOR_CLEAR, \\
                         name, %(prefix)s_dl_err); \\
             } \\
@@ -708,12 +747,19 @@ static inline void %(prefix)s_log_enter_start(const char *name)
 {
     %(prefix)s_LOG_PREPARE;
     %(prefix)s_LOCK;
+
+    %(prefix)s_LOG_TIMESTAMP_SHOW;
+
+    if (!%(prefix)s_IS_MAIN_THREAD)
+        fprintf(%(prefix)s_log_fp, \"[T:%%lu]\", %(prefix)s_THREAD_ID);
+
     fprintf(%(prefix)s_log_fp, %(prefix)s_COLOR_ENTER \"LOG> %%s\", name);
 }
 
 static inline void %(prefix)s_log_enter_end(const char *name)
 {
     fputs(%(prefix)s_COLOR_CLEAR \"\\n\", %(prefix)s_log_fp);
+    fflush(%(prefix)s_log_fp);
     %(prefix)s_UNLOCK;
     (void)name;
 }
@@ -722,6 +768,11 @@ static inline void %(prefix)s_log_exit_start(const char *name)
 {
     %(prefix)s_LOG_PREPARE;
     %(prefix)s_LOCK;
+
+    %(prefix)s_LOG_TIMESTAMP_SHOW;
+
+    if (!%(prefix)s_IS_MAIN_THREAD)
+        fprintf(%(prefix)s_log_fp, \"[T:%%lu]\", %(prefix)s_THREAD_ID);
     fprintf(%(prefix)s_log_fp, %(prefix)s_COLOR_EXIT \"LOG< %%s\", name);
 }
 
@@ -733,6 +784,7 @@ static inline void %(prefix)s_log_exit_return(void)
 static inline void %(prefix)s_log_exit_end(const char *name)
 {
     fputs(%(prefix)s_COLOR_CLEAR \"\\n\", %(prefix)s_log_fp);
+    fflush(%(prefix)s_log_fp);
     %(prefix)s_UNLOCK;
     (void)name;
 }
@@ -978,7 +1030,7 @@ static inline void %(prefix)s_log_fmt_string(FILE *p, const char *type, const ch
         if (value)
             fprintf(p, \"%%s %%s=\\\"%%s\\\"\", type, name, value);
         else
-            fprintf(p, \"%%s %%s=(null)\", type, name ? name : "");
+            fprintf(p, \"%%s %%s=(null)\", type, name);
     } else {
         if (value)
             fprintf(p, \"(%%s)\\\"%%s\\\"\", type, value);
@@ -1057,37 +1109,37 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
 
 provided_formatters = {
     "int": "%(prefix)s_log_fmt_int",
-    "signed int": "%(prefix)s_log_fmt_int",
-    "unsigned int": "%(prefix)s_log_fmt_uint",
+    "signed-int": "%(prefix)s_log_fmt_int",
+    "unsigned-int": "%(prefix)s_log_fmt_uint",
     "unsigned": "%(prefix)s_log_fmt_uint",
     "int32_t": "%(prefix)s_log_fmt_int",
     "uint32_t": "%(prefix)s_log_fmt_uint",
 
     "char": "%(prefix)s_log_fmt_char",
-    "signed char": "%(prefix)s_log_fmt_char",
-    "unsigned char": "%(prefix)s_log_fmt_uchar",
+    "signed-char": "%(prefix)s_log_fmt_char",
+    "unsigned-char": "%(prefix)s_log_fmt_uchar",
     "int8_t": "%(prefix)s_log_fmt_char",
     "uint8_t": "%(prefix)s_log_fmt_uchar",
 
     "short": "%(prefix)s_log_fmt_short",
-    "signed short": "%(prefix)s_log_fmt_short",
-    "unsigned short": "%(prefix)s_log_fmt_ushort",
-    "signed short int": "%(prefix)s_log_fmt_short",
-    "unsigned short int": "%(prefix)s_log_fmt_ushort",
+    "signed-short": "%(prefix)s_log_fmt_short",
+    "unsigned-short": "%(prefix)s_log_fmt_ushort",
+    "signed-short-int": "%(prefix)s_log_fmt_short",
+    "unsigned-short-int": "%(prefix)s_log_fmt_ushort",
     "int16_t": "%(prefix)s_log_fmt_short",
     "uint16_t": "%(prefix)s_log_fmt_ushort",
 
     "long": "%(prefix)s_log_fmt_long",
-    "signed long": "%(prefix)s_log_fmt_long",
-    "unsigned long": "%(prefix)s_log_fmt_ulong",
-    "signed long int": "%(prefix)s_log_fmt_long",
-    "unsigned long int": "%(prefix)s_log_fmt_ulong",
+    "signed-long": "%(prefix)s_log_fmt_long",
+    "unsigned-long": "%(prefix)s_log_fmt_ulong",
+    "signed-long-int": "%(prefix)s_log_fmt_long",
+    "unsigned-long-int": "%(prefix)s_log_fmt_ulong",
 
-    "long long": "%(prefix)s_log_fmt_long_long",
-    "signed long long": "%(prefix)s_log_fmt_long_long",
-    "unsigned long long": "%(prefix)s_log_fmt_ulong_long",
-    "signed long long int": "%(prefix)s_log_fmt_long_long",
-    "unsigned long long int": "%(prefix)s_log_fmt_ulong_long",
+    "long-long": "%(prefix)s_log_fmt_long_long",
+    "signed-long-long": "%(prefix)s_log_fmt_long_long",
+    "unsigned-long-long": "%(prefix)s_log_fmt_ulong_long",
+    "signed-long-long-int": "%(prefix)s_log_fmt_long_long",
+    "unsigned-long-long-int": "%(prefix)s_log_fmt_ulong_long",
     "int64_t": "%(prefix)s_log_fmt_long_long",
     "uint64_t": "%(prefix)s_log_fmt_ulong_long",
 
@@ -1096,13 +1148,17 @@ provided_formatters = {
     "_Bool": "%(prefix)s_log_fmt_bool",
     "BOOL": "%(prefix)s_log_fmt_bool",
 
-    "char *": "%(prefix)s_log_fmt_string",
-    "void *": "%(prefix)s_log_fmt_pointer",
+    "char-*": "%(prefix)s_log_fmt_string",
+    "const-char-*": "%(prefix)s_log_fmt_string",
+    "const-*-char-*": "%(prefix)s_log_fmt_string",
+    "void-*": "%(prefix)s_log_fmt_pointer",
     }
 
 def get_type_formatter(func, name, type, ctxt):
-    formatter = "%(prefix)s_log_fmt_number"
-    if "*" in type:
+    type = type.replace(" ", "-")
+
+    formatter = "%(prefix)s_log_fmt_long_long"
+    if "*" in type or type == "va_list":
         formatter = "%(prefix)s_log_fmt_pointer"
     elif type in provided_formatters:
         formatter = provided_formatters[type]
@@ -1118,7 +1174,6 @@ def get_type_formatter(func, name, type, ctxt):
     except Exception, e:
         pass
 
-    type = type.replace(" ", "-")
     try:
         custom_formatter = cfg.get("type-formatters", type, vars=ctxt)
     except Exception, e:
