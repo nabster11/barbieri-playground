@@ -1220,6 +1220,26 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
                 f.write("#include \"%s\"\n" % o)
 
 
+def get_type_alias(type, ctxt):
+    typedefs = ctxt["header_contents"]["typedef"]
+    try:
+        alias = typedefs[type]
+    except KeyError, e:
+        typename = re.sub("[[][0-9]+[]]", "[]", type)
+        if typename != type:
+            return typename
+        type = typename
+        typename = type.replace("[]", "*")
+        if typename != type:
+            return typename
+        return None
+
+    typename = alias.reference
+    if alias.func is not None:
+        typename += "(*)(%s)" % ", ".join(alias.func)
+    return typename
+
+
 def type_is_pointer(type, ctxt):
     if "*" in type:
         return True
@@ -1286,7 +1306,9 @@ provided_formatters = {
     "char-*": "%(prefix)s_log_fmt_string",
     "const-char-*": "%(prefix)s_log_fmt_string",
     "char-[]": "%(prefix)s_log_fmt_string",
+    "char[]": "%(prefix)s_log_fmt_string",
     "const-char-[]": "%(prefix)s_log_fmt_string",
+    "const-char[]": "%(prefix)s_log_fmt_string",
     "const-*-char-*": "%(prefix)s_log_fmt_string",
     "void-*": "%(prefix)s_log_fmt_pointer",
     }
@@ -1347,10 +1369,21 @@ def get_type_formatter(func, name, type, ctxt):
     if safe:
         if custom_formatter:
             return custom_formatter
-        elif type_is_pointer(type, ctxt):
+        elif type_is_pointer(type, ctxt) and type in provided_formatters:
             formatter = provided_formatters[type] % ctxt
     elif custom_formatter:
         print "Ignoring formatter '%s': %s not safe" % (custom_formatter, type)
+        custom_formatter = None
+
+    alias = type
+    while True:
+        alias = get_type_alias(alias, ctxt)
+        if not alias:
+            break
+        custom_formatter = get_type_formatter(func, name, alias, ctxt)
+        if custom_formatter:
+            return custom_formatter
+
     return formatter
 
 
@@ -1372,6 +1405,12 @@ def get_return_checker(func, type, ctxt):
         checker = cfg.get("return-checkers", type, vars=ctxt)
     except Exception, e:
         checker = None
+        alias = type
+        while not checker:
+            alias = get_type_alias(alias, ctxt)
+            if not alias:
+                break
+            checker = get_return_checker(func, alias, ctxt)
 
     section = "func-%s" % (func,)
     try:
