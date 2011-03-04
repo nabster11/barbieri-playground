@@ -156,6 +156,26 @@ class Struct(object):
         return "Struct(%s)" % (self.name,)
 
 
+class Union(Struct):
+    # for purposes of liblogger, union and struct are basically the same
+    def decl_name(self):
+        return "union %s" % (self.name,)
+
+    def __str__(self):
+        members = []
+        for m in self.members:
+            if len(m) == 2:
+                members.append("%s %s;" % m)
+            else:
+                args = ", ".join(m[2])
+                members.append("%s (*%s)(%s);" % (m[0], m[1], args))
+        members = " ".join(members)
+        return "union %s {%s};" % (self.name, members)
+
+    def __repr__(self):
+        return "Union(%s)" % (self.name,)
+
+
 class Typedef(object):
     def __init__(self, name, reference, func=None):
         self.name = name
@@ -352,7 +372,8 @@ def process(data, node, last_node=None):
             data["enum"][p.name] = p
             return p
 
-    elif node.parts[0] == "struct":
+    elif node.parts[0] in ("struct", "union"):
+        node_type = node.parts[0]
         if len(node.parts) > 1:
             name = node.parts[1]
         else:
@@ -364,14 +385,18 @@ def process(data, node, last_node=None):
             if tmp:
                 name += tmp.parts[-1]
 
-        p = Struct(name)
+        if node_type == "struct":
+            p = Struct(name)
+        elif node_type == "union":
+            p = Union(name)
+
         if not node.children:
-            return data["struct"].setdefault(name, p)
+            return data[node_type].setdefault(name, p)
         else:
             last_member = None
             for v in node.children:
                 if isinstance(v, Node):
-                    if v.parts[0] in ("struct", "enum") and \
+                    if v.parts[0] in ("struct", "enum", "union") and \
                            len(v.parts) <= 2:
                         last_member = process(data, v)
                     elif len(v.parts) >= 2 and not v.children:
@@ -448,7 +473,7 @@ def process(data, node, last_node=None):
                     else:
                         print "UNSUPPORTED-2:", repr(v)
 
-            data["struct"][p.name] = p
+            data[node_type][p.name] = p
             return p
 
     elif node.parts[0] == "typedef":
@@ -566,7 +591,7 @@ def process(data, node, last_node=None):
 def header_tree(header_file, cfg=None):
     tokens = header_tokenize(header_file, cfg)
     data = {"enum": {}, "struct": {}, "function": {}, "typedef": {},
-            "global": {}}
+            "union": {}, "global": {}}
     pending = []
     root = None
     current = None
