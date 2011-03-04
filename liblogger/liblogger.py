@@ -1395,7 +1395,7 @@ def generate_log_params(f, func, ctxt):
             type += "(*)(%s)" % ", ".join(p[2])
         if "[" in name:
             idx = name.find("[")
-            type += " " + name[idx:]
+            type += " " + re.sub("[0-9]", "", name[idx:])
             name = name[:idx]
         formatter = get_type_formatter(func.name, name, type, ctxt)
         f.write("    errno = %s_bkp_errno;\n" % prefix)
