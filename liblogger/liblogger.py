@@ -57,7 +57,7 @@ def header_tokenize(header_file, cfg):
             else:
                 break
 
-        line = line.replace("*", " * ").strip()
+        line = line.replace("*", " * ").replace("=", " = ").strip()
         if not line:
             continue
 
@@ -110,8 +110,17 @@ class Enum(object):
     def add_member(self, name, value=None):
         self.members.append((name, value))
 
-    def decl_name(self):
+    def has_name(self):
+        return self.name and not self.name.startswith("<")
+
+    def internal_name(self):
         return "enum %s" % (self.name,)
+
+    def decl_name(self):
+        if self.has_name():
+            return "enum %s" % (self.name,)
+        else:
+            return "enum"
 
     def __str__(self):
         members = []
@@ -138,8 +147,17 @@ class Struct(object):
         else:
             self.members.append((type, name))
 
-    def decl_name(self):
+    def has_name(self):
+        return self.name and not self.name.startswith("<")
+
+    def internal_name(self):
         return "struct %s" % (self.name,)
+
+    def decl_name(self):
+        if self.has_name():
+            return "struct %s" % (self.name,)
+        else:
+            return "struct"
 
     def __str__(self):
         members = []
@@ -158,8 +176,14 @@ class Struct(object):
 
 class Union(Struct):
     # for purposes of liblogger, union and struct are basically the same
-    def decl_name(self):
+    def internal_name(self):
         return "union %s" % (self.name,)
+
+    def decl_name(self):
+        if self.has_name():
+            return "union %s" % (self.name,)
+        else:
+            return "union"
 
     def __str__(self):
         members = []
@@ -382,7 +406,7 @@ def process(data, node, last_node=None):
             while tmp and len(tmp.parts) == 1:
                 name += "<anonymous-inside>"
                 tmp = tmp.parent
-            if tmp:
+            if tmp and not tmp.parts[-1] in ("struct", "union"):
                 name += tmp.parts[-1]
 
         if node_type == "struct":
@@ -408,9 +432,9 @@ def process(data, node, last_node=None):
                             p.add_member(type, name)
                         elif last_member:
                             if type:
-                                type = last_member.decl_name() + " " + type
+                                type = last_member.internal_name() + " " + type
                             else:
-                                type = last_member.decl_name()
+                                type = last_member.internal_name()
                             p.add_member(type, name)
                         elif p.members:
                             prev = p.members[-1]
@@ -421,7 +445,7 @@ def process(data, node, last_node=None):
                         last_member = None
                     elif last_member:
                         # struct { int x; } name;
-                        type = last_member.decl_name()
+                        type = last_member.internal_name()
                         name = v.parts[0]
                         type, name = pointer_fix(type, name)
                         p.add_member(type, name)
@@ -458,9 +482,9 @@ def process(data, node, last_node=None):
                     elif last_member:
                         # repetition "struct { decl...; } a, b;"
                         if type:
-                            type = last_member.decl_name() + " " + type
+                            type = last_member.internal_name() + " " + type
                         else:
-                            type = last_member.decl_name()
+                            type = last_member.internal_name()
                         p.add_member(type, name)
                         last_member = None
                     elif p.members:
@@ -521,7 +545,7 @@ def process(data, node, last_node=None):
             last_node.parts = ["typedef"] + parts
             last_node.children = None
             subp = process(data, sub)
-            last_node.parts = ["typedef", subp.decl_name()] + parts
+            last_node.parts = ["typedef", subp.internal_name()] + parts
             p = process(data, last_node)
             data["typedef"][p.name] = p
             return p
@@ -1650,6 +1674,113 @@ clean:
     f.close()
 
 
+def generate_type(f, type, ctxt, indent_level=1):
+    f.write(type.decl_name())
+
+    if isinstance(type, Enum):
+        if type.members:
+            f.write(" {\n")
+            for i, (member, value) in enumerate(type.members):
+                f.write("\t" * (indent_level + 1))
+                f.write(member)
+                if value:
+                    f.write(" = %s" % (value,))
+                if i + 1 < len(type.members):
+                    f.write(",")
+                f.write("\n")
+            f.write("\t" * indent_level)
+            f.write("}")
+    else:
+        if type.members:
+            f.write(" {\n")
+            for p in type.members:
+                f.write("\t" * (indent_level + 1))
+
+                parts = p[0].split(" ")
+                if parts[0] in ("enum", "struct", "union") and \
+                   parts[1].startswith("<"):
+                    sub = ctxt["header_contents"][parts[0]][parts[1]]
+                    generate_type(f, sub, ctxt, indent_level + 1)
+                    f.write(" %s;\n" % p[1])
+                elif len(p) == 3:
+                    f.write("%s (*%s)(%s);\n" % (p[0], p[1], ", ".join(p[2])))
+                else:
+                    f.write("%s %s;\n" % p)
+
+            f.write("\t" * indent_level)
+            f.write("}")
+
+
+def generate_types_file(types_file, header, ctxt):
+    data = ctxt["header_contents"]
+
+    f = open(types_file, "w")
+    f.write("/* types file automatically generated from %s */\n" % (header,))
+
+    if data["struct"]:
+        f.write("\n/* struct forward declarations */\n")
+        lst = data["struct"].values()
+        lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
+        for e in lst:
+            if e.has_name():
+                f.write("\tstruct %s;\n" % e.name)
+
+    if data["enum"]:
+        f.write("\n/* enums declarations */\n")
+        lst = data["enum"].values()
+        lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
+        for e in lst:
+            if e.has_name():
+                f.write("\t")
+                generate_type(f, e, ctxt)
+                f.write(";\n")
+
+    if data["typedef"]:
+        f.write("\n/* typedefs declarations */\n")
+        lst = data["typedef"].values()
+        lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
+        for e in lst:
+            reference = e.reference
+            f.write("\ttypedef ")
+            if e.func:
+                f.write("%s (*%s)(%s)" %
+                        (reference, e.name, ", ".join(e.func)))
+            else:
+                parts = reference.split(" ")
+                if parts[0] in ("enum", "struct", "union") and \
+                   parts[1].startswith("<"):
+                    type = data[parts[0]][parts[1]]
+                    generate_type(f, type, ctxt)
+                    f.write(" %s" % e.name)
+                else:
+                    f.write("%s %s" % (reference, e.name))
+            f.write(";\n")
+
+
+    if data["struct"]:
+        f.write("\n/* structs declarations */\n")
+        lst = data["struct"].values()
+        lst.sort(cmp=lambda a, b: cmp(a.name, b.name)) #TODO DEP ORDER
+        for e in lst:
+            if e.has_name():
+                f.write("\t")
+                generate_type(f, e, ctxt)
+                f.write(";\n")
+
+    if data["union"]:
+        f.write("\n/* unions declarations */\n")
+        lst = data["union"].values()
+        lst.sort(cmp=lambda a, b: cmp(a.name, b.name)) #TODO DEP ORDER
+        for e in lst:
+            if e.has_name():
+                f.write("\t")
+                generate_type(f, e, ctxt)
+                f.write(";\n")
+
+    f.close()
+
+
+
 def prefix_from_libname(libname):
     prefix = libname
     if prefix.startswith("lib"):
@@ -1684,6 +1815,8 @@ if __name__ == "__main__":
                       help="Symbol prefix to use (defaults to autogenerated)")
     parser.add_option("-M", "--makefile", action="store", default=None,
                       help="Generate sample makefile")
+    parser.add_option("-t", "--types-file", action="store", default=None,
+                      help="Generate header file with all parsed types")
     parser.add_option("-D", "--dump", action="store_true", default=False,
                       help="Dump parsed elements")
 
@@ -1741,3 +1874,5 @@ if __name__ == "__main__":
     if options.makefile:
         generate_makefile(options.makefile, outfile, ctxt)
 
+    if options.types_file:
+        generate_types_file(options.types_file, header, ctxt)
