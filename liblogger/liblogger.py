@@ -6,6 +6,12 @@ import optparse
 import re
 from ConfigParser import SafeConfigParser as ConfigParser
 
+"""
+TODO:
+ - handle union
+ - output gathered typedefs, structs and enums
+"""
+
 re_doublespaces = re.compile('\s\s+')
 
 def header_tokenize(header_file, cfg):
@@ -204,7 +210,10 @@ class Function(object):
         params = []
         self.parameters_unnamed_fix()
         for p in self.parameters:
-            params.append(p[1])
+            if "[" in p[1]:
+                params.append(p[1][:p[1].find("[")])
+            else:
+                params.append(p[1])
         return ", ".join(params)
 
     def parameters_str(self):
@@ -1214,6 +1223,8 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
 def type_is_pointer(type, ctxt):
     if "*" in type:
         return True
+    if "[" in type:
+        return True
     if type == "va_list":
         return True
 
@@ -1274,6 +1285,8 @@ provided_formatters = {
 
     "char-*": "%(prefix)s_log_fmt_string",
     "const-char-*": "%(prefix)s_log_fmt_string",
+    "char-[]": "%(prefix)s_log_fmt_string",
+    "const-char-[]": "%(prefix)s_log_fmt_string",
     "const-*-char-*": "%(prefix)s_log_fmt_string",
     "void-*": "%(prefix)s_log_fmt_pointer",
     }
@@ -1380,6 +1393,10 @@ def generate_log_params(f, func, ctxt):
         name = p[1]
         if len(p) > 2:
             type += "(*)(%s)" % ", ".join(p[2])
+        if "[" in name:
+            idx = name.find("[")
+            type += " " + name[idx:]
+            name = name[:idx]
         formatter = get_type_formatter(func.name, name, type, ctxt)
         f.write("    errno = %s_bkp_errno;\n" % prefix)
         f.write("    %s(%s_log_fp, \"%s\", \"%s\", %s);\n" %
