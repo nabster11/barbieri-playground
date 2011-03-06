@@ -79,6 +79,12 @@ provided formatters and checkers):
             functions by their names.
             Default: <empty>
 
+        select-functions-regexp = string with regular expression
+            if provided, this regular expression will filter out undesired
+            functions by their names that do not match. It is applied
+            after ignore-functions-regexp (double filtered).
+            Default: <empty>
+
         overrides = filename1,filename2,...
             if provided, these files will be included before actual
             log wrapper calls so pieces of this code can be referred

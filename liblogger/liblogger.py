@@ -246,7 +246,7 @@ for bi in (8, 16, 32, 64):
     BuiltinType("const int%d_t" % bi)
     BuiltinType("const uint%d_t" % bi)
 
-for bi in ("bool", "_Bool", "Bool", "boolean"):
+for bi in ("bool", "_Bool", "Bool"):
     BuiltinType(bi)
     BuiltinType("const " + bi)
 
@@ -655,6 +655,8 @@ def process_single(n, data, allow_unamed_variables=False):
          n.children[-1].enclosure == ("(", ")"):
         # function itself
         x = " ".join(n.children[:-1]).split(" ")
+        if x[0] == "extern":
+            x.pop(0)
         ret_type = " ".join(x[:-1])
         ret_pointer = ret_type.count("*")
         if ret_pointer > 0:
@@ -787,15 +789,17 @@ def generate_preamble(f, ctxt):
 """ % repl)
 
     cfg = ctxt["cfg"]
+    headers = None
     if cfg:
         try:
             headers = cfg.get("global", "headers", vars=repl)
         except Exception, e:
-            headers = None
+            pass
         if headers:
             for h in headers.split(","):
                 f.write("#include <%s>\n" % h.strip())
-    else:
+
+    if not headers:
         f.write("#include <%(header)s>\n" % ctxt)
 
     f.write("""
@@ -1693,6 +1697,7 @@ def generate(outfile, ctxt):
 
     cfg = ctxt["cfg"]
     fignore_regexp = config_get_regexp(cfg, "global", "ignore-functions-regexp")
+    fselect_regexp = config_get_regexp(cfg, "global", "select-functions-regexp")
 
     generate_preamble(f, ctxt)
     funcs = ctxt["header_contents"]["function"].items()
@@ -1700,6 +1705,8 @@ def generate(outfile, ctxt):
     for name, func in funcs:
         if fignore_regexp and fignore_regexp.match(name):
             print "Ignoring %s as requested" % (name,)
+            continue
+        elif fselect_regexp and not fselect_regexp.match(name):
             continue
         generate_func(f, func, ctxt)
     f.close()
