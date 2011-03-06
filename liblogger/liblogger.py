@@ -3,6 +3,7 @@
 import sys
 import os
 import optparse
+import datetime
 import re
 from ConfigParser import SafeConfigParser as ConfigParser
 
@@ -13,6 +14,9 @@ TODO:
 """
 
 re_doublespaces = re.compile('\s\s+')
+
+timestamp = datetime.datetime.now().strftime("%A, %Y-%B-%d %H:%M:%S")
+progname = os.path.basename(sys.argv[0])
 
 def header_tokenize(header_file, cfg):
     ignore_tokens = config_get_regexp(cfg, "global", "ignore-tokens-regexp")
@@ -102,590 +106,684 @@ __attribute__\s*[(]{2}(\
     return tokens
 
 
-class Enum(object):
-    def __init__(self, name):
+_types = {}
+_types_order = []
+
+class Type(object):
+    cls = None
+
+    def __new__(cls, *args, **kargs):
+        # each named type should be a singleton, also attribute an unique id
+        name = kargs.get("name")
+        if name is None:
+            name = args[0]
+        lst = _types.setdefault(cls.cls, [])
+        if name is not None:
+            for c in lst:
+                if c.name == name:
+                    return c
+        o = object.__new__(cls)
+        o.id = len(lst)
+        lst.append(o)
+        _types_order.append(o)
+        return o
+
+    def __init__(self, name, container=None):
         self.name = name
-        self.members = []
+        self.container = container
+
+    def find_name(self):
+        if self.name:
+            return self.name
+        elif self.container:
+            return "<anonymous-inside>" + self.container.find_name()
+        else:
+            return "<anonymous>%d" % (self.id,)
+
+    def __str__(self):
+        return "%s %s" % (self.cls, self.find_name())
+
+    def __repr__(self):
+        contents = []
+        for k, v in self.__dict__.iteritems():
+            if callable(v):
+                continue
+            if k.startswith("_"):
+                continue
+            contents.append((k, v))
+        contents.sort(cmp=lambda a, b: cmp(a[0], b[0]))
+        return "%s(%s)" % (self.cls, ", ".join("%s=%r" % x for x in contents))
+
+    def variable_formatter(self, varname, pointer=0, prefix="", indent="",
+                           newline=" "):
+        p = ""
+        if pointer:
+            p += " *" * pointer
+        if varname:
+            p += " "
+        return "%s%s%s%s" % (prefix, self, p, varname)
+
+    def pretty_format(self, prefix="", indent="", newline=""):
+        name = self.name
+        if name is None:
+            name = ""
+        else:
+            name = " " + name
+        return "%s%s%s" % (prefix, self.cls, name)
+
+    @classmethod
+    def exists(cls, name):
+        return bool(cls.find(name))
+
+    @classmethod
+    def find(cls, name):
+        try:
+            lst = _types[cls.cls]
+        except KeyError:
+            return None
+        for c in lst:
+            if c.name == name:
+                return c
+        return None
+
+    @staticmethod
+    def get_by_name(name):
+        user_cls = {"enum": Enum, "struct": Struct, "union": Union}
+        for uc, cls in user_cls.iteritems():
+            if name.startswith(uc + " "):
+                n = name[len(uc) + 1:]
+                for t in _types.get(uc, ()):
+                    if t.name == n:
+                        return t
+                t = cls(n)
+                _types.setdefault(uc, []).append(t)
+                return t
+
+        for t in _types.get("builtin", ()):
+            if t.name == name:
+                return t
+        t = BuiltinType(name)
+        _types.setdefault("builtin", []).append(t)
+        return t
+
+
+class BuiltinType(Type):
+    cls = "builtin"
+    def __init__(self, name, container=None):
+        Type.__init__(self, name, container)
+
+    def __str__(self):
+        return self.name
+
+    def pretty_format(self, prefix="", indent="", newline=" "):
+        name = self.name
+        if name is None:
+            name = ""
+        return prefix + name
+
+
+for bi in ("char", "int",
+           "short", "short int",
+           "long", "long int",
+           "long long", "long long int"):
+    BuiltinType(bi)
+    BuiltinType("unsigned " + bi)
+    BuiltinType("signed " + bi)
+    BuiltinType("const " + bi)
+    BuiltinType("const " + "unsigned " + bi)
+    BuiltinType("const " + "signed " + bi)
+
+for bi in ("float", "double", "void"):
+    BuiltinType(bi)
+    BuiltinType("const " + bi)
+
+BuiltinType("long double")
+BuiltinType("const long double")
+
+for bi in (8, 16, 32, 64):
+    BuiltinType("int%d_t" % bi)
+    BuiltinType("uint%d_t" % bi)
+    BuiltinType("const int%d_t" % bi)
+    BuiltinType("const uint%d_t" % bi)
+
+for bi in ("bool", "_Bool", "Bool", "boolean"):
+    BuiltinType(bi)
+    BuiltinType("const " + bi)
+
+
+class Enum(Type):
+    cls = "enum"
+    def __init__(self, name, container=None, members=None):
+        Type.__init__(self, name, container)
+        self.members = members or []
 
     def add_member(self, name, value=None):
         self.members.append((name, value))
 
-    def has_name(self):
-        return self.name and not self.name.startswith("<")
+    def pretty_format(self, prefix="", indent="", newline=" ",
+                      show_members=True):
+        s = Type.pretty_format(self, prefix, indent, newline)
+        if self.members and show_members:
+            m = []
+            x = prefix + indent
+            for n, v in self.members:
+                if v:
+                    m.append("%s%s = %s" % (x, n, v))
+                else:
+                    m.append("%s%s" % (x, n))
+            m = ("," + newline).join(m)
+            s += " {%s%s%s%s}" % (newline, m, newline, prefix)
+        return s
 
-    def internal_name(self):
-        return "enum %s" % (self.name,)
+    def variable_formatter(self, varname, pointer=0, prefix="", indent="",
+                           newline=" "):
+        show_members = not self.name
+        s = self.pretty_format(prefix, indent, newline, show_members)
+        p = ""
+        if pointer:
+            p += " *" * pointer
+        if varname:
+            p += " "
+        return "%s%s%s" % (s, p, varname)
 
-    def decl_name(self):
-        if self.has_name():
-            return "enum %s" % (self.name,)
-        else:
-            return "enum"
+
+class Group(Type):
+    def __init__(self, name, container=None, members=None):
+        Type.__init__(self, name, container)
+        self.members = members or []
+
+    def add_member(self, variable):
+        self.members.append(variable)
+
+    def pretty_format(self, prefix="", indent="", newline=" ",
+                      show_members=True):
+        s = Type.pretty_format(self, prefix, indent, newline)
+        if self.members and show_members:
+            m = []
+            subprefix = prefix + indent
+            for v in self.members:
+                m.append(v.variable_formatter(prefix=subprefix,
+                                              indent=indent, newline=newline)
+                         + ";")
+            m = newline.join(m)
+            s += " {%s%s%s%s}" % (newline, m, newline, prefix)
+        return s
+
+    def variable_formatter(self, varname, pointer=0, prefix="", indent="",
+                           newline=" "):
+        show_members = not self.name
+        s = self.pretty_format(prefix, indent, newline, show_members)
+        p = ""
+        if pointer:
+            p += " *" * pointer
+        if varname:
+            p += " "
+        return "%s%s%s" % (s, p, varname)
+
+
+class Struct(Group): cls = "struct"
+class Union(Group): cls = "union"
+
+
+class FunctionPointer(Type):
+    cls = "function-pointer"
+    def __init__(self, ret_type, parameters, ret_pointer=0, container=None):
+        name = "%s%s (*)(%s)" % (ret_type, " *" * ret_pointer, ", ".join(
+            x.type_formatter() for x in parameters))
+        Type.__init__(self, name, container)
+        self.ret_type = ret_type
+        self.parameters = parameters
+        self.ret_pointer = ret_pointer
 
     def __str__(self):
-        members = []
-        for k, v in self.members:
-            if v:
-                members.append("%s = %s" % (k, v))
-            else:
-                members.append(k)
-        members = ", ".join(members)
-        return "enum %s {%s};" % (self.name, members)
-
-    def __repr__(self):
-        return "Enum(%s)" % (self.name,)
-
-
-class Struct(object):
-    def __init__(self, name):
-        self.name = name
-        self.members = []
-
-    def add_member(self, type, name, func=None):
-        if func is not None:
-            self.members.append((type, name, func))
-        else:
-            self.members.append((type, name))
-
-    def has_name(self):
-        return self.name and not self.name.startswith("<")
-
-    def internal_name(self):
-        return "struct %s" % (self.name,)
-
-    def decl_name(self):
-        if self.has_name():
-            return "struct %s" % (self.name,)
-        else:
-            return "struct"
-
-    def __str__(self):
-        members = []
-        for m in self.members:
-            if len(m) == 2:
-                members.append("%s %s;" % m)
-            else:
-                args = ", ".join(m[2])
-                members.append("%s (*%s)(%s);" % (m[0], m[1], args))
-        members = " ".join(members)
-        return "struct %s {%s};" % (self.name, members)
-
-    def __repr__(self):
-        return "Struct(%s)" % (self.name,)
-
-
-class Union(Struct):
-    # for purposes of liblogger, union and struct are basically the same
-    def internal_name(self):
-        return "union %s" % (self.name,)
-
-    def decl_name(self):
-        if self.has_name():
-            return "union %s" % (self.name,)
-        else:
-            return "union"
-
-    def __str__(self):
-        members = []
-        for m in self.members:
-            if len(m) == 2:
-                members.append("%s %s;" % m)
-            else:
-                args = ", ".join(m[2])
-                members.append("%s (*%s)(%s);" % (m[0], m[1], args))
-        members = " ".join(members)
-        return "union %s {%s};" % (self.name, members)
-
-    def __repr__(self):
-        return "Union(%s)" % (self.name,)
-
-
-class Typedef(object):
-    def __init__(self, name, reference, func=None):
-        self.name = name
-        self.reference = reference
-        self.func = func
-
-    def decl_name(self):
         return self.name
 
-    def __str__(self):
-        if self.func is not None:
-            params = ", ".join(self.func)
-            return "typedef %s (*%s)(%s);" % (self.reference, self.name, params)
-        else:
-            return "typedef %s %s;" % (self.reference, self.name)
+    def pretty_format(self, pointer=0, parameters_names=True,
+                      prefix="", indent="", newline=" "):
+        p = ""
+        if pointer:
+            p += " *" * pointer
+        params = []
+        for par in self.parameters:
+            if parameters_names:
+                params.append(str(par))
+            else:
+                params.append(par.type_formatter())
+        return "%s%s (*%s)(%s)" % (prefix, self.ret_type, p, ", ".join(params))
 
-    def __repr__(self):
-        return "Typedef(%s)" % (self.name,)
+    def variable_formatter(self, varname, pointer=0, parameters_names=True,
+                           prefix="", indent="", newline=" "):
+        p = ""
+        if pointer:
+            p += " *" * pointer
+        if varname:
+            p += " "
+        params = []
+        for par in self.parameters:
+            if parameters_names:
+                params.append(str(par))
+            else:
+                params.append(par.type_formatter())
+        return "%s%s (*%s%s)(%s)" % (prefix, self.ret_type, p, varname,
+                                     ", ".join(params))
 
 
-class Function(object):
-    def __init__(self, name, ret_type, parameters=None):
-        self.name = name
+class FunctionName(Type):
+    cls = "function-name"
+    def __init__(self, ret_type, name, parameters, ret_pointer=0,
+                 container=None):
+        Type.__init__(self, name, container)
         self.ret_type = ret_type
-        self.parameters = parameters or []
+        self.parameters = parameters
+        self.ret_pointer = ret_pointer
 
-    def add_parameter(self, type, name=None, func=None):
-        if func is not None:
-            self.parameters.append((type, name, func))
-        elif name:
-            self.parameters.append((type, name))
-        else:
-            self.parameters.append((type,))
+    def __str__(self):
+        return self.formatter()
 
-    def decl_name(self):
-        return str(self)
+    def pretty_format(self, prefix="", indent="", newline=" "):
+        return prefix + self.formatter()
+
+    def formatter(self, parameters_names=True):
+        params = self.parameters_str(parameters_names)
+        ret = self.ret_type_str()
+        return "%s %s(%s)" % (ret, self.name, params)
+
+    def ret_type_str(self):
+        return "%s%s" % (self.ret_type, " *" * self.ret_pointer)
+
+    def has_parameters(self):
+        if not self.parameters:
+            return False
+        p = self.parameters[0]
+        return not (p.pointer == 0 and p.type.name == "void")
 
     def parameters_unnamed_fix(self, prefix=""):
-        for i, p in enumerate(self.parameters):
-            if len(p) == 1 and p[0] != "void":
-                self.parameters[i] = p + (prefix + ("_par%d" % i),)
-            elif len(p) > 2 and not p[1]:
-                self.parameters[i] = ((p[0],) + (prefix + ("_par%d" % i),) + \
-                                      p[2:])
+        if not self.has_parameters():
+            return
+        for i, v in enumerate(self.parameters):
+            if not v.name:
+                v.name = "%s_par%d" % (prefix, i)
+
+    def parameters_str(self, parameters_names=True):
+        params = []
+        for par in self.parameters:
+            if parameters_names:
+                params.append(str(par))
+            else:
+                params.append(par.type_formatter())
+        return ", ".join(params)
 
     def parameters_names_str(self):
-        if not self.parameters:
-            return ""
-        if self.parameters[0][0] == "void" and len(self.parameters[0]) == 1:
-            return ""
+        return ", ".join(v.name for v in self.parameters if v.name)
 
-        params = []
-        self.parameters_unnamed_fix()
-        for p in self.parameters:
-            if "[" in p[1]:
-                params.append(p[1][:p[1].find("[")])
-            else:
-                params.append(p[1])
-        return ", ".join(params)
 
-    def parameters_str(self):
-        params = []
-        for p in self.parameters:
-            if len(p) == 1:
-                params.append(p[0])
-            elif len(p) == 2:
-                params.append("%s %s" % (p[0], p[1]))
-            else:
-                if p[1]:
-                    name = p[1]
-                else:
-                    name = ""
-                args = ", ".join(p[2])
-                params.append("%s (*%s)(%s)" % (p[0], name, args))
-        return ", ".join(params)
+class Typedef(Type):
+    cls = "typedef"
+
+    def __init__(self, name, reference, pointer=0):
+        Type.__init__(self, name)
+        self.reference = reference
+        self.pointer = pointer
 
     def __str__(self):
-        return "%s %s(%s);" % (self.ret_type, self.name, self.parameters_str())
+        return "typedef %s" % \
+               (self.reference.variable_formatter(self.name, self.pointer))
 
-    def __repr__(self):
-        return "Function(%s)" % (self.name,)
+    def pretty_format(self, prefix="", indent="", newline=" "):
+        s = self.reference.variable_formatter(
+            self.name, self.pointer, prefix=prefix,
+            indent=indent, newline=newline)
+        s = s[len(prefix):] # the first is on the same line, do not prefix
+        return "%stypedef %s" % (prefix, s)
+
+    def type_formatter(self):
+        return self.reference.variable_formatter("", self.pointer)
 
 
 class Variable(object):
-    def __init__(self, name, type):
-        self.name = name
+    def __init__(self, type, name, pointer=0):
         self.type = type
+        self.name = name
+        self.pointer = pointer
 
     def __str__(self):
-        return "%s %s;" % (self.type, self.name)
+        name = self.name
+        if name is None:
+            name = ""
+        return self.type.variable_formatter(name, self.pointer)
+
+    def __repr__(self):
+        return "Variable(type=%r, name=%r, pointer=%d)" % \
+               (self.type, self.name, self.pointer)
+
+    def type_formatter(self):
+        return self.type.variable_formatter("", self.pointer)
+
+    def pretty_format(self, prefix="", indent="", newline=" "):
+        name = self.name
+        if name is None:
+            name = ""
+        return self.type.variable_formatter(
+            name, self.pointer, prefix=prefix + indent,
+            indent=indent, newline=newline)
+
+    def variable_formatter(self, prefix="", indent="", newline=" "):
+        return self.pretty_format(prefix, indent, newline)
 
 
 class Node(object):
-    def __init__(self, parent, parts, children=None):
-        self.parent = parent
-        self.parts = parts
+    def __init__(self, children, enclosure=None, parent=None):
         self.children = children or []
-        self.enclosure = None
-        self.pending = False
-
-    def __str__(self):
-        return "<%s>" % ",".join(str(x) for x in self.parts)
+        self.enclosure = enclosure
+        self.parent = parent
 
     def __repr__(self):
-        s = "Node(parts=[%s]" % ",".join(str(x) for x in self.parts)
-        if self.parent:
-            s += ", parent=[%s]" % ",".join(str(x) for x in self.parent.parts)
-        if self.children:
-            s += ", children=[%s]" % ",".join(str(x) for x in self.children)
-        if self.pending:
-            s += ", pending=True"
-        return s + ")"
-
-
-enclosure_close = {"{":"}", "(":")"}
-def node_tree_flattern(node, include_parts=True):
-    if include_parts:
-        flat = " ".join(node.parts)
-        flat += " "
-    else:
-        flat = ""
-
-    if node.enclosure:
-        flat += node.enclosure
-    for x in node.children:
-        if isinstance(x, Node):
-            v = node_tree_flattern(x)
-            flat += " %s " % (v,)
-        else:
-            flat += " ".join(x)
-    if node.enclosure:
-        flat += enclosure_close[node.enclosure]
-    return flat
-
-
-def pointer_fix(type, name):
-    first = True
-    while name.startswith("*"):
-        if first:
-            type += " "
-            first = False
-        type += "*"
-        name = name[1:]
-    return type, name
-
-
-def convert_func_params(node):
-    s = " ".join(node.parts)
-    s += " (%s)" % ("".join(node.children[0]),)
-    s += "("
-    params = []
-    for c in node.children[1:]:
-        if isinstance(c, Node):
-            params.append(convert_func_params(c))
-        elif isinstance(c, list):
-            params.append(" ".join(c))
-        else:
-            params.append(c)
-    s += ", ".join(params)
-    s += ")"
-    return s
-
-
-def process(data, node, last_node=None):
-    #print "\033[1;35mNODE:", repr(node), "\033[0m"
-    if node.parts[0] == "enum":
-        if len(node.parts) > 1:
-            name = node.parts[1]
-        else:
-            tmp = node
-            name = ""
-            while tmp and len(tmp.parts) == 1:
-                name += "<anonymous-inside>"
-                tmp = tmp.parent
-            if tmp:
-                name += tmp.parts[-1]
-
-        p = Enum(name)
-        if not node.children:
-            return data["enum"].setdefault(name, p)
-        else:
-            for v in node.children:
-                if isinstance(v, Node):
-                    name = v.parts[0]
-                    value = node_tree_flattern(v, include_parts=False)
-                elif len(v) > 2:
-                    name = v[0]
-                    value = " ".join(v[2:])
-                else:
-                    name = v[0]
-                    value = None
-
-                p.add_member(name, value)
-            data["enum"][p.name] = p
-            return p
-
-    elif node.parts[0] in ("struct", "union"):
-        node_type = node.parts[0]
-        if len(node.parts) > 1:
-            name = node.parts[1]
-        else:
-            tmp = node
-            name = ""
-            while tmp and len(tmp.parts) == 1:
-                name += "<anonymous-inside>"
-                tmp = tmp.parent
-            if tmp and not tmp.parts[-1] in ("struct", "union"):
-                name += tmp.parts[-1]
-
-        if node_type == "struct":
-            p = Struct(name)
-        elif node_type == "union":
-            p = Union(name)
-
-        if not node.children:
-            return data[node_type].setdefault(name, p)
-        else:
-            last_member = None
-            for v in node.children:
-                if isinstance(v, Node):
-                    if v.parts[0] in ("struct", "enum", "union") and \
-                           len(v.parts) <= 2:
-                        last_member = process(data, v)
-                    elif len(v.parts) >= 2 and not v.children:
-                        # regular "type name;"
-                        type = " ".join(v.parts[0:-1])
-                        name = v.parts[-1]
-                        type, name = pointer_fix(type, name)
-                        if type and not type.startswith("*"):
-                            p.add_member(type, name)
-                        elif last_member:
-                            if type:
-                                type = last_member.internal_name() + " " + type
-                            else:
-                                type = last_member.internal_name()
-                            p.add_member(type, name)
-                        elif p.members:
-                            prev = p.members[-1]
-                            type = prev[0].replace("*", "").strip() + type
-                            p.add_member(type, name)
-                        else:
-                            print "UNSUPPORTED:", repr(v)
-                        last_member = None
-                    elif last_member:
-                        # struct { int x; } name;
-                        type = last_member.internal_name()
-                        name = v.parts[0]
-                        type, name = pointer_fix(type, name)
-                        p.add_member(type, name)
-                        last_member = None
-                    elif len(v.parts) == 1 and not v.children and p.members:
-                        # int a, b;
-                        prev = p.members[-1]
-                        name = v.parts[0]
-                        type = prev[0].replace("*", "").strip()
-                        p.add_member(type, name)
-                        last_member = None
-                    elif v.parts and v.children and v.children[0][0] == "*":
-                        # function pointer:  type (*cb)(int a, int b);
-                        type = " ".join(v.parts)
-                        name = "".join(v.children[0][1:])
-                        func = []
-                        for a in v.children[1:]:
-                            if isinstance(a, Node):
-                                func.append(convert_func_params(a))
-                            else:
-                                func.append(" ".join(a))
-                        p.add_member(type, name, func)
-                        last_member = None
-                    else:
-                        print "UNSUPPORTED-1:", repr(v)
-                else:
-                    # plain "int a"
-                    name = v[-1]
-                    type = " ".join(v[:-1])
-                    type, name = pointer_fix(type, name)
-                    if type and not type.startswith("*"):
-                        p.add_member(type, name)
-                        continue
-                    elif last_member:
-                        # repetition "struct { decl...; } a, b;"
-                        if type:
-                            type = last_member.internal_name() + " " + type
-                        else:
-                            type = last_member.internal_name()
-                        p.add_member(type, name)
-                        last_member = None
-                    elif p.members:
-                        # repetition "unsigned long *a, **b, ***c;"
-                        prev = p.members[-1]
-                        type = prev[0].replace("*", "").strip()
-                        type += " ".join(v[:-1])
-                        p.add_member(type, name)
-                        last_member = None
-                    else:
-                        print "UNSUPPORTED-2:", repr(v)
-
-            data[node_type][p.name] = p
-            return p
-
-    elif node.parts[0] == "typedef":
-        if len(node.parts) < 3 and not node.children:
-            print "Ignoring typedef forward declaration:"
-        else:
-            if not node.children:
-                name = node.parts[-1]
-                reference = " ".join(node.parts[1:-1])
-                reference, name = pointer_fix(reference, name)
-                p = Typedef(name, reference)
-                data["typedef"][p.name] = p
-                return p
-            elif last_node and not isinstance(node.children[0], Node) and \
-                     node.children[0][0] == "*":
-                node.pending = False
-                # function pointer?
-                type = " ".join(node.parts[1:])
-                name = "".join(node.children[0][1:])
-                func = []
-                for a in node.children[1:]:
-                    if isinstance(a, Node):
-                        func.append(convert_func_params(a))
-                    else:
-                        func.append(" ".join(a))
-                p = Typedef(name, type, func)
-                data["typedef"][p.name] = p
-                return p
+        parts = []
+        for x in self.children:
+            if isinstance(x, Node):
+                parts.append(repr(x))
             else:
-                node.pending = True
-                #print "typedef with declaration inside, process next time."
-    else:
-        if last_node and last_node.pending \
-               and last_node.parts[0] == "typedef" \
-               and not (node.children and not isinstance(node.children[0], Node)
-                        and node.children[0][0] == "*"):
-            last_node.pending = False
-            sub = Node(last_node, last_node.parts[1:], last_node.children)
-            name = node.parts[-1]
-            leading = node.parts[:-1]
-            while name.startswith("*"):
-                leading.append("*")
-                name = name[1:]
-            parts = leading + [name]
-            last_node.parts = ["typedef"] + parts
-            last_node.children = None
-            subp = process(data, sub)
-            last_node.parts = ["typedef", subp.internal_name()] + parts
-            p = process(data, last_node)
-            data["typedef"][p.name] = p
-            return p
+                parts.append(repr(x))
+        parent = 0
+        if self.parent:
+            parent = id(self.parent)
+        return "Node(%#x, parent=%#x, enclosure=%s, children=[%s])" % \
+               (id(self), parent, self.enclosure, ", ".join(parts))
+
+    def __str__(self):
+        if self.enclosure is None:
+            return "<%s>" % " ".join(str(x) for x in self.children)
         else:
-            if node.parts and node.children:
-                # likely a function?
-                if "=" in node.parts: # inside enums, etc
-                    return
-                if node.parts[0] == "extern" and node.parts[1].startswith('"'):
-                    # extern "C" and like
-                    return
-                tmp = node
-                while tmp:
-                    if tmp.parent and \
-                           tmp.parent.parts[0] in ("struct", "enum", "typedef"):
-                        return
-                    tmp = tmp.parent
+            return "%s%s%s" % \
+                   (self.enclosure[0],
+                    " ".join(str(x) for x in self.children),
+                    self.enclosure[1])
 
-                if node.parent and node.children and node.children[0][0] == "*":
-                    # callback parameter
-                    return
+    def flattened(self):
+        parts = []
+        for c in self.children:
+            if isinstance(c, Node):
+                parts.append(c.flattened())
+            else:
+                parts.append(c)
+        s = " ".join(parts)
+        if self.enclosure is None:
+            return s
+        else:
+            return "%s%s%s" % (self.enclosure[0], s, self.enclosure[1])
 
-                name = node.parts[-1]
-                type = " ".join(node.parts[:-1])
-                type, name = pointer_fix(type, name)
-                p = Function(name, type)
-                for v in node.children:
-                    if isinstance(v, Node):
-                        if v.children and v.children[0][0] == "*":
-                            type = " ".join(v.parts)
-                            if len(v.children[0]) == 1:
-                                name = None
-                            else:
-                                name = "".join(v.children[0][1:])
 
-                            func = []
-                            for a in v.children[1:]:
-                                if isinstance(a, Node):
-                                    func.append(convert_func_params(a))
-                                else:
-                                    func.append(" ".join(a))
-                            p.add_parameter(type, name, func)
+def build_function_params(param_nodes, data):
+    params = []
+    for p in param_nodes:
+        for v in p.children:
+            for c in process_single(v, data, True):
+                if isinstance(c, Variable):
+                    params.append(c)
+    return params
 
-                    else:
-                        if len(v) == 1:
-                            p.add_parameter(v[0])
-                        else:
-                            name = v[-1]
-                            type = " ".join(v[:-1])
-                            type, name = pointer_fix(type, name)
-                            if name:
-                                p.add_parameter(type, name)
-                            else:
-                                p.add_parameter(type)
-                data["function"][p.name] = p
-                return p
-            elif node.parts[0] == "extern":
-                name = node.parts[-1]
-                type = node.parts[1:-1]
-                type, name = pointer_fix(type, name)
-                p = Variable(name, " ".join(type))
-                data["global"][p.name] = p
-                return p
-            print "Don't know what to do with node:", repr(node)
+cls_mapper = {"enum": Enum, "struct": Struct, "union": Union}
+def process_single(n, data, allow_unamed_variables=False):
+    processed = []
+    parts = n.children[0].split(" ")
+    t = None
+    if parts[0] == "typedef":
+        tmp = Node([" ".join(parts[1:])] + n.children[1:], parent=n)
+        var = None
+        for v in process_single(tmp, data):
+            if isinstance(v, Variable):
+                if var is not None:
+                    raise ValueError("typedef with more than one declaration?")
+                var = v
+        if var is None:
+            raise ValueError("typedef without type name?")
+        t = Typedef(var.name, var.type, var.pointer)
+        processed.append(t)
+        data[parts[0]][t.name] = t
+
+    elif parts[0] in ("enum", "struct", "union") and \
+         not (len(n.children) > 1 and isinstance(n.children[-1], Node)
+              and n.children[-1].enclosure == ("(", ")")):
+        name = None
+        varname = None
+        members = None
+
+        if len(parts) > 1:
+            name = parts[1]
+            if len(parts) > 2:
+                varname = parts[2:]
+
+        if len(n.children) > 1:
+            members = n.children[1]
+            if len(n.children) > 2:
+                varname = n.children[2:]
+
+        if members:
+            if name:
+                t = data[parts[0]].get(name)
+            else:
+                t = None
+
+            if not t:
+                t = cls_mapper[parts[0]](name)
+                if name:
+                    data[parts[0]][name] = t
+                processed.append(t)
+
+            for m in members.children:
+                if parts[0] == "enum":
+                    for v in m.children:
+                        if len(v.children) < 1:
+                            continue
+                        x = v.children[0].split("=", 1)
+                        enum_name = x[0].strip()
+                        enum_value = None
+                        if len(x) > 1:
+                            enum_value = x[1].strip()
+                            if len(v.children) > 1:
+                                exp = " ".join(
+                                    x.flattened() for x in v.children[1:])
+                                if enum_value and exp:
+                                    enum_value += " " + exp
+                                elif exp:
+                                    enum_value = exp
+                        t.add_member(enum_name, enum_value)
+                else:
+                    for c in process(m, data):
+                        c.container = t
+                        if isinstance(c, Variable):
+                            t.add_member(c)
+
+        if name:
+            if t:
+                data[parts[0]][name] = t
+            else:
+                t = data[parts[0]].get(name)
+                if not t:
+                    data[parts[0]][name] = t = cls_mapper[parts[0]](name)
+                    processed.append(t)
+
+        if varname:
+            assert(t)
+            varname = " ".join(varname)
+            pointer = varname.count("*")
+            if pointer > 0:
+                varname = re_doublespaces.sub(" ",
+                                              varname.replace("*", "")).strip()
+            processed.append(Variable(t, varname, pointer))
+        elif allow_unamed_variables:
+            processed.append(Variable(t, None))
+
+    elif len(n.children) >= 3 and \
+         isinstance(n.children[-1], Node) and \
+         n.children[-1].enclosure == ("(", ")") and \
+         isinstance(n.children[-2], Node) and \
+         n.children[-2].enclosure == ("(", ")") and \
+         len(n.children[-2].children) > 0 and \
+         isinstance(n.children[-2].children[0], Node) and \
+         len(n.children[-2].children[0].children) > 0 and \
+         isinstance(n.children[-2].children[0].children[0], Node) and \
+         len(n.children[-2].children[0].children[0].children) > 0 and \
+         not isinstance(n.children[-2].children[0].children[0].children[0],
+                        Node) and \
+         n.children[-2].children[0].children[0].children[0].startswith("*"):
+        # function pointer (union, struct, function parameters, typedefs...)
+
+        ret_type = " ".join(n.children[:-2])
+        ret_pointer =  ret_type.count("*")
+        if ret_pointer > 0:
+            ret_type = re_doublespaces.sub(" ",
+                                           ret_type.replace("*", " ")).strip()
+        name = n.children[-2].children[0].children[0].children[0][1:].strip()
+        params = build_function_params(n.children[-1].children, data)
+        ret_type = Type.get_by_name(ret_type)
+        t = FunctionPointer(ret_type, params, ret_pointer)
+        for p in params:
+            p.container = t
+
+        processed.append(t)
+        if not name:
+            if allow_unamed_variables:
+                name = None
+            else:
+                raise ValueError("unnamed variable not allowed")
+
+        processed.append(Variable(t, name))
+
+    elif len(n.children) >= 2 and \
+         isinstance(n.children[-1], Node) and \
+         n.children[-1].enclosure == ("(", ")"):
+        # function itself
+        x = " ".join(n.children[:-1]).split(" ")
+        ret_type = " ".join(x[:-1])
+        ret_pointer = ret_type.count("*")
+        if ret_pointer > 0:
+            ret_type = re_doublespaces.sub(" ",
+                                           ret_type.replace("*", " ")).strip()
+
+        name = x[-1]
+        params = build_function_params(n.children[-1].children, data)
+        ret_type = Type.get_by_name(ret_type)
+        t = FunctionName(ret_type, name, params, ret_pointer)
+        for p in params:
+            p.container = t
+        processed.append(t)
+        data["function"][name] = t
+
+    else:
+        if parts[0] == "extern":
+            parts.pop(0)
+
+        x = len(parts)
+        try:
+            parts.remove("*")
+            y = len(parts)
+            pointer = x - y
+        except ValueError, e:
+            pointer = 0
+
+        name = parts.pop(-1)
+        if BuiltinType.exists(name) or Typedef.exists(name):
+            if allow_unamed_variables:
+                parts.append(name)
+                name = None
+            else:
+                raise ValueError("name is a known type: %s" % name)
+
+        t = BuiltinType(" ".join(parts))
+        processed.append(Variable(t, name, pointer))
+    return processed
+
+
+def process(node, data):
+    processed = process_single(node.children[0], data)
+    if len(node.children) == 1:
+        return processed
+
+    t = None
+    for p in processed:
+        if isinstance(p, Variable):
+            t = p.type
+        elif isinstance(p, Type):
+            t = p
+
+    assert(t)
+    for c in node.children[1:]:
+        varname = " ".join(c.children)
+        pointer = varname.count("*")
+        if pointer > 0:
+            varname = re_doublespaces.sub(" ", varname.replace("*", "")).strip()
+        v = Variable(t, varname, pointer)
+        processed.append(v)
+
+    return processed
 
 
 def header_tree(header_file, cfg=None):
     tokens = header_tokenize(header_file, cfg)
-    data = {"enum": {}, "struct": {}, "function": {}, "typedef": {},
-            "union": {}, "global": {}}
-    pending = []
-    root = None
-    current = None
-    last_p = None
-    last_node = None
-    for t in tokens:
-        p = t.split(" ")
-        if p[0] == ";":
-            #print "\033[1;31mFINISH\033[0m", current, pending
-            if pending:
-                assert(len(pending) == 1)
-                n = Node(current, pending[0])
-                pending = []
-                if current:
-                    current.children.append(n)
-                else:
-                    process(data, n, last_node)
-                    last_node = n
-            elif last_p and last_p[0] not in ("}", ")"):
-                if current:
-                    if not current.parent:
-                        process(data, current, last_node)
-                        last_node = current
-                    current = current.parent
-                    if current is None:
-                        root = None
-                else:
-                    print "NO CURRENT"
+    closing = {"(":")", "{":"}"}
 
-        elif p[0] in ("{", "("):
-            if pending:
-                assert(len(pending) == 1)
-                n = Node(current, pending[0])
-                n.enclosure = p[0]
-                pending = []
-                #print "\033[1;32mPUSH\033[0m", t, n
-            else:
-                #print "\033[32mNOTHING TO PUSH?", t, repr(current)
-                pass
+    def make_tree(tokens, delim=None):
+        tokens = list(tokens)
+        nodes = Node([])
+        current = Node([], parent=nodes)
+        nodes.children.append(current)
 
-            current = n
-            if root is None:
-                root = n
-
-        elif p[0] in ("}", ")", ","):
-            #print "\033[1;33mPOP\033[0m", t, current, pending
-            if pending:
-                current.children.extend(pending)
-                pending = []
-            if p[0] in ("}", ")"):
-                if current.parent and current not in current.parent.children:
-                    current.parent.children.append(current)
-                process(data, current, last_node)
-                last_node = current
-                current = current.parent
-                if current is None:
-                    root = None
+        if delim:
+            delims = (";", delim)
         else:
-            #print "\033[1;36mPENDING\033[0m", t
-            pending.append(p)
+            delims = (";",)
 
-        last_p = p
+        t = None
+        while tokens:
+            t = tokens.pop(0)
+            if t == ",":
+                current = Node([], parent=nodes)
+                nodes.children.append(current)
+            elif t in delims:
+                break
+            elif t in ("{", "("):
+                enclosure = (t, closing.get(t))
+                end = None
+                sub = Node([], enclosure=enclosure, parent=current)
+                current.children.append(sub)
+                while tokens and end != enclosure[1]:
+                    x, end, tokens = make_tree(tokens, enclosure[1])
+                    if x.children and x.children[0].children:
+                        x.parent = sub
+                        sub.children.append(x)
+            else:
+                current.children.append(t)
+
+        return (nodes, t, tokens)
+
+
+    data = {"enum": {}, "struct": {}, "union": {}, "typedef": {},
+            "function": {}, "global": {}}
+
+    while tokens:
+        n, ignored, tokens = make_tree(tokens)
+        if n:
+            process(n, data)
+
     return data
 
 
 def generate_preamble(f, ctxt):
-    f.write("""
-/* this file was auto-generated from %(header)s by %(progname)s. */
+    repl = {
+        "header": ctxt["header"],
+        "prefix": ctxt["prefix"],
+        "libname": ctxt["libname"],
+        "progname": progname,
+        "timestamp": timestamp,
+        }
 
-""")
+    f.write("""\
+/* this file was auto-generated from %(header)s by %(progname)s.
+ * %(timestamp)s
+ */
+
+""" % repl)
 
     cfg = ctxt["cfg"]
     if cfg:
@@ -841,26 +939,28 @@ static unsigned char %(prefix)s_dl_prepare(void)
 
 #define %(prefix)s_GET_SYM(v, name, ...) \\
     do { \\
-        if (!%(prefix)s_dl_handle) { \\
-            if (!%(prefix)s_dl_prepare()) \\
+        if (!v) { \\
+            if (!%(prefix)s_dl_handle) { \\
+                if (!%(prefix)s_dl_prepare()) \\
+                    return __VA_ARGS__; \\
+            } \\
+            %(prefix)s_LOCK; \\
+            if (!v) { \\
+                char *%(prefix)s_dl_err; \\
+                v = dlsym(%(prefix)s_dl_handle, name); \\
+                %(prefix)s_dl_err = dlerror(); \\
+                if (%(prefix)s_dl_err) { \\
+                    fprintf(stderr, \\
+                            %(prefix)s_COLOR_ERROR \\
+                            \"ERROR: could not dlsym(%%s): %%s\\n\" \\
+                            %(prefix)s_COLOR_CLEAR, \\
+                            name, %(prefix)s_dl_err); \\
+                } \\
+            } \\
+            %(prefix)s_UNLOCK; \\
+            if (!v) \\
                 return __VA_ARGS__; \\
         } \\
-        %(prefix)s_LOCK; \\
-        if (!v) { \\
-            char *%(prefix)s_dl_err; \\
-            v = dlsym(%(prefix)s_dl_handle, name); \\
-            %(prefix)s_dl_err = dlerror(); \\
-            if (%(prefix)s_dl_err) { \\
-                fprintf(stderr, \\
-                        %(prefix)s_COLOR_ERROR \\
-                        \"ERROR: could not dlsym(%%s): %%s\\n\" \\
-                        %(prefix)s_COLOR_CLEAR, \\
-                        name, %(prefix)s_dl_err); \\
-            } \\
-        } \\
-        %(prefix)s_UNLOCK; \\
-        if (!v) \\
-            return __VA_ARGS__; \\
     } while (0)
 
 
@@ -1254,11 +1354,7 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
     (void)value;
 }
 
-""" % {"header": ctxt["header"],
-       "prefix": ctxt["prefix"],
-       "libname": ctxt["libname"],
-       "progname": os.path.basename(sys.argv[0]),
-       })
+""" % repl)
     if cfg:
         try:
             overrides = cfg.get("global", "overrides")
@@ -1271,9 +1367,8 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
 
 def get_type_alias(type, ctxt):
     typedefs = ctxt["header_contents"]["typedef"]
-    try:
-        alias = typedefs[type]
-    except KeyError, e:
+    alias = Typedef.find(type.replace("-", " "))
+    if not alias:
         typename = re.sub("[[][0-9]+[]]", "[]", type)
         if typename != type:
             return typename
@@ -1283,10 +1378,7 @@ def get_type_alias(type, ctxt):
             return typename
         return None
 
-    typename = alias.reference
-    if alias.func is not None:
-        typename += "(*)(%s)" % ", ".join(alias.func)
-    return typename
+    return alias.type_formatter().replace(" ", "-")
 
 
 def type_is_pointer(type, ctxt):
@@ -1298,14 +1390,15 @@ def type_is_pointer(type, ctxt):
         return True
 
     typedefs = ctxt["header_contents"]["typedef"]
-    try:
-        alias = typedefs[type]
-        if alias.func is not None:
-            return True
-        elif type_is_pointer(alias.reference, ctxt):
-            return True
-    except KeyError, e:
+    alias = Typedef.find(type.replace("-", " "))
+    if not alias:
         return False
+    if alias.pointer > 0:
+        return True
+    reference = alias.reference
+    if isinstance(reference, FunctionPointer):
+        return True
+    return type_is_pointer(str(reference), ctxt)
 
 
 provided_formatters = {
@@ -1472,15 +1565,14 @@ def get_return_checker(func, type, ctxt):
 
 def generate_log_params(f, func, ctxt):
     if not func.parameters or \
-       (func.parameters[0][0] == "void" and len(func.parameters[0]) == 1):
+       (func.parameters[0].pointer == 0 and
+        func.parameters[0].type.name == "void"):
         return
     prefix = ctxt["prefix"]
     f.write("    %s_log_params_begin();\n" % (prefix,))
     for i, p in enumerate(func.parameters):
-        type = p[0]
-        name = p[1]
-        if len(p) > 2:
-            type += "(*)(%s)" % ", ".join(p[2])
+        type = p.type_formatter()
+        name = p.name
         if "[" in name:
             idx = name.find("[")
             type += " " + re.sub("[0-9]", "", name[idx:])
@@ -1495,11 +1587,11 @@ def generate_log_params(f, func, ctxt):
 
 
 def generate_func(f, func, ctxt):
-    if func.parameters and func.parameters[-1][0] == "...":
+    if func.parameters and func.parameters[-1].name == "...":
         print "Ignored: %s() cannot handle variable arguments" % (func.name,)
         return
 
-    if type_is_pointer(func.ret_type, ctxt):
+    if func.ret_pointer > 0 or type_is_pointer(str(func.ret_type), ctxt):
         ret_default = "NULL"
     else:
         ret_default = "0"
@@ -1513,23 +1605,27 @@ def generate_func(f, func, ctxt):
 
     prefix = ctxt["prefix"]
     func.parameters_unnamed_fix(prefix + "_p_")
+    ret_type = str(func.ret_type) + " *" * func.ret_pointer
+    ret_name = "%s_ret" % (prefix,)
     repl = {
         "prefix": prefix,
         "name": func.name,
         "internal_name": "%s_f_%s" % (prefix, func.name),
-        "ret_type": func.ret_type,
-        "ret_name": "%s_ret" % (prefix,),
+        "ret_type": ret_type,
+        "ret_name": ret_name,
         "ret_default": ret_default,
         "params_decl": func.parameters_str(),
         "params_names": func.parameters_names_str(),
         }
+    returns_value = ret_type != "void"
+
     f.write("""
 %(ret_type)s %(name)s(%(params_decl)s)
 {
-    %(ret_type)s (*%(internal_name)s)(%(params_decl)s) = NULL;
+    static %(ret_type)s (*%(internal_name)s)(%(params_decl)s) = NULL;
     int %(prefix)s_bkp_errno = errno;
 """ % repl)
-    if func.ret_type != "void":
+    if returns_value:
         f.write("""\
     %(ret_type)s %(ret_name)s = %(ret_default)s;
     %(prefix)s_GET_SYM(%(internal_name)s, \"%(name)s\", %(ret_name)s);
@@ -1544,8 +1640,8 @@ def generate_func(f, func, ctxt):
 
     f.write("\n    errno = %(prefix)s_bkp_errno;\n    " % repl)
 
-    if func.ret_type != "void":
-        f.write("%(ret_name)s = " % repl)
+    if returns_value:
+        f.write("%s = " % (ret_name,))
 
     override = None
     if ctxt["cfg"]:
@@ -1563,23 +1659,23 @@ def generate_func(f, func, ctxt):
     f.write("\n    %(prefix)s_log_exit_start(\"%(name)s\");\n" % repl)
     generate_log_params(f, func, ctxt)
 
-    if func.ret_type != "void":
-        formatter = get_type_formatter(func.name, "return", func.ret_type, ctxt)
+    if returns_value:
+        formatter = get_type_formatter(func.name, "return", ret_type, ctxt)
         f.write("    %(prefix)s_log_exit_return();\n" % repl)
         f.write("    errno = %(prefix)s_bkp_errno;\n" % repl)
         f.write("    %s(%s_log_fp, \"%s\", NULL, %s);\n" %
-                (formatter, prefix, func.ret_type, repl["ret_name"]))
-        checker = get_return_checker(func.name, func.ret_type, ctxt)
+                (formatter, prefix, ret_type, ret_name))
+        checker = get_return_checker(func.name, ret_type, ctxt)
         if checker:
             f.write("    errno = %(prefix)s_bkp_errno;\n" % repl)
             f.write("    %s(%s_log_fp, \"%s\", %s);\n" %
-                    (checker, prefix, func.ret_type, repl["ret_name"]))
+                    (checker, prefix, ret_type, ret_name))
 
     f.write("    %(prefix)s_log_exit_end(\"%(name)s\");\n" % repl)
 
-    if func.ret_type != "void":
+    if returns_value:
         f.write("\n    errno = %(prefix)s_bkp_errno;\n" % repl)
-        f.write("    return %(ret_name)s;\n" % repl)
+        f.write("    return %s;\n" % (ret_name,))
 
     f.write("}\n")
 
@@ -1715,67 +1811,62 @@ def generate_types_file(types_file, header, ctxt):
     data = ctxt["header_contents"]
 
     f = open(types_file, "w")
-    f.write("/* types file automatically generated from %s */\n" % (header,))
+    f.write("""\
+/* types file automatically generated from %(header)s by %(progname)s.
+ * %(timestamp)s
+ */
+""" % {"header": header,
+       "progname": progname,
+       "timestamp": timestamp,
+       })
 
-    if data["struct"]:
-        f.write("\n/* struct forward declarations */\n")
-        lst = data["struct"].values()
-        lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
-        for e in lst:
-            if e.has_name():
-                f.write("\tstruct %s;\n" % e.name)
+    def needs_emission(t):
+        return not isinstance(t, (BuiltinType, FunctionPointer))
 
-    if data["enum"]:
-        f.write("\n/* enums declarations */\n")
-        lst = data["enum"].values()
-        lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
-        for e in lst:
-            if e.has_name():
-                f.write("\t")
-                generate_type(f, e, ctxt)
-                f.write(";\n")
-
-    if data["typedef"]:
-        f.write("\n/* typedefs declarations */\n")
-        lst = data["typedef"].values()
-        lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
-        for e in lst:
-            reference = e.reference
-            f.write("\ttypedef ")
-            if e.func:
-                f.write("%s (*%s)(%s)" %
-                        (reference, e.name, ", ".join(e.func)))
+    order = []
+    done = set()
+    todo = list(x for x in _types_order if x.name and not
+                isinstance(x, (BuiltinType, FunctionPointer, FunctionName)))
+    reorder_count = 0
+    while todo:
+        x = todo.pop(0)
+        if isinstance(x, Enum):
+            order.append(x)
+            done.add(x)
+            reorder_count = 0
+        elif isinstance(x, Group):
+            for y in x.members:
+                if needs_emission(y.type) and y.type.name and \
+                       y.type not in done:
+                    print "Note: %s %s depends on %s, reorder..." % \
+                          (x.cls, x.name, y)
+                    todo.append(x)
+                    reorder_count += 1
+                    break
             else:
-                parts = reference.split(" ")
-                if parts[0] in ("enum", "struct", "union") and \
-                   parts[1].startswith("<"):
-                    type = data[parts[0]][parts[1]]
-                    generate_type(f, type, ctxt)
-                    f.write(" %s" % e.name)
-                else:
-                    f.write("%s %s" % (reference, e.name))
-            f.write(";\n")
+                order.append(x)
+                done.add(x)
+                reorder_count = 0
+        elif isinstance(x, Typedef):
+            if needs_emission(x.reference) and x.reference.name and \
+                   x.reference not in done:
+                print "Note: typedef %s depends on %s, reorder..." % \
+                      (x.name, x.reference)
+                todo.append(x)
+                reorder_count += 1
+            else:
+                order.append(x)
+                done.add(x)
+                reorder_count = 0
+        else:
+            raise TypeError("unexpected type %r" % x)
 
+        if reorder_count > len(todo):
+            raise ValueError("circular dependency: %r" % (todo,))
 
-    if data["struct"]:
-        f.write("\n/* structs declarations */\n")
-        lst = data["struct"].values()
-        lst.sort(cmp=lambda a, b: cmp(a.name, b.name)) #TODO DEP ORDER
-        for e in lst:
-            if e.has_name():
-                f.write("\t")
-                generate_type(f, e, ctxt)
-                f.write(";\n")
-
-    if data["union"]:
-        f.write("\n/* unions declarations */\n")
-        lst = data["union"].values()
-        lst.sort(cmp=lambda a, b: cmp(a.name, b.name)) #TODO DEP ORDER
-        for e in lst:
-            if e.has_name():
-                f.write("\t")
-                generate_type(f, e, ctxt)
-                f.write(";\n")
+    for t in order:
+        f.write("%s;\n" %
+                t.pretty_format(prefix="\t", indent="\t", newline="\n"))
 
     f.close()
 
