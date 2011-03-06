@@ -155,6 +155,21 @@ provided formatters and checkers):
                 %(prefix)s_log_fmt_double
                 %(prefix)s_log_fmt_pointer
 
+             If we know the information about data types we can also
+             generate custom formatters using the -F (--custom-formatters)
+             command line options. It will generate for known enums,
+             structs and unions based on declared methods. They will follow
+             the pattern:
+
+                %(prefix)s_log_fmt_custom_pointer_enum_%(name)s
+                %(prefix)s_log_fmt_custom_value_enum_%(name)s
+                %(prefix)s_log_fmt_custom_pointer_pointer_struct_%(name)s
+                %(prefix)s_log_fmt_custom_pointer_struct_%(name)s
+                %(prefix)s_log_fmt_custom_value_struct_%(name)s
+                %(prefix)s_log_fmt_custom_pointer_pointer_union_%(name)s
+                %(prefix)s_log_fmt_custom_pointer_union_%(name)s
+                %(prefix)s_log_fmt_custom_value_union_%(name)s
+
 
     [safe-formatters]
 
