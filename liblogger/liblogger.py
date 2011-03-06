@@ -1366,6 +1366,13 @@ static inline void %(prefix)s_log_checker_errno(FILE *p, const char *type, long 
 
 
 def get_type_alias(type, ctxt):
+    cfg = ctxt["cfg"]
+    if cfg:
+        try:
+            return cfg.get("type-aliases", type)
+        except Exception, e:
+            pass
+
     typedefs = ctxt["header_contents"]["typedef"]
     alias = Typedef.find(type.replace("-", " "))
     if not alias:

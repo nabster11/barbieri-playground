@@ -101,6 +101,19 @@ provided formatters and checkers):
             Default: false
 
 
+    [type-aliases]
+
+        Allows hinting the processor that some types are just alias to
+        some other type, just like typedef would do. This allow
+        extending the known types others defined in included files or
+        even fake typedefs did using cpp #define macros (that are
+        ignored by our parser).
+
+        <type> = <original-type>
+            type will be considered as being original-type, just like:
+            "typedef original-type type;" would do.
+
+
     [type-formatters]
 
         Allows user to extend the formatting of parameters and return
