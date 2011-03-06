@@ -1871,6 +1871,151 @@ def generate_types_file(types_file, header, ctxt):
     f.close()
 
 
+def generate_enum(f, t, ctxt):
+    repl = {
+        "prefix": ctxt["prefix"],
+        "name": t.name,
+        "type": t.pretty_format("", show_members=False),
+        }
+
+    f.write("""
+static inline void %(prefix)s_log_fmt_custom_value_enum_%(name)s(FILE *p, const char *type, const char *name, %(type)s value)
+{
+    if (name)
+        fprintf(p, \"%%s %%s=%%d [\", type, name, value);
+    else
+        fprintf(p, \"(%%s)%%d [\", type, value);
+
+    switch (value) {
+""" % repl)
+    for k, v in t.members:
+        f.write("        case %s: fputs(\"%s\", p); break;\n" % (k, k))
+
+    f.write("""\
+        default: fputs(\"???\", p);
+    }
+    putc(']', p);
+}
+
+static inline void %(prefix)s_log_fmt_custom_pointer_enum_%(name)s(FILE *p, const char *type, const char *name, const %(type)s *value)
+{
+    if (value)
+        %(prefix)s_log_fmt_custom_enum_%(name)s(p, type, name, *value);
+    else if (name)
+        fprintf(p, \"%%s %%s=(null)\", type, name);
+    else
+        fprintf(p, \"(%%s)(null)\", type);
+}
+""" % repl)
+
+
+def generate_group_member(f, m, ctxt, access):
+    if not (m.pointer == 0 and isinstance(m.type, Group)):
+        type = m.type_formatter()
+        formatter = get_type_formatter("", m.name, type, ctxt)
+        if formatter:
+            f.write("        %s(p, \"%s\", \"%s\", %s%s);\n" %
+                    (formatter, type, m.name, access, m.name))
+        else:
+            f.write("        fputs(\"unhandled member '%s %s'\", p);\n" %
+                    (type, m.name))
+    else:
+        type = m.type.pretty_format(show_members=False)
+        f.write("        fputs(\"%s %s=\", p);\n" % (type, m.name))
+        subaccess = access + ("%s." % m.name)
+        generate_group_member_list(f, m.type, ctxt, subaccess)
+
+
+def generate_group_member_list(f, t, ctxt, access):
+    f.write("        putc('{', p);\n")
+    for i, v in enumerate(t.members):
+        generate_group_member(f, v, ctxt, access)
+        if i + 1 < len(t.members):
+            f.write("        fputs(\", \", p);\n")
+    f.write("        putc('}', p);\n")
+
+
+def generate_group(f, t, ctxt):
+    repl = {
+        "prefix": ctxt["prefix"],
+        "name": t.name,
+        "type": t.pretty_format("", show_members=False),
+        "cls": t.cls,
+        }
+
+    f.write("""
+static inline void %(prefix)s_log_fmt_custom_pointer_%(cls)s_%(name)s(FILE *p, const char *type, const char *name, const %(type)s *value)
+{
+    if (name)
+        fprintf(p, \"%%s %%s=%%p\", type, name, value);
+    else
+        fprintf(p, \"(%%s)%%p\", type, value);
+
+    if (value) {
+""" % repl)
+    generate_group_member_list(f, t, ctxt, "value->")
+    f.write("""\
+    }
+}
+
+static inline void %(prefix)s_log_fmt_custom_pointer_pointer_%(cls)s_%(name)s(FILE *p, const char *type, const char *name, const %(type)s **value)
+{
+    if (value)
+        %(prefix)s_log_fmt_custom_pointer_%(cls)s_%(name)s(p, type, name, *value);
+    else if (name)
+        fprintf(p, \"%%s %%s=(null)\", type, name);
+    else
+        fprintf(p, \"(%%s)(null)\", type);
+}
+
+static inline void %(prefix)s_log_fmt_custom_value_%(cls)s_%(name)s(FILE *p, const char *type, const char *name, %(type)s value)
+{
+    %(prefix)s_log_fmt_custom_pointer_%(cls)s_%(name)s(p, type, name, &value);
+}
+""" % repl)
+
+
+def generate_custom_formatters(formatters_file, header, ctxt):
+    data = ctxt["header_contents"]
+
+    f = open(formatters_file, "w")
+    f.write("""\
+/* custom formatters file automatically generated from \
+%(header)s by %(progname)s.
+ * %(timestamp)s
+ */
+""" % {"header": header,
+       "progname": progname,
+       "timestamp": timestamp,
+       })
+
+    lst = list(data["enum"].itervalues())
+    lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
+    for t in lst:
+        assert(t.name)
+        if not t.members:
+            continue
+        generate_enum(f, t, ctxt)
+
+    lst = list(data["struct"].itervalues())
+    lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
+    for t in lst:
+        assert(t.name)
+        if not t.members:
+            continue
+        generate_group(f, t, ctxt)
+
+    lst = list(data["union"].itervalues())
+    lst.sort(cmp=lambda a, b: cmp(a.name, b.name))
+    for t in lst:
+        assert(t.name)
+        if not t.members:
+            continue
+        generate_group(f, t, ctxt)
+
+    f.close()
+
+
 
 def prefix_from_libname(libname):
     prefix = libname
@@ -1908,6 +2053,9 @@ if __name__ == "__main__":
                       help="Generate sample makefile")
     parser.add_option("-t", "--types-file", action="store", default=None,
                       help="Generate header file with all parsed types")
+    parser.add_option("-F", "--custom-formatters", action="store", default=None,
+                      help=("Generate C file with custom formatters based on "
+                            "typedefs, enums, structs and unions"))
     parser.add_option("-D", "--dump", action="store_true", default=False,
                       help="Dump parsed elements")
 
@@ -1967,3 +2115,6 @@ if __name__ == "__main__":
 
     if options.types_file:
         generate_types_file(options.types_file, header, ctxt)
+
+    if options.custom_formatters:
+        generate_custom_formatters(options.custom_formatters, header, ctxt)
