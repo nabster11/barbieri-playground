@@ -271,6 +271,20 @@ provided formatters and checkers):
             parameter value.
             Default: <empty> (depends on type)
 
+        parameter-%(name)s-return = boolean
+            if true then this parameter is a pointer that is used to
+            return data (output parameter), so called "return
+            parameter". This parameter will receive special formatting
+            after the exit of the logged call ("LOG<") using a type
+            dereference (*value) if available or if
+            parameter-%(name)s-return-formatter is specified.
+            Default: false
+
+        parameter-%(name)s-return-formatter = <formatter-function>
+            if parameter-%(name)s-return is true then this formatter
+            will be used to log the returned value.
+            Default: <empty> (depends on type)
+
 
 Other than generation-time configuration, the resulting source file
 will accept some CPP defines to toggle the behavior:

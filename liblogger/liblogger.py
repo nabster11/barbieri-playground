@@ -984,6 +984,21 @@ static inline void %(prefix)s_log_params_end(void)
     putc(')', %(prefix)s_log_fp);
 }
 
+static inline void %(prefix)s_log_params_output_begin(void)
+{
+    fputs(\"output-parameters=(\", %(prefix)s_log_fp);
+}
+
+static inline void %(prefix)s_log_param_output_continue(void)
+{
+    fputs(\", \", %(prefix)s_log_fp);
+}
+
+static inline void %(prefix)s_log_params_output_end(void)
+{
+    putc(')', %(prefix)s_log_fp);
+}
+
 #ifdef %(prefix)s_LOG_INDENT
 static %(prefix)s_THREAD_LOCAL int %(prefix)s_log_indentation = 0;
 #endif
@@ -1541,6 +1556,37 @@ def get_type_formatter(func, name, type, ctxt):
     return formatter
 
 
+def get_type_dereferenced_formatter(type, ctxt):
+    idx = type.rfind("*")
+    if idx >= 0:
+        if idx != len(type) - 1:
+            return None # it's a function pointer
+        dtype = type[:idx].replace(" ", "-")
+        while dtype[-1] == "-":
+            dtype = dtype[:-1]
+        cfg = ctxt["cfg"]
+        if cfg:
+            try:
+                formatter = cfg.get("type-formatters", dtype, vars=ctxt)
+                if formatter:
+                    return formatter % ctxt
+            except Exception, e:
+                pass
+
+        formatter = provided_formatters.get(dtype)
+        if formatter:
+            return formatter % ctxt
+        return None
+    else:
+        alias = type
+        while True:
+            alias = get_type_alias(alias, ctxt)
+            if not alias:
+                return None
+            if "*" in alias:
+                return get_type_dereferenced_formatter(alias, ctxt)
+        return None
+
 # checkers:
 #     %(prefix)s_log_checker_null
 #     %(prefix)s_log_checker_non_null
@@ -1596,6 +1642,59 @@ def generate_log_params(f, func, ctxt):
         if i + 1 < len(func.parameters):
             f.write("    %s_log_param_continue();\n" % (prefix,))
     f.write("    %s_log_params_end();\n" % (prefix,))
+
+
+def generate_log_output_params(f, func, ctxt):
+    if not func.parameters or \
+       (func.parameters[0].pointer == 0 and
+        func.parameters[0].type.name == "void"):
+        return
+    cfg = ctxt["cfg"]
+    if not cfg:
+        return
+    prefix = ctxt["prefix"]
+    f.write("    %s_log_params_output_begin();\n" % (prefix,))
+    for i, p in enumerate(func.parameters):
+        type = p.type_formatter()
+        name = p.name
+        if "[" in name:
+            idx = name.find("[")
+            type += " " + re.sub("[0-9]", "", name[idx:])
+            name = name[:idx]
+
+        section = "func-%s" % (func.name,)
+        key = "parameter-%s" % (name,)
+        try:
+            is_return = cfg.get(section, key + "-return")
+            if not is_return:
+                continue
+        except Exception, e:
+            continue
+        try:
+            formatter = cfg.get(section, key + "-return-formatter")
+        except Exception, e:
+            formatter = None
+
+        if not formatter:
+            formatter = get_type_dereferenced_formatter(type, ctxt)
+            if not formatter:
+                print ("function %s() has output parameter %r "
+                       "but no formatter is known. Ignore") % (func.name, name)
+                continue
+
+        f.write("""\
+    if (%(name)s) {
+        errno = %(prefix)s_bkp_errno;
+        %(formatter)s(%(prefix)s_log_fp, \"%(type)s\", \"*%(name)s\", *%(name)s);
+""" % {"name": name,
+       "prefix": prefix,
+       "formatter": formatter,
+       "type": type,
+       })
+        if i + 1 < len(func.parameters):
+            f.write("        %s_log_param_output_continue();\n" % (prefix,))
+        f.write("    }\n")
+    f.write("    %s_log_params_output_end();\n" % (prefix,))
 
 
 def generate_func(f, func, ctxt):
@@ -1683,6 +1782,7 @@ def generate_func(f, func, ctxt):
             f.write("    %s(%s_log_fp, \"%s\", %s);\n" %
                     (checker, prefix, ret_type, ret_name))
 
+    generate_log_output_params(f, func, ctxt)
     f.write("    %(prefix)s_log_exit_end(\"%(name)s\");\n" % repl)
 
     if returns_value:
@@ -1900,13 +2000,10 @@ def generate_enum(f, t, ctxt):
         }
 
     f.write("""
-static inline void %(prefix)s_log_fmt_custom_value_enum_%(name)s(FILE *p, const char *type, const char *name, %(type)s value)
-{
-    if (name)
-        fprintf(p, \"%%s %%s=%%d [\", type, name, value);
-    else
-        fprintf(p, \"(%%s)%%d [\", type, value);
 
+static inline void %(prefix)s_log_fmt_custom_valuestr_enum_%(name)s(FILE *p, const char *type, const char *name, %(type)s value)
+{
+    putc('[', p);
     switch (value) {
 """ % repl)
     for k, v in t.members:
@@ -1918,14 +2015,24 @@ static inline void %(prefix)s_log_fmt_custom_value_enum_%(name)s(FILE *p, const 
     putc(']', p);
 }
 
+static inline void %(prefix)s_log_fmt_custom_value_enum_%(name)s(FILE *p, const char *type, const char *name, %(type)s value)
+{
+    if (name)
+        fprintf(p, \"%%s %%s=%%d \", type, name, value);
+    else
+        fprintf(p, \"(%%s)%%d \", type, value);
+}
+
 static inline void %(prefix)s_log_fmt_custom_pointer_enum_%(name)s(FILE *p, const char *type, const char *name, const %(type)s *value)
 {
-    if (value)
-        %(prefix)s_log_fmt_custom_enum_%(name)s(p, type, name, *value);
-    else if (name)
-        fprintf(p, \"%%s %%s=(null)\", type, name);
+    if (name)
+        fprintf(p, \"%%s %%s=%p \", type, name, value);
     else
-        fprintf(p, \"(%%s)(null)\", type);
+        fprintf(p, \"(%%s)%p \", type, value);
+    if (value)
+        %(prefix)s_log_fmt_custom_valuestr_enum_%(name)s(p, *value);
+    else
+        fputs(\"[???]\", p);
 }
 """ % repl)
 
@@ -1981,19 +2088,26 @@ static inline void %(prefix)s_log_fmt_custom_pointer_%(cls)s_%(name)s(FILE *p, c
 
 static inline void %(prefix)s_log_fmt_custom_pointer_pointer_%(cls)s_%(name)s(FILE *p, const char *type, const char *name, const %(type)s **value)
 {
-    if (value)
-        %(prefix)s_log_fmt_custom_pointer_%(cls)s_%(name)s(p, type, name, *value);
-    else if (name)
-        fprintf(p, \"%%s %%s=(null)\", type, name);
+    if (name)
+        fprintf(p, \"%%s %%s=%%p\", type, name, value);
     else
-        fprintf(p, \"(%%s)(null)\", type);
+        fprintf(p, \"(%%s)%%p\", type, value);
+    if (value) {
+""" % repl)
+    generate_group_member_list(f, t, ctxt, "(*value)->")
+    f.write("""\
+    }
 }
 
 static inline void %(prefix)s_log_fmt_custom_value_%(cls)s_%(name)s(FILE *p, const char *type, const char *name, %(type)s value)
 {
-    %(prefix)s_log_fmt_custom_pointer_%(cls)s_%(name)s(p, type, name, &value);
-}
+    if (name)
+        fprintf(p, \"%%s %%s=\", type, name);
+    else
+        fprintf(p, \"(%%s)\", type);
 """ % repl)
+    generate_group_member_list(f, t, ctxt, "value.")
+    f.write("}\n")
 
 
 def generate_custom_formatters(formatters_file, header, ctxt):
