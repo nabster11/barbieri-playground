@@ -431,7 +431,8 @@ for p in patches:
 
     payload = mail.get_payload()
     for line in payload.split('\n'):
-        line = line.strip()
+        if line and line[-1] == "\n":
+            line = line[:-1]
         if not msg_ended:
             if rx_endmsg.search(line):
                 msg_ended = True
