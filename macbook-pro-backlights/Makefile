@@ -15,8 +15,8 @@ macbook-pro-kbd-baclkight: macbook-pro-backlight-common.c
 
 macbook-pro-lvds-baclkight: macbook-pro-backlight-common.c
 	$(CC) $^ -o $@ $(CFLAGS) \
-		-DDEV_VAL='"/sys/class/backlight/mbp_backlight/brightness"' \
-		-DDEV_MAX='"/sys/class/backlight/mbp_backlight/max_brightness"'
+		-DDEV_VAL='"/sys/class/backlight/apple_backlight/brightness"' \
+		-DDEV_MAX='"/sys/class/backlight/apple_backlight/max_brightness"'
 	$(STRIP) -s $@
 	sudo chown root:root $@
 	sudo chmod +s $@
