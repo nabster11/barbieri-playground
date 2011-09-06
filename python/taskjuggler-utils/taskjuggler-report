@@ -636,7 +636,8 @@ class AbstractTaskReport(object):
             b = self._task_resource_bookings(task, r)
             v = self._value(task, r, b)
             tb = bookings.get(rname, 0) + v
-            bookings[rname] = tb
+            if tb > 0:
+                bookings[rname] = tb
 
         if bookings:
             return bookings
