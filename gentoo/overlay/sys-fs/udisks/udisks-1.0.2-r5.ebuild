@@ -13,9 +13,9 @@ SRC_URI="http://people.profusion.mobi/~gustavo/udisks_slim-1.0.2.tar.gz"
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~sh ~sparc ~x86"
-IUSE="atasmart debug device-mapper disk-partition doc lvm nls remote-access"
+IUSE="+atasmart debug device-mapper disk-partition doc lvm nls remote-access"
 
-COMMON_DEPEND=">=sys-fs/udev-147[extras]
+COMMON_DEPEND=">=sys-fs/udev-147
 	>=dev-libs/glib-2.16.1:2
 	>=sys-apps/dbus-1.4.0
 	>=dev-libs/dbus-glib-0.92
