@@ -1,0 +1,9 @@
+# ChangeLog for sys-libs/kmod
+# Copyright 1999-2011 Gentoo Foundation; Distributed under the GPL v2
+# $Header$
+
+*kmod-2 (24 Dec 2011)
+
+  24 Dec 2011; Gustavo Barbieri <barbieri@profusion.mobi> kmod-2.ebuild:
+  Initial packaging.
+
