@@ -81,4 +81,4 @@ URxvt.tabbed.tabbar-fg: 0
 URxvt.tabbed.tab-bg: 3
 URxvt.tabbed.tab-fg: 15
 URxvt.matcher.button: 1
-URxvt.urlLauncher: chromium-bin
+URxvt.urlLauncher: /usr/bin/chromium
