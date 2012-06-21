@@ -127,6 +127,10 @@
 (global-set-key [(control prior)] 'previous-multiframe-window)
 (global-set-key [(control next)] 'next-multiframe-window)
 
+(setq org-directory "~/Documents/org")
+(setq org-mobile-inbox-for-pull "~/Documents/org/flagged.org")
+(setq org-mobile-directory "~/Dropbox/MobileOrg")
+
 (global-set-key "\C-cl" 'org-store-link)
 (global-set-key "\C-ca" 'org-agenda)
 (global-set-key "\C-cb" 'org-iswitchb)
@@ -173,6 +177,17 @@
      (label . 0)
      (statement-cont . +)))))
 
+(c-add-style
+ "e-detour"
+ '("java"
+   (indent-tabs-mode . t)
+   (tab-width . 4)
+   (c-basic-offset . 4)
+   (c-offsets-alist
+    .
+    ((defun-block-intro . 4)
+     (statement-case-intro . 4)))))
+
 (defun evas-c-mode-hooks ()
   (let ((path (buffer-file-name)))
     (cond
@@ -201,6 +216,66 @@
     )
   )
 (add-hook 'c-mode-common-hook 'webkit-c-mode-hooks)
+
+
+(defun e-detour-c-mode-hooks ()
+  (let ((path (buffer-file-name)))
+    (cond
+     ((string-match "/svn/e/THEMES/detorious" path) (c-set-style "e-detour"))
+     )
+    )
+  )
+(add-hook 'c-mode-common-hook 'e-detour-c-mode-hooks)
+
+
+(defun c-lineup-arglist-kernel-vim (langelem)
+  "Line up argument lists by tabs in kernel-vim style"
+  (let* ((lineup (c-lineup-arglist langelem))
+         (steps (floor (+ c-basic-offset -1
+                          (if (arrayp lineup)
+                              (aref lineup 0)
+                            lineup)) c-basic-offset))
+         tabbed)
+    (save-excursion
+      (goto-char (cdr langelem))
+      (when (looking-at "\(if\|while\|for\)\s ")
+        (setq steps (1+ steps))))
+    (setq tabbed (vector (* (max steps 1) c-basic-offset)))
+    tabbed))
+
+(defconst kernel-vim-c-style
+  '("linux" (c-offsets-alist
+             (arglist-cont-nonempty
+              c-lineup-gcc-asm-reg
+              c-lineup-arglist-kernel-vim)))
+  "C Style for kernel as vim do.")
+
+(c-add-style "kernel-vim" kernel-vim-c-style)
+
+(add-hook 'c-mode-hook 'kernel-vim-c-mode-hook)
+
+(defun kernel-vim-c-mode-hook ()
+  (setq show-trailing-whitespace t)
+  (let ((file (buffer-file-name)))
+    (cond ((or (string-match "/ofono" file)
+               (string-match "/connman" file)
+               (string-match "/kmod" file)
+               (string-match "/bluez" file)
+               (string-match "/ell" file))
+           (c-set-style "kernel-vim")
+           (setq indent-tabs-mode t
+                 sentence-end-double-space t)))))
+
+
+(defun my-autoconf-mode-common-hook ()
+  (let ((path (buffer-file-name)))
+    (cond
+     ((string-match "git/kmod" path)  (setq tab-width 8
+        indent-tabs-mode t))
+      )
+    )
+  )
+(add-hook 'autoconf-mode-hook 'my-autoconf-mode-common-hook)
 
 
 ;; webkit has no tab in changelog
@@ -527,5 +602,8 @@ It takes 2 parameters:
 ;;(add-hook 'after-init-hook 'session-initialize)
 
 (require 'pastebin)
+
+(add-to-list 'load-path "/home/gustavo/.emacs.d/site-packages/go-mode-load.el" t)
+(require 'go-mode-load)
 
 (server-start)
