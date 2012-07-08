@@ -269,10 +269,14 @@
 
 (defun my-autoconf-mode-common-hook ()
   (let ((path (buffer-file-name)))
-    (cond
-     ((string-match "git/kmod" path)  (setq tab-width 8
-        indent-tabs-mode t))
-      )
+    (cond ((or (string-match "/ofono" file)
+               (string-match "/connman" file)
+               (string-match "/kmod" file)
+               (string-match "/bluez" file)
+               (string-match "/ell" file))
+           (setq tab-width 8
+                 indent-tabs-mode t))
+          )
     )
   )
 (add-hook 'autoconf-mode-hook 'my-autoconf-mode-common-hook)
