@@ -97,7 +97,11 @@ def parse_commit_message(subject, author, body):
     f = os.fdopen(fd, "w")
 
     f.write(subject)
-    f.write("\n\n")
+    f.write("\n")
+
+    lines = body.split('\n')
+    if lines and lines[0] != '---':
+        f.write('\n')
 
     for line in body.split('\n'):
         if rx_endmsg.search(line):
@@ -107,8 +111,8 @@ def parse_commit_message(subject, author, body):
         f.write('\n')
 
     if author:
-        print("\n\nPatch by: %s\n" % author)
-        f.write("\n\nPatch by: %s\n" % author)
+        print("\nPatch by: %s\n" % author)
+        f.write("\nPatch by: %s\n" % author)
     f.write("\n--This line, and those below, will be ignored--\n")
     f.close()
     return fn
