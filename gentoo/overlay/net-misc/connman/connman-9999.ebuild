@@ -25,8 +25,9 @@ RDEPEND=">=dev-libs/glib-2.16
 	net-libs/gnutls
 	bluetooth? ( net-wireless/bluez )
 	ofono? ( net-misc/ofono )
-	policykit? ( sys-auth/polkit )
 	openvpn? ( net-misc/openvpn )
+	policykit? ( sys-auth/polkit )
+	tools? ( sys-libs/readline )
 	vpnc? ( net-misc/vpnc )
 	wifi? ( >=net-wireless/wpa_supplicant-0.7[dbus] )
 	wimax? ( net-wireless/wimax )"
@@ -42,7 +43,6 @@ src_prepare() {
 src_configure() {
 	econf \
 		--localstatedir=/var \
-		--enable-client \
 		--enable-datafiles \
 		--enable-loopback=builtin \
 		$(use_enable examples test) \
@@ -57,7 +57,7 @@ src_configure() {
 		$(use_enable debug) \
 		$(use_enable doc gtk-doc) \
 		$(use_enable threads) \
-		$(use_enable tools) \
+		$(use_enable tools client) \
 		--disable-iospm \
 		--disable-hh2serial-gps \
 		--disable-openconnect \
@@ -66,7 +66,11 @@ src_configure() {
 
 src_install() {
 	emake DESTDIR="${D}" install || die "emake install failed"
-	dobin client/cm || die "client installation failed"
+
+	if use tools; then
+		# still built as noinst_PROGRAMS
+		dobin client/connmanctl || die "client installation failed"
+	fi
 
 	keepdir /var/lib/${PN} || die
 	newinitd "${FILESDIR}"/${PN}.initd ${PN} || die
