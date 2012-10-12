@@ -45,18 +45,35 @@ parser.add_option("-p", "--patch-level", action="store", type=int, default=1,
           help="Option passed to `patch' program")
 parser.add_option("-n", "--dry-run", action="store_true", default=False,
           help="Don't apply the patch, just check it can be applied")
+parser.add_option("-d", "--end-msg-regex", action="store", type=str,
+          default=r"^---\s*$",
+          help="Stop parsing commit message when a line matches regex")
+parser.add_option("-i", "--ignore-line-regex", action="store", type=str,
+          default=None,
+          help="Ignore lines in commit messages when regex matches")
+parser.add_option("-s", "--prepend-to-subject", action="store", type=str,
+          default='',
+          help="Prepend string to subject if not there")
+parser.add_option("-a", "--auto-format-subject", action="store_true",
+          default=True,
+          help="Automatically formats subject line")
 
 (options, args) = parser.parse_args()
 
 patches = args
 patch_level = "-p%d" % options.patch_level
 
-rx_endmsg = re.compile(r"^---\s*$")
+rx_endmsg = re.compile(options.end_msg_regex)
 rx_email = re.compile(r"<(?P<email>.*)>")
 rx_subject_prefix = re.compile("\[[^\]]*\]\s*")
 rx_create = re.compile(r'^ create mode')
 rx_delete = re.compile(r'^ delete mode')
 rx_change_mode = re.compile(r'^ change mode')
+
+if options.ignore_line_regex:
+    rx_ignore_line_regex = re.compile(options.ignore_line_regex)
+else:
+    rx_ignore_line_regex = None
 
 def find_project_root():
     p = os.path.realpath(".")
@@ -96,6 +113,16 @@ def parse_commit_message(subject, author, body):
     (fd, fn) = tempfile.mkstemp(prefix="svn-commit.tmp", text=True)
     f = os.fdopen(fd, "w")
 
+    if not subject.startswith(options.prepend_to_subject):
+        subject = options.prepend_to_subject + ' ' + subject
+
+    if options.auto_format_subject:
+        subject = subject.replace('\n', ' ')
+        while '  ' in subject:
+            subject = subject.replace('  ', ' ')
+        if subject.endswith('.') and not subject.endswith('...'):
+            subject = subject[:-1]
+
     f.write(subject)
     f.write("\n")
 
@@ -106,6 +133,9 @@ def parse_commit_message(subject, author, body):
     for line in body.split('\n'):
         if rx_endmsg.search(line):
             break
+        if rx_ignore_line_regex and rx_ignore_line_regex.search(line):
+            continue
+
         print(line)
         f.write(line)
         f.write('\n')
