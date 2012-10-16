@@ -203,6 +203,7 @@ if root == '':
     raise SystemError("Could not find project root: no .svn")
 
 gituser = subprocess.check_output("git config user.email".split()).strip()
+answer = None
 
 for p in patches:
     print "patch: %s" % (p,)
@@ -241,9 +242,10 @@ for p in patches:
         system("%s %s" % (os.environ.get("EDITOR"), commitfn))
 
     if not options.dry_run:
-        answer = raw_input("Commit [Y/n]? ").strip().lower()
-        if answer in ("n", "no"):
-            raise SystemExit("stopped at patch %r (message at %r)" % (p, commitfn))
+        if answer not in ("a", "all"):
+            answer = raw_input("Commit [Y/a/n]? ").strip().lower()
+            if answer in ("n", "no"):
+                raise SystemExit("stopped at patch %r (message at %r)" % (p, commitfn))
 
         to_commit_str = " ".join(repr(x) for x in stat['tocommit'])
         system("svn commit -F %r %s", commitfn, to_commit_str)
