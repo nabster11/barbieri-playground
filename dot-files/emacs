@@ -1,10 +1,10 @@
 ; -*- mode: lisp -*-
 
 (custom-set-variables
-  ;; custom-set-variables was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(auto-compression-mode t nil (jka-compr))
  '(blink-cursor-mode nil)
  '(c-default-style (quote ((c-mode . "cc-mode") (java-mode . "java") (other . "gnu"))))
@@ -29,7 +29,7 @@
  '(semanticdb-default-system-save-directory "/home/gustavo/.semantic.db" t)
  '(show-paren-mode t nil (paren))
  '(show-trailing-whitespace t)
- '(sort-fold-case t)
+ '(sort-fold-case t t)
  '(speedbar-frame-parameters (quote ((minibuffer) (width . 20) (border-width . 0) (menu-bar-lines . 0) (tool-bar-lines . 0) (unsplittable . t) (set-background-color "black"))))
  '(tab-width 8)
  '(tool-bar-mode nil nil (tool-bar))
@@ -38,11 +38,11 @@
  '(version-control nil)
  '(x-stretch-cursor t))
 (custom-set-faces
-  ;; custom-set-faces was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
- '(default ((t (:stipple nil :background "#000000" :foreground "#d9d9d9" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 80 :width normal :family "terminus"))))
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(default ((t (:inherit nil :stipple nil :background "#303030" :foreground "#d9d9d9" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 90 :width normal :foundry "xos4" :family "terminus"))))
  '(background "blue")
  '(diff-added ((t (:inherit diff-changed-face :foreground "#00ff00"))))
  '(diff-added-face ((t (:inherit diff-changed-face :foreground "#00ff00"))) t)
@@ -63,8 +63,8 @@
  '(list-mode-item-selected ((t (:background "gold"))))
  '(makefile-space-face ((t (:background "wheat"))) t)
  '(mmm-default-submode-face ((t (:background "gray15"))))
- '(mode-line ((t (:background "#333333" :foreground "wheat"))))
- '(mode-line-inactive ((default (:inherit mode-line)) (((class color) (min-colors 88) (background dark)) (:background "grey10" :foreground "grey40" :box (:line-width -1 :color "grey30") :weight light))))
+ '(mode-line ((t (:background "gray10" :foreground "#e9e9b0"))))
+ '(mode-line-inactive ((t (:inherit mode-line :foreground "#666666" :box (:line-width -1 :color "grey30") :weight light))))
  '(paren-match ((t (:background "cyan"))))
  '(region ((t (:background "#005577"))))
  '(semantic-highlight-edits-face ((((class color) (background dark)) (:background "#222200"))))
@@ -107,7 +107,6 @@
 (global-set-key [f5] 'compile)
 (global-set-key [f6] 'ff-find-other-file)
 (global-set-key [f7] 're-read-current-file)
-(global-set-key [f8] 'gobject-class-generate)
 (global-set-key [f9] 'whitespace-toggle-verbose)
 (global-set-key [(shift f1)] 'cscope-find-this-symbol)
 (global-set-key [(shift f2)] 'cscope-find-global-definition)
@@ -281,6 +280,18 @@
   )
 (add-hook 'autoconf-mode-hook 'my-autoconf-mode-common-hook)
 
+(defun obsidian-c-mode-hooks ()
+  (let ((path (buffer-file-name)))
+    (cond
+    (cond ((or (string-match "/obsidian-playground/" file)
+               (string-match "/obsidian-homescreen/" file))
+               (c-set-style "linux4"))
+          )
+     )
+    )
+  )
+(add-hook 'c-mode-common-hook 'obsidian-c-mode-hooks)
+
 
 ;; webkit has no tab in changelog
 ;; (defun my-change-log-mode-common-hook ()
@@ -293,292 +304,37 @@
 ;;   )
 ;; (add-hook 'change-log-mode-hook 'my-change-log-mode-common-hook)
 
-
-(defun string-join (list separator)
-  "Takes a list of string and joins them using delimiter."
-  (mapconcat (lambda (x) x) list separator))
-
-(defun string-concat (list)
-  "Takes a list of strings and joins them."
-  (mapconcat (lambda (x) x) list ""))
-
-(defun ask-value-non-empty (prompt)
-  "Ask a question in minibuffer and ensure it's not empty string."
-  (let ((x (read-string prompt)))
-    (if (string= "" x)
-	(ask-value-non-empty prompt)
-      x)))
-
-(defun gobject-class-header (class_name parent_class_name)
-  "Generate the header definition for a GObject derived class.
-
-It takes 2 parameters:
-   CLASS_NAME: class name, like 'gtk_button' or 'gtk_tree_view'. First
-      element before the underscore character (_) will be used as name
-      space. Example: 'gtk_button' is the 'button' class in 'gtk' name
-      space.
-   PARENT_CLASS_NAME: parent class name, like 'g_object'. First element
-      before the underscore character (_) will be used as name space.
-      Example: 'g_object' is the 'object' class in 'g' namespace.
-"
-  (interactive "sClass name (ie: gtk_tree_view): \nsParent class name (default: g_object): ")
-
-  (defun right-fill (len string)
-    "Takes a string and fill it to take at least len characters"
-    (setq missing (- len (length string)))
-    (if	(> missing 0)
-	(concat string (make-string missing ?\  ))
-      string))
-  (defun macro-line-cnt (&rest sequences)
-    (concat (right-fill 72 (string-concat sequences)) "\\\n"))
-  (defun macro-line-end (&rest sequences)
-    (concat (string-concat sequences) "\n"))
+(defun* get-closest-pathname (&optional (max-level 3) (file "Makefile"))
+  (let ((root (expand-file-name "/"))
+        (level 0))
+    (expand-file-name file
+                      (loop
+                       for d = default-directory then (expand-file-name ".." d)
+                       do (setq level (+ level 1))
+                       if (file-exists-p (expand-file-name file d))
+                       return d
+                       if (> level max-level)
+                       return nil
+                       if (equal d root)
+                       return nil))))
 
 
-  (let* ((parent_class_name (if (string= "" parent_class_name)
-				"g_object"
-			      (downcase parent_class_name)))
-	 (class_name        (downcase (if (string= "" class_name)
-					  (ask-value-non-empty
-					   "You must provide class name (ie: gtk_tree_view): ")
-					class_name)))
-	 (pieces-class_name  (split-string (downcase class_name) "_"))
-	 (pieces-parent_class_name (split-string parent_class_name "_"))
-	 (namespace       (car-safe pieces-class_name))
-	 (name            (string-join (cdr-safe pieces-class_name) "_"))
-	 (ParentClassName (mapconcat 'capitalize pieces-parent_class_name ""))
-	 (NAMESPACE       (upcase namespace))
-	 (NAME            (upcase name))
-	 (NameSpace       (capitalize namespace))
-	 (Name            (mapconcat 'capitalize (cdr-safe pieces-class_name) ""))
-	 (ClassName       (concat NameSpace Name))
-	 )
-
-    (insert
-     (concat
-      "\n"
-      "G_BEGIN_DECLS\n"
-      "\n"
-      (macro-line-cnt "#define " NAMESPACE "_TYPE_" NAME)
-      (macro-line-end "   (" namespace "_" name "_get_type())")
-      (macro-line-cnt "#define " NAMESPACE "_" NAME "(obj)")
-      (macro-line-cnt "   (G_TYPE_CHECK_INSTANCE_CAST ((obj),")
-      (macro-line-cnt "                                " NAMESPACE "_TYPE_" NAME ",")
-      (macro-line-end "                                " ClassName "))")
-      (macro-line-cnt "#define " NAMESPACE "_" NAME "_CLASS(klass)")
-      (macro-line-cnt "   (G_TYPE_CHECK_CLASS_CAST ((klass),")
-      (macro-line-cnt "                             " NAMESPACE "_TYPE_" NAME ",")
-      (macro-line-end "                             " ClassName "Class))")
-      (macro-line-cnt "#define " NAMESPACE "_IS_" NAME "(obj)")
-      (macro-line-cnt "   (G_TYPE_CHECK_INSTANCE_TYPE ((obj),")
-      (macro-line-end "                                " NAMESPACE "_TYPE_" NAME "))")
-      (macro-line-cnt "#define " NAMESPACE "_IS_" NAME "_CLASS(klass)")
-      (macro-line-cnt "   (G_TYPE_CHECK_CLASS_TYPE ((klass),")
-      (macro-line-end "                             " NAMESPACE "_TYPE_" NAME "))")
-      (macro-line-cnt "#define " NAMESPACE "_" NAME "_GET_CLASS(obj)")
-      (macro-line-cnt "   (G_TYPE_INSTANCE_GET_CLASS ((obj),")
-      (macro-line-cnt "                               " NAMESPACE "_TYPE_" NAME ",")
-      (macro-line-end "                               " ClassName "Class))")
-      "\n"
-      "typedef struct _" ClassName "      " ClassName ";\n"
-      "typedef struct _" ClassName "Class " ClassName "Class;\n"
-      "\n"
-      "struct _" ClassName "Class\n"
-      "{\n"
-      "    " ParentClassName "Class parent_class;\n"
-      "};\n"
-      "\n"
-      "struct _" ClassName "\n"
-      "{\n"
-      "    " ParentClassName " parent;\n"
-      "};\n"
-      "\n"
-      "GType " namespace "_" name "_get_type (void) G_GNUC_CONST;\n"
-      "\n"
-      "G_END_DECLS\n"
-      "\n"
-      )
-     )
-    )
-  )
-
-(defun gobject-class-code (class_name parent_class_name)
-  "Generate the code implementation for a GObject derived class.
-
-It takes 2 parameters:
-   CLASS_NAME: class name, like 'gtk_button' or 'gtk_tree_view'. First
-      element before the underscore character (_) will be used as name
-      space. Example: 'gtk_button' is the 'button' class in 'gtk' name
-      space.
-   PARENT_CLASS_NAME: parent class name, like 'g_object'. First element
-      before the underscore character (_) will be used as name space.
-      Example: 'g_object' is the 'object' class in 'g' namespace.
-"
-  (interactive "sClass name (ie: gtk_tree_view): \nsParent class name (default: g_object): ")
-
-  (let* ((parent_class_name (if (string= "" parent_class_name)
-				"g_object"
-			      (downcase parent_class_name)))
-	 (class_name        (downcase (if (string= "" class_name)
-					  (ask-value-non-empty
-					   "You must provide class name (ie: gtk_tree_view): ")
-					class_name)))
-	 (pieces-class_name  (split-string (downcase class_name) "_"))
-	 (pieces-parent_class_name (split-string parent_class_name "_"))
-	 (namespace       (car-safe pieces-class_name))
-	 (name            (string-join (cdr-safe pieces-class_name) "_"))
-	 (ParentClassName (mapconcat 'capitalize pieces-parent_class_name ""))
-	 (NameSpace       (capitalize namespace))
-	 (Name            (mapconcat 'capitalize (cdr-safe pieces-class_name) ""))
-	 (ClassName       (concat NameSpace Name))
-	 (class_name      (concat namespace "_" name))
-         (PARENT_NAMESPACE (upcase (car-safe pieces-parent_class_name)))
-         (PARENT_NAME      (mapconcat 'upcase (cdr-safe pieces-parent_class_name) "_"))
-	 )
-
-    (insert
-     (concat
-      "\n"
-      "static void " class_name "_dispose (GObject *object);\n"
-      "static void " class_name "_finalize (GObject *object);\n"
-      "\n"
-      "G_DEFINE_TYPE (" ClassName ", " class_name ", " PARENT_NAMESPACE "_TYPE_" PARENT_NAME ");\n"
-      "\n"
-      "static void\n"
-      class_name "_class_init (" ClassName "Class *klass)\n"
-      "{\n"
-      "    GObjectClass *gobject_class = (GObjectClass *)klass;\n"
-      "\n"
-      "    gobject_class->dispose = " class_name "_dispose;\n"
-      "    gobject_class->finalize = " class_name "_finalize;\n"
-      "}\n"
-      "\n"
-      "static void\n"
-      class_name "_init (" ClassName " *self)\n"
-      "{\n"
-      "}\n"
-      "\n"
-      "static void\n"
-      class_name "_dispose (GObject *object)\n"
-      "{\n"
-      "    " ClassName " *self = (" ClassName " *)object;\n"
-      "\n"
-      "    G_OBJECT_CLASS (" class_name "_parent_class)->dispose (object);\n"
-      "}\n"
-      "\n"
-      "static void\n"
-      class_name "_finalize (GObject *object)\n"
-      "{\n"
-      "    " ClassName " *self = (" ClassName " *)object;\n"
-      "\n"
-      "    g_signal_handlers_destroy (object);\n"
-      "    G_OBJECT_CLASS (" class_name "_parent_class)->finalize (object);\n"
-      "}\n"
-      "\n"
-      )
-     )
-    )
-  )
-
-(defun gobject-class-generate (class_name parent_class_name)
-  "Generate header (.h) and code (.c) files for a GObject derived class.
-
-It takes 2 parameters:
-   CLASS_NAME: class name, like 'gtk_button' or 'gtk_tree_view'. First
-      element before the underscore character (_) will be used as name
-      space. Example: 'gtk_button' is the 'button' class in 'gtk' name
-      space.
-   PARENT_CLASS_NAME: parent class name, like 'g_object'. First element
-      before the underscore character (_) will be used as name space.
-      Example: 'g_object' is the 'object' class in 'g' namespace.
-"
-  (interactive "sClass name (ie: gtk_tree_view): \nsParent class name (default: g_object): ")
-
-  (let* ((parent_class_name (if (string= "" parent_class_name)
-				"g_object"
-			      (downcase parent_class_name)))
-	 (class_name        (downcase (if (string= "" class_name)
-					  (ask-value-non-empty
-					   "You must provide class name (ie: gtk_tree_view): ")
-					class_name)))
-	 (pieces-class_name  (split-string (downcase class_name) "_"))
-	 (pieces-parent_class_name (split-string parent_class_name "_"))
-	 (base_file_name (string-join pieces-class_name "-"))
-	 (file_header (concat base_file_name ".h"))
-	 (file_code   (concat base_file_name ".c"))
-	 (DEFINE_NAME (concat (upcase class_name) "_H"))
-	 (parent_include (if (string= "g_object" parent_class_name)
-			     "glib-object.h"
-			   (if (string-match "^gtk_" parent_class_name)
-			       "gtk/gtk.h"
-			     (concat (string-join pieces-parent_class_name "-") ".h")
-			     )
-			   ))
-	 )
-
-    (delete-other-windows)
-    (split-window-vertically)
-
-    (find-file file_header)
-    (insert
-     (concat
-      "#ifndef __" DEFINE_NAME "__\n"
-      "#define __" DEFINE_NAME "__\n"
-      "\n"
-      "#include <" parent_include ">\n"
-      "\n"))
-    (gobject-class-header class_name parent_class_name)
-    (insert "#endif /* __" DEFINE_NAME "__ */\n")
-
-    (other-window 1)
-
-    (find-file file_code)
-    (insert
-     (concat
-      "#include \"" file_header "\"\n"
-      "\n"))
-    (gobject-class-code class_name parent_class_name)
-    )
-  )
-
-(defun insert-license ()
-  (interactive)
-  (insert
-"/*
- * Canola library
- * Copyright (C) 2010 ProFUSION embedded systems
- * @author Gustavo Sverzut Barbieri <barbieri@profusion.mobi>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-"))
-
-(defun insert-include-config ()
-  (interactive)
-  (insert
-"
-#ifdef HAVE_CONFIG_H
-#include \"config.h\"
-#endif
-
-"))
-
-(defun insert-license-and-include-config ()
-  (interactive)
-  (insert-license)
-  (insert-include-config))
+(add-hook 'c-mode-hook
+          (lambda ()
+            (unless (file-exists-p "Makefile")
+              (set (make-local-variable 'compile-command)
+                   (let ((file (file-name-nondirectory buffer-file-name))
+                         (mkfile (get-closest-pathname)))
+                     (if mkfile
+                         (progn (format "make -C %s -f %s"
+                                        (file-name-directory mkfile) mkfile))
+                       (format "%s -c -o %s.o %s %s %s"
+                               (or (getenv "CC") "gcc")
+                               (file-name-sans-extension file)
+                               (or (getenv "CPPFLAGS") "-DDEBUG=9")
+                               (or (getenv "CFLAGS") "-Wall -Wextra -Wshadow -ggdb3 -fvisibility=hidden")
+                               (or (getenv "CXXFLAGS") "-Wall -Wextra -Wshadow -ggdb3 -fvisibility=hidden")
+                               file)))))))
 
 (put 'downcase-region 'disabled nil)
 
@@ -592,22 +348,16 @@ It takes 2 parameters:
 (add-to-list 'auto-mode-alist '("\\.edc$" . edje-mode))
 (autoload 'edje-mode "edje-mode")
 
-(add-to-list 'load-path "/home/gustavo/.emacs.d/site-packages/edje-lua-mode.el")
-(require 'edje-lua-mode)
-
 (put 'upcase-region 'disabled nil)
 
-(require 'xcscope)
-(require 'taskjuggler-mode)
+;;(require 'xcscope)
+;;(require 'taskjuggler-mode)
 
 (add-to-list 'auto-mode-alist '("\\.org\\'" . org-mode))
 
-;;(require 'session)
-;;(add-hook 'after-init-hook 'session-initialize)
+(require 'session)
+(add-hook 'after-init-hook 'session-initialize)
 
-(require 'pastebin)
-
-(add-to-list 'load-path "/home/gustavo/.emacs.d/site-packages/go-mode-load.el" t)
-(require 'go-mode-load)
+;; (require 'pastebin)
 
 (server-start)
