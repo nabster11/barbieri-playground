@@ -153,6 +153,7 @@ def parse_stat(out):
     stat['deleted'] = []
     stat['modechanged'] = []
     stat['tocommit'] = []
+    stat['diradded'] = []
 
     lines = out.split('\n')
     i = 0
@@ -175,21 +176,30 @@ def parse_stat(out):
     for line in lines[i:]:
         if not line:
             break
-
         if rx_create.search(line):
             fn = line.split()[3]
             stat['added'].append(fn)
-            if not options.dry_run:
-                subprocess.check_call([ "svn", "add", fn ])
+            d = os.path.dirname(fn)
+            if not os.path.exists(d) and d not in stat['diradded']:
+                stat['diradded'].append(d)
         elif rx_delete.search(line):
             fn = line.split()[3]
             stat['deleted'].append(fn)
-            if not options.dry_run:
-                subprocess.check_call([ "svn", "delete", fn ])
         elif rx_change_mode.search(line):
             stat['modechanged'].append(line.split()[6])
 
     return stat
+
+def process_stat(stat):
+    for d in stat['diradded']:
+        subprocess.check_call([ "svn", "add", d ])
+
+    for fn in stat['added']:
+        if os.path.dirname(fn) not in  stat['diradded']:
+            subprocess.check_call([ "svn", "add", fn ])
+
+    for fn in stat['deleted']:
+        subprocess.check_call([ "svn", "delete", fn ])
 
 def system(cmd, *args):
     cmdline = cmd % args
@@ -197,6 +207,19 @@ def system(cmd, *args):
     if os.system(cmdline) != 0:
         raise SystemError("Could not execute: %r" % (cmdline,))
 
+def apply_patch(patch, patch_level, dry_run):
+    try:
+        if dry_run:
+            a = ""
+        else:
+            a = "--apply"
+        cmd = "git apply -p%d --numstat --stat --summary %s %s" %\
+              (patch_level, a, patch)
+        print("\nExec: %s" % cmd)
+        return subprocess.check_output(cmd.split())
+    except subprocess.CalledProcessError:
+        print("Could not apply patch %r. Commit message saved to %r" % (p, commitfn))
+        sys.exit(1)
 
 root = find_project_root()
 if root == '':
@@ -218,19 +241,7 @@ for p in patches:
 
     commitfn = parse_commit_message(subject, author, mail.get_payload())
 
-    try:
-        if options.dry_run:
-            a = ""
-        else:
-            a = "--apply"
-        cmd = "git apply -p%d --numstat --stat --summary %s %s" %\
-              (options.patch_level, a, p)
-        print("\nExec: %s" % cmd)
-        out = subprocess.check_output(cmd.split())
-    except subprocess.CalledProcessError:
-        print("Could not apply patch %r. Commit message saved to %r" % (p, commitfn))
-        sys.exit(1)
-
+    out = apply_patch(p, options.patch_level, True)
     print("Summary:")
     stat = parse_stat(out)
 
@@ -238,17 +249,22 @@ for p in patches:
     for f in stat['tocommit']:
         print("\t %s" % f)
 
+    if options.dry_run:
+        print('\nCommit message saved in %r' % commitfn)
+        sys.exit(0)
+
+    apply_patch(p, options.patch_level, False)
+    process_stat(stat)
+
     if options.edit_message:
         system("%s %s" % (os.environ.get("EDITOR"), commitfn))
 
-    if not options.dry_run:
-        if answer not in ("a", "all"):
-            answer = raw_input("Commit [Y/a/n]? ").strip().lower()
-            if answer in ("n", "no"):
-                raise SystemExit("stopped at patch %r (message at %r)" % (p, commitfn))
+    if answer not in ("a", "all"):
+        answer = raw_input("Commit [Y/a/n]? ").strip().lower()
+        if answer in ("n", "no"):
+            raise SystemExit("stopped at patch %r (message at %r)" % (p, commitfn))
 
-        to_commit_str = " ".join(repr(x) for x in stat['tocommit'])
-        system("svn commit -F %r %s", commitfn, to_commit_str)
-        os.unlink(commitfn)
-    else:
-        print('\nCommit message saved in %r' % commitfn)
+    l = stat['diradded'] + stat['tocommit']
+    to_commit_str = " ".join(repr(x) for x in l)
+    system("svn commit -F %r %s", commitfn, to_commit_str)
+    os.unlink(commitfn)
