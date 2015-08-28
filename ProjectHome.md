@@ -1,0 +1,1 @@
+This is where I place random pieces of code, small projects and experiences.
